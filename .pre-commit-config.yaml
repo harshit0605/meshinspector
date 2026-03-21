@@ -1,0 +1,11 @@
+# Preserves the existing MeshLib repo hook after moving to the root repository.
+repos:
+-   repo: local
+    hooks:
+    -   id: meshlib-vcxproj-missing-files
+        name: Check MeshLib Visual Studio projects for missing file entries
+        stages: [pre-push, manual]
+        always_run: true
+        entry: MeshLib/scripts/check_vcxproj.py MeshLib/source/
+        language: script
+        pass_filenames: false

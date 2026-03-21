@@ -1,0 +1,29 @@
+[project]
+name = "meshinspector-backend"
+version = "0.1.0"
+description = "Backend API for MeshInspector - 3D jewelry manufacturability analysis"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "alembic>=1.16.0",
+    "boto3>=1.38.0",
+    "celery[redis]>=5.5.0",
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "meshlib>=2.4.0",
+    "numpy>=1.26.0",
+    "psycopg[binary]>=3.2.0",
+    "pygltflib>=1.16.0",
+    "pydantic-settings>=2.10.0",
+    "python-multipart>=0.0.6",
+    "redis>=6.2.0",
+    "scipy>=1.17.0",
+    "sqlalchemy>=2.0.41",
+    "trimesh>=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "httpx>=0.26.0",
+]
