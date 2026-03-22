@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import math
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import Select, and_, func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from domain.models import (
@@ -18,6 +20,18 @@ from domain.models import (
     ModelVersionRecord,
     OperationRequestRecord,
 )
+
+
+def _sanitize_json_value(value: Any) -> Any:
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {key: _sanitize_json_value(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_sanitize_json_value(item) for item in value]
+    if isinstance(value, tuple):
+        return [_sanitize_json_value(item) for item in value]
+    return value
 
 
 def generate_id(prefix: str) -> str:
@@ -67,6 +81,19 @@ def create_artifact(
     size_bytes: int,
     metadata_json: dict[str, Any] | None = None,
 ) -> ModelArtifactRecord:
+    metadata_json = _sanitize_json_value(metadata_json or {})
+    existing = db.scalar(
+        select(ModelArtifactRecord).where(ModelArtifactRecord.storage_key == storage_key)
+    )
+    if existing is not None:
+        existing.version_id = version_id
+        existing.artifact_type = artifact_type
+        existing.mime_type = mime_type
+        existing.size_bytes = size_bytes
+        existing.metadata_json = metadata_json
+        db.flush()
+        return existing
+
     artifact = ModelArtifactRecord(
         id=generate_id("art"),
         version_id=version_id,
@@ -74,11 +101,26 @@ def create_artifact(
         mime_type=mime_type,
         storage_key=storage_key,
         size_bytes=size_bytes,
-        metadata_json=metadata_json or {},
+        metadata_json=metadata_json,
     )
-    db.add(artifact)
-    db.flush()
-    return artifact
+    try:
+        with db.begin_nested():
+            db.add(artifact)
+            db.flush()
+        return artifact
+    except IntegrityError:
+        existing = db.scalar(
+            select(ModelArtifactRecord).where(ModelArtifactRecord.storage_key == storage_key)
+        )
+        if existing is None:
+            raise
+        existing.version_id = version_id
+        existing.artifact_type = artifact_type
+        existing.mime_type = mime_type
+        existing.size_bytes = size_bytes
+        existing.metadata_json = metadata_json
+        db.flush()
+        return existing
 
 
 def upsert_snapshot(
@@ -87,6 +129,7 @@ def upsert_snapshot(
     snapshot_type: str,
     payload_json: dict[str, Any],
 ) -> AnalysisSnapshotRecord:
+    payload_json = _sanitize_json_value(payload_json)
     existing = db.scalar(
         select(AnalysisSnapshotRecord).where(
             AnalysisSnapshotRecord.version_id == version_id,
@@ -115,6 +158,7 @@ def create_snapshot_record(
     snapshot_type: str,
     payload_json: dict[str, Any],
 ) -> AnalysisSnapshotRecord:
+    payload_json = _sanitize_json_value(payload_json)
     snapshot = AnalysisSnapshotRecord(
         id=generate_id("snp"),
         version_id=version_id,
@@ -281,13 +325,29 @@ def get_job_events(
     return list(db.scalars(query))
 
 
-def claim_next_database_task(db: Session, runner_id: str) -> DevTaskQueueRecord | None:
+def claim_next_database_task(
+    db: Session,
+    runner_id: str,
+    stale_before: datetime | None = None,
+) -> DevTaskQueueRecord | None:
+    queued_clause = and_(
+        DevTaskQueueRecord.status == "queued",
+        DevTaskQueueRecord.available_at <= func.now(),
+    )
+    claimable_clause = queued_clause
+    if stale_before is not None:
+        claimable_clause = or_(
+            queued_clause,
+            and_(
+                DevTaskQueueRecord.status == "running",
+                DevTaskQueueRecord.locked_at.is_not(None),
+                DevTaskQueueRecord.locked_at <= stale_before,
+            ),
+        )
+
     task = db.scalar(
         select(DevTaskQueueRecord)
-        .where(
-            DevTaskQueueRecord.status == "queued",
-            DevTaskQueueRecord.available_at <= func.now(),
-        )
+        .where(claimable_clause)
         .order_by(DevTaskQueueRecord.created_at.asc())
         .with_for_update(skip_locked=True)
     )
@@ -297,6 +357,7 @@ def claim_next_database_task(db: Session, runner_id: str) -> DevTaskQueueRecord 
     task.status = "running"
     task.locked_at = datetime.now(timezone.utc)
     task.locked_by = runner_id
+    task.error_message = None
     task.attempts += 1
     db.flush()
     return task

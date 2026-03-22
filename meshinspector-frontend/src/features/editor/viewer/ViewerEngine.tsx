@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, ThreeEvent, useFrame, useLoader, useThree } from '@react-three/fiber';
-import { Bounds, Environment, Html, OrbitControls, useBounds, useGLTF } from '@react-three/drei';
+import { Bounds, Environment, GizmoHelper, GizmoViewport, Html, OrbitControls, useBounds, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
@@ -77,8 +77,27 @@ function useJsonPayload<T>(url?: string | null) {
   return payload;
 }
 
-function createClippingPlane(sectionEnabled: boolean) {
-  return new THREE.Plane(new THREE.Vector3(0, 1, 0), sectionEnabled ? 0 : 0);
+function createPlaneFrame(sectionAxis?: [number, number, number] | null) {
+  const normal = new THREE.Vector3(...(sectionAxis ?? [0, 1, 0]));
+  if (normal.lengthSq() < 1e-8) {
+    normal.set(0, 1, 0);
+  }
+  normal.normalize();
+  const reference = Math.abs(normal.y) < 0.95 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+  const uAxis = new THREE.Vector3().crossVectors(reference, normal).normalize();
+  const vAxis = new THREE.Vector3().crossVectors(normal, uAxis).normalize();
+  return { normal, uAxis, vAxis };
+}
+
+function createClippingPlane(sectionAxis?: [number, number, number] | null) {
+  const { normal } = createPlaneFrame(sectionAxis);
+  return new THREE.Plane(normal, 0);
+}
+
+function setClippingPlaneOffset(plane: THREE.Plane, offset: number, sectionAxis?: [number, number, number] | null) {
+  const { normal } = createPlaneFrame(sectionAxis);
+  plane.normal.copy(normal);
+  plane.constant = -offset;
 }
 
 function colorForScalar(value: number, overlay: ScalarOverlayResponse) {
@@ -122,7 +141,10 @@ function computeSliceStats(
   regionPayload: RegionPayload | null,
   selectedRegionIds: string[],
   sectionConstant: number,
+  sectionAxis?: [number, number, number] | null,
 ): SectionContourPayload {
+  const { normal, uAxis, vAxis } = createPlaneFrame(sectionAxis);
+  const planeOrigin = normal.clone().multiplyScalar(sectionConstant);
   const vertexToRegion = new Map<number, string>();
   for (const region of regionPayload?.regions ?? []) {
     for (const vertexIndex of region.vertex_indices) {
@@ -161,8 +183,8 @@ function computeSliceStats(
   const edgeIntersections = (aIndex: number, bIndex: number): THREE.Vector3[] => {
     const a = new THREE.Vector3(position.getX(aIndex), position.getY(aIndex), position.getZ(aIndex));
     const b = new THREE.Vector3(position.getX(bIndex), position.getY(bIndex), position.getZ(bIndex));
-    const da = a.y - sectionConstant;
-    const db = b.y - sectionConstant;
+    const da = normal.dot(a) - sectionConstant;
+    const db = normal.dot(b) - sectionConstant;
 
     if (Math.abs(da) <= epsilon && Math.abs(db) <= epsilon) {
       return [];
@@ -213,10 +235,14 @@ function computeSliceStats(
     addAdjacency(key0, key1);
     segmentCount += 1;
     perimeterMm += p0.distanceTo(p1);
-    minX = Math.min(minX, p0.x, p1.x);
-    maxX = Math.max(maxX, p0.x, p1.x);
-    minZ = Math.min(minZ, p0.z, p1.z);
-    maxZ = Math.max(maxZ, p0.z, p1.z);
+    const p0u = uAxis.dot(p0);
+    const p1u = uAxis.dot(p1);
+    const p0v = vAxis.dot(p0);
+    const p1v = vAxis.dot(p1);
+    minX = Math.min(minX, p0u, p1u);
+    maxX = Math.max(maxX, p0u, p1u);
+    minZ = Math.min(minZ, p0v, p1v);
+    maxZ = Math.max(maxZ, p0v, p1v);
 
     const triangleRegions = [aIndex, bIndex, cIndex]
       .map((vertexIndex) => vertexToRegion.get(vertexIndex))
@@ -255,14 +281,20 @@ function computeSliceStats(
 
   return {
     section_constant: sectionConstant,
+    plane_axis: [normal.x, normal.y, normal.z],
+    plane_u_axis: [uAxis.x, uAxis.y, uAxis.z],
+    plane_v_axis: [vAxis.x, vAxis.y, vAxis.z],
+    plane_origin: [planeOrigin.x, planeOrigin.y, planeOrigin.z],
     contour_count: contourCount,
     segment_count: segmentCount,
     selected_region_segment_count: selectedRegionSegmentCount,
     perimeter_mm: segmentCount > 0 ? perimeterMm : null,
     width_mm: segmentCount > 0 ? maxX - minX : null,
     depth_mm: segmentCount > 0 ? maxZ - minZ : null,
-    bounds_min: segmentCount > 0 ? [minX, sectionConstant, minZ] : null,
-    bounds_max: segmentCount > 0 ? [maxX, sectionConstant, maxZ] : null,
+    projected_bounds_min: segmentCount > 0 ? [minX, minZ] : null,
+    projected_bounds_max: segmentCount > 0 ? [maxX, maxZ] : null,
+    bounds_min: segmentCount > 0 ? [planeOrigin.x, planeOrigin.y, planeOrigin.z] : null,
+    bounds_max: segmentCount > 0 ? [planeOrigin.x, planeOrigin.y, planeOrigin.z] : null,
     segments,
   };
 }
@@ -308,14 +340,16 @@ function ScalarOverlay({
   overlay,
   sectionEnabled,
   sectionConstant,
+  sectionAxis,
 }: {
   geometry: THREE.BufferGeometry;
   overlay: ScalarOverlayResponse | null;
   sectionEnabled: boolean;
   sectionConstant: number;
+  sectionAxis?: [number, number, number] | null;
 }) {
   const { gl } = useThree();
-  const clippingPlane = useMemo(() => createClippingPlane(sectionEnabled), [sectionEnabled]);
+  const clippingPlane = useMemo(() => createClippingPlane(sectionAxis), [sectionAxis]);
   const overlayGeometry = useMemo(() => {
     if (!overlay) {
       return null;
@@ -339,7 +373,7 @@ function ScalarOverlay({
   }, [gl, sectionEnabled]);
 
   useFrame(() => {
-    clippingPlane.constant = sectionConstant;
+    setClippingPlaneOffset(clippingPlane, sectionConstant, sectionAxis);
   });
 
   useEffect(() => () => overlayGeometry?.dispose(), [overlayGeometry]);
@@ -381,16 +415,22 @@ function SectionContourOverlay({
   }, [contour, sectionEnabled]);
 
   const dimensionGeometry = useMemo(() => {
-    if (!sectionEnabled || !contour?.bounds_min || !contour.bounds_max) {
+    if (!sectionEnabled || !contour?.projected_bounds_min || !contour.projected_bounds_max) {
       return null;
     }
-    const [minX, y, minZ] = contour.bounds_min;
-    const [maxX, , maxZ] = contour.bounds_max;
+    const origin = new THREE.Vector3(...contour.plane_origin);
+    const uAxis = new THREE.Vector3(...contour.plane_u_axis);
+    const vAxis = new THREE.Vector3(...contour.plane_v_axis);
+    const [minU, minV] = contour.projected_bounds_min;
+    const [maxU, maxV] = contour.projected_bounds_max;
+    const p00 = origin.clone().addScaledVector(uAxis, minU).addScaledVector(vAxis, minV);
+    const p10 = origin.clone().addScaledVector(uAxis, maxU).addScaledVector(vAxis, minV);
+    const p11 = origin.clone().addScaledVector(uAxis, maxU).addScaledVector(vAxis, maxV);
     const points = [
-      minX, y, minZ,
-      maxX, y, minZ,
-      maxX, y, minZ,
-      maxX, y, maxZ,
+      p00.x, p00.y, p00.z,
+      p10.x, p10.y, p10.z,
+      p10.x, p10.y, p10.z,
+      p11.x, p11.y, p11.z,
     ];
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
@@ -426,6 +466,7 @@ function RegionOverlay({
   enabled,
   sectionEnabled,
   sectionConstant,
+  sectionAxis,
 }: {
   geometry: THREE.BufferGeometry;
   regionPayload: RegionPayload | null;
@@ -434,9 +475,10 @@ function RegionOverlay({
   enabled: boolean;
   sectionEnabled: boolean;
   sectionConstant: number;
+  sectionAxis?: [number, number, number] | null;
 }) {
   const { gl } = useThree();
-  const clippingPlane = useMemo(() => createClippingPlane(sectionEnabled), [sectionEnabled]);
+  const clippingPlane = useMemo(() => createClippingPlane(sectionAxis), [sectionAxis]);
   const overlayGeometry = useMemo(() => {
     if (!regionPayload || !enabled || selectedRegionIds.length === 0) {
       return null;
@@ -473,7 +515,7 @@ function RegionOverlay({
   }, [gl, sectionEnabled]);
 
   useFrame(() => {
-    clippingPlane.constant = sectionConstant;
+    setClippingPlaneOffset(clippingPlane, sectionConstant, sectionAxis);
   });
 
   useEffect(() => () => overlayGeometry?.dispose(), [overlayGeometry]);
@@ -506,6 +548,7 @@ function OverlayLayer({
   selectedRegionIds,
   sectionEnabled,
   sectionConstant,
+  sectionAxis,
   onRegionPick,
   onSectionContourChange,
 }: {
@@ -517,14 +560,15 @@ function OverlayLayer({
   selectedRegionIds: string[];
   sectionEnabled: boolean;
   sectionConstant: number;
+  sectionAxis?: [number, number, number] | null;
   onRegionPick?: (regionId: string, additive?: boolean) => void;
   onSectionContourChange?: (payload: SectionContourPayload | null) => void;
 }) {
   const geometry = useLoader(PLYLoader, normalizedMeshUrl || '');
   const regionPayload = useJsonPayload<RegionPayload>(regionArtifactUrl);
   const contourPayload = useMemo(
-    () => computeSliceStats(geometry, regionPayload, selectedRegionIds, sectionConstant),
-    [geometry, regionPayload, sectionConstant, selectedRegionIds],
+    () => computeSliceStats(geometry, regionPayload, selectedRegionIds, sectionConstant, sectionAxis),
+    [geometry, regionPayload, sectionAxis, sectionConstant, selectedRegionIds],
   );
 
   useEffect(() => {
@@ -544,7 +588,13 @@ function OverlayLayer({
   return (
     <>
       <RegionPickMesh geometry={geometry} regionPayload={regionPayload} onRegionPick={onRegionPick} />
-      <ScalarOverlay geometry={geometry} overlay={scalarOverlay} sectionEnabled={sectionEnabled} sectionConstant={sectionConstant} />
+      <ScalarOverlay
+        geometry={geometry}
+        overlay={scalarOverlay}
+        sectionEnabled={sectionEnabled}
+        sectionConstant={sectionConstant}
+        sectionAxis={sectionAxis}
+      />
       <SectionContourOverlay contour={contourPayload} sectionEnabled={sectionEnabled} />
       <RegionOverlay
         geometry={geometry}
@@ -554,6 +604,7 @@ function OverlayLayer({
         enabled={regionOverlayEnabled}
         sectionEnabled={sectionEnabled}
         sectionConstant={sectionConstant}
+        sectionAxis={sectionAxis}
       />
     </>
   );
@@ -565,6 +616,7 @@ function MeshModel({
   wireframe,
   sectionEnabled,
   sectionConstant,
+  sectionAxis,
   normalizedMeshUrl,
   regionArtifactUrl,
   regionOverlayEnabled,
@@ -579,6 +631,7 @@ function MeshModel({
   wireframe: boolean;
   sectionEnabled: boolean;
   sectionConstant: number;
+  sectionAxis?: [number, number, number] | null;
   normalizedMeshUrl?: string | null;
   regionArtifactUrl?: string | null;
   regionOverlayEnabled: boolean;
@@ -592,7 +645,7 @@ function MeshModel({
   const model = useGLTF(useHigh && highUrl ? highUrl : lowUrl);
   const groupRef = useRef<THREE.Group>(null);
   const { gl } = useThree();
-  const clippingPlane = useMemo(() => createClippingPlane(sectionEnabled), [sectionEnabled]);
+  const clippingPlane = useMemo(() => createClippingPlane(sectionAxis), [sectionAxis]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -624,7 +677,7 @@ function MeshModel({
   }, [clippingPlane, gl, model.scene, sectionEnabled, wireframe]);
 
   useFrame(() => {
-    clippingPlane.constant = sectionConstant;
+    setClippingPlaneOffset(clippingPlane, sectionConstant, sectionAxis);
   });
 
   return (
@@ -640,6 +693,7 @@ function MeshModel({
           selectedRegionIds={selectedRegionIds}
           sectionEnabled={sectionEnabled}
           sectionConstant={sectionConstant}
+          sectionAxis={sectionAxis}
           onRegionPick={onRegionPick}
           onSectionContourChange={onSectionContourChange}
         />
@@ -654,6 +708,7 @@ export default function ViewerEngine({
   wireframe,
   sectionEnabled,
   sectionConstant,
+  sectionAxis,
   normalizedMeshUrl,
   regionArtifactUrl,
   regionOverlayEnabled,
@@ -668,6 +723,7 @@ export default function ViewerEngine({
   wireframe: boolean;
   sectionEnabled: boolean;
   sectionConstant: number;
+  sectionAxis?: [number, number, number] | null;
   normalizedMeshUrl?: string | null;
   regionArtifactUrl?: string | null;
   regionOverlayEnabled: boolean;
@@ -690,6 +746,7 @@ export default function ViewerEngine({
             wireframe={wireframe}
             sectionEnabled={sectionEnabled}
             sectionConstant={sectionConstant}
+            sectionAxis={sectionAxis}
             normalizedMeshUrl={normalizedMeshUrl}
             regionArtifactUrl={regionArtifactUrl}
             regionOverlayEnabled={regionOverlayEnabled}
@@ -702,6 +759,9 @@ export default function ViewerEngine({
           <FitScene />
         </Bounds>
         <Environment preset="studio" />
+        <GizmoHelper alignment="bottom-left" margin={[72, 72]}>
+          <GizmoViewport axisColors={['#ef4444', '#22c55e', '#3b82f6']} labelColor="#f8fafc" />
+        </GizmoHelper>
       </Suspense>
       <OrbitControls makeDefault />
     </Canvas>

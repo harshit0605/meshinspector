@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import type {
   HollowRequestV2,
+  MaterialType,
   RegionManifestEntry,
   ResizeRequestV2,
   ScoopRequestV2,
@@ -30,6 +32,7 @@ export default function AdvancedEditPanel({
   onSmooth,
   busy,
   regions,
+  selectedMaterial,
 }: {
   wireframe: boolean;
   sectionEnabled: boolean;
@@ -51,7 +54,15 @@ export default function AdvancedEditPanel({
   onSmooth: (request: SmoothRequestV2) => void;
   busy: boolean;
   regions: RegionManifestEntry[];
+  selectedMaterial: MaterialType;
 }) {
+  const [resizeTargetSize, setResizeTargetSize] = useState(8);
+  const [wallThickness, setWallThickness] = useState(0.8);
+  const [thickenTarget, setThickenTarget] = useState(0.8);
+  const [scoopDepth, setScoopDepth] = useState(0.35);
+  const [scoopFalloff, setScoopFalloff] = useState(1.5);
+  const [smoothIterations, setSmoothIterations] = useState(6);
+  const [smoothStrength, setSmoothStrength] = useState(0.35);
   const selectedRegion = regions.find((region) => region.region_id === selectedRegionId) ?? null;
   const selectedRegions = regions.filter((region) => selectedRegionIds.includes(region.region_id));
   const scoopRegion = selectedRegion?.allowed_operations.includes('scoop')
@@ -112,23 +123,34 @@ export default function AdvancedEditPanel({
             );
           })}
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <Field label="Resize To" value={resizeTargetSize} min={3} max={15} step={0.5} onChange={setResizeTargetSize} />
+          <Field label="Wall mm" value={wallThickness} min={0.3} max={5} step={0.05} onChange={setWallThickness} />
+          <Field label="Thicken To" value={thickenTarget} min={0.3} max={5} step={0.05} onChange={setThickenTarget} />
+          <Field label="Scoop mm" value={scoopDepth} min={0.05} max={5} step={0.05} onChange={setScoopDepth} />
+          <Field label="Falloff mm" value={scoopFalloff} min={0.1} max={10} step={0.1} onChange={setScoopFalloff} />
+          <Field label="Smooth Iter" value={smoothIterations} min={1} max={50} step={1} onChange={setSmoothIterations} />
+        </div>
+        <div className="mt-3">
+          <Field label="Smooth Strength" value={smoothStrength} min={0.01} max={1} step={0.01} onChange={setSmoothStrength} />
+        </div>
       </div>
 
       <ActionButton
-        title="Resize To 8"
+        title={`Resize To ${resizeTargetSize}`}
         description="Create a resized version while preserving ornament-heavy regions."
-        onClick={() => onResize({ target_ring_size_us: 8, axis_mode: 'auto', preserve_head: true })}
+        onClick={() => onResize({ target_ring_size_us: resizeTargetSize, axis_mode: 'auto', preserve_head: true })}
         busy={busy}
       />
 
       <ActionButton
-        title="Protected Hollow 0.8 mm"
+        title={`Protected Hollow ${wallThickness.toFixed(2)} mm`}
         description="Build a weighted hollow shell that keeps decorative head and relief regions thicker than the inner band."
         onClick={() =>
           onHollow({
             mode: 'fixed_thickness',
-            material: 'gold_18k',
-            wall_thickness_mm: 0.8,
+            material: selectedMaterial,
+            wall_thickness_mm: wallThickness,
             min_allowed_thickness_mm: 0.6,
             protect_regions: ['head', 'gem_seat', 'ornament_relief'],
             add_drain_holes: false,
@@ -138,13 +160,13 @@ export default function AdvancedEditPanel({
       />
 
       <ActionButton
-        title="Protected Hollow + Drains"
+        title={`Protected Hollow + Drains (${wallThickness.toFixed(2)} mm)`}
         description="Build the protected shell and add two conservative drain holes through opposite sides of the inner band."
         onClick={() =>
           onHollow({
             mode: 'fixed_thickness',
-            material: 'gold_18k',
-            wall_thickness_mm: 0.8,
+            material: selectedMaterial,
+            wall_thickness_mm: wallThickness,
             min_allowed_thickness_mm: 0.6,
             protect_regions: ['head', 'gem_seat', 'ornament_relief'],
             add_drain_holes: true,
@@ -159,7 +181,7 @@ export default function AdvancedEditPanel({
         onClick={() =>
           onThicken({
             mode: 'violations_only',
-            min_target_thickness_mm: 0.8,
+            min_target_thickness_mm: thickenTarget,
             smoothing_pass: true,
           })
         }
@@ -174,7 +196,7 @@ export default function AdvancedEditPanel({
             onThicken({
               mode: 'selected_region',
               region_id: selectedRegion.region_id,
-              min_target_thickness_mm: 0.8,
+              min_target_thickness_mm: thickenTarget,
               smoothing_pass: true,
             })
           }
@@ -190,7 +212,7 @@ export default function AdvancedEditPanel({
             onThicken({
               mode: 'selected_regions',
               region_ids: selectedRegions.map((region) => region.region_id),
-              min_target_thickness_mm: 0.8,
+              min_target_thickness_mm: thickenTarget,
               smoothing_pass: true,
             })
           }
@@ -205,8 +227,8 @@ export default function AdvancedEditPanel({
           onClick={() =>
             onScoop({
               region_id: scoopRegion.region_id,
-              depth_mm: 0.35,
-              falloff_mm: 1.5,
+              depth_mm: scoopDepth,
+              falloff_mm: scoopFalloff,
               keep_min_thickness_mm: 0.6,
             })
           }
@@ -224,8 +246,8 @@ export default function AdvancedEditPanel({
         onClick={() =>
           onSmooth({
             region_id: selectedRegion?.region_id,
-            iterations: 6,
-            strength: 0.35,
+            iterations: smoothIterations,
+            strength: smoothStrength,
             global_mode: !selectedRegion,
           })
         }
@@ -239,8 +261,8 @@ export default function AdvancedEditPanel({
           onClick={() =>
             onSmooth({
               region_ids: selectedRegions.map((region) => region.region_id),
-              iterations: 6,
-              strength: 0.35,
+              iterations: smoothIterations,
+              strength: smoothStrength,
               global_mode: false,
             })
           }
@@ -248,6 +270,37 @@ export default function AdvancedEditPanel({
         />
       )}
     </div>
+  );
+}
+
+function Field({
+  label,
+  value,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <label className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">
+      {label}
+      <input
+        type="number"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-2 w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+      />
+    </label>
   );
 }
 

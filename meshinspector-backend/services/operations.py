@@ -103,7 +103,17 @@ def _guard_protected_regions_for_hollow(db: Session, source_version: ModelVersio
         raise RuntimeError("Drain-hole planning requires inner_band to remain available for placement")
 
 
-def _finalize_version(db: Session, version: ModelVersionRecord, job: JobRecord, normalized_mesh_path: Path, workdir: Path) -> None:
+def _finalize_version(
+    db: Session,
+    version: ModelVersionRecord,
+    job: JobRecord,
+    normalized_mesh_path: Path,
+    workdir: Path,
+    *,
+    complete_job: bool = True,
+    completion_message: str = "Operation completed",
+    progress_pct: int = 100,
+) -> None:
     preview_high = workdir / f"{version.id}_high.glb"
     preview_low = workdir / f"{version.id}_low.glb"
     manufacturing_stl = workdir / f"{version.id}.stl"
@@ -140,12 +150,23 @@ def _finalize_version(db: Session, version: ModelVersionRecord, job: JobRecord, 
 
     version.status = "ready"
     job.version_id = version.id
-    set_job_status(db, job, "succeeded", progress_pct=100)
-    add_job_event(db, job.id, "Operation completed", 100)
+    if complete_job:
+        set_job_status(db, job, "succeeded", progress_pct=progress_pct)
+        add_job_event(db, job.id, completion_message, progress_pct)
+    else:
+        set_job_status(db, job, "running", progress_pct=progress_pct)
+        add_job_event(db, job.id, completion_message, progress_pct)
     db.commit()
 
 
-def run_repair_operation(db: Session, source_version: ModelVersionRecord, job: JobRecord, workdir: Path) -> ModelVersionRecord:
+def run_repair_operation(
+    db: Session,
+    source_version: ModelVersionRecord,
+    job: JobRecord,
+    workdir: Path,
+    *,
+    complete_job: bool = True,
+) -> ModelVersionRecord:
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Repair started", 5)
     source_mesh = _load_normalized_artifact(db, source_version.id, workdir)
@@ -169,7 +190,16 @@ def run_repair_operation(db: Session, source_version: ModelVersionRecord, job: J
         operation_label="Auto Repair",
         status="processing",
     )
-    _finalize_version(db, new_version, job, output_mesh, workdir)
+    _finalize_version(
+        db,
+        new_version,
+        job,
+        output_mesh,
+        workdir,
+        complete_job=complete_job,
+        completion_message="Repair completed" if complete_job else "Repair step completed",
+        progress_pct=100 if complete_job else 25,
+    )
     return new_version
 
 
@@ -179,6 +209,8 @@ def run_resize_operation(
     job: JobRecord,
     workdir: Path,
     request: ResizeRequest,
+    *,
+    complete_job: bool = True,
 ) -> ModelVersionRecord:
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Resize started", 5)
@@ -215,7 +247,16 @@ def run_resize_operation(
         operation_label=f"Resize to US {request.target_ring_size_us}",
         status="processing",
     )
-    _finalize_version(db, new_version, job, output_mesh, workdir)
+    _finalize_version(
+        db,
+        new_version,
+        job,
+        output_mesh,
+        workdir,
+        complete_job=complete_job,
+        completion_message="Resize completed" if complete_job else "Resize step completed",
+        progress_pct=100 if complete_job else 55,
+    )
     return new_version
 
 
@@ -225,6 +266,8 @@ def run_hollow_operation(
     job: JobRecord,
     workdir: Path,
     request: HollowRequest,
+    *,
+    complete_job: bool = True,
 ) -> ModelVersionRecord:
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Hollowing started", 5)
@@ -292,7 +335,16 @@ def run_hollow_operation(
         operation_label="Hollow Mesh",
         status="processing",
     )
-    _finalize_version(db, new_version, job, output_mesh, workdir)
+    _finalize_version(
+        db,
+        new_version,
+        job,
+        output_mesh,
+        workdir,
+        complete_job=complete_job,
+        completion_message="Hollowing completed" if complete_job else "Weight optimization step completed",
+        progress_pct=100 if complete_job else 85,
+    )
     return new_version
 
 
@@ -314,6 +366,14 @@ def run_scoop_operation(
         raise RuntimeError(f"Region {request.region_id} not found")
     if "scoop" not in selected_region.get("allowed_operations", []):
         raise RuntimeError(f"Region {request.region_id} does not allow scooping")
+    region_min_thickness = selected_region.get("min_thickness_mm")
+    required_thickness = request.keep_min_thickness_mm + request.depth_mm
+    if region_min_thickness is not None and region_min_thickness < required_thickness:
+        raise RuntimeError(
+            f"Region {selected_region.get('label', request.region_id)} is too thin for a "
+            f"{request.depth_mm:.2f}mm scoop while keeping {request.keep_min_thickness_mm:.2f}mm minimum thickness "
+            f"(region min {region_min_thickness:.2f}mm). Thicken the region first or reduce scoop depth."
+        )
 
     selected_indices = _region_indices(region_payload, request.region_id)
 
@@ -340,7 +400,7 @@ def run_scoop_operation(
     if preview_snapshot.thickness.min_mm is None or preview_snapshot.thickness.min_mm < request.keep_min_thickness_mm:
         raise RuntimeError(
             f"Scoop would violate minimum thickness {request.keep_min_thickness_mm:.2f}mm "
-            f"(predicted min {preview_snapshot.thickness.min_mm})"
+            f"(predicted min {preview_snapshot.thickness.min_mm}). Reduce scoop depth or thicken the target region first."
         )
 
     new_version = create_version(
@@ -539,18 +599,26 @@ def run_make_manufacturable_operation(
     workdir: Path,
     request: MakeManufacturableRequest,
 ) -> ModelVersionRecord:
+    set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Manufacturability flow started", 5)
-    current_version = source_version
-    current_version = run_repair_operation(db, current_version, job, workdir)
+    current_version = run_repair_operation(db, source_version, job, workdir, complete_job=False)
+
     if request.target_ring_size_us:
+        add_job_event(db, job.id, "Sizing branch for manufacturability", 35)
         resize_req = ResizeRequest(target_ring_size_us=request.target_ring_size_us)
-        current_version = run_resize_operation(db, current_version, job, workdir, resize_req)
+        current_version = run_resize_operation(db, current_version, job, workdir, resize_req, complete_job=False)
+
     if request.target_weight_g:
+        add_job_event(db, job.id, "Weight optimization branch for manufacturability", 65)
         hollow_req = HollowRequest(
             mode="target_weight",
             material=request.material,
             target_weight_g=request.target_weight_g,
             min_allowed_thickness_mm=request.min_allowed_thickness_mm,
         )
-        current_version = run_hollow_operation(db, current_version, job, workdir, hollow_req)
+        current_version = run_hollow_operation(db, current_version, job, workdir, hollow_req, complete_job=False)
+
+    set_job_status(db, job, "succeeded", progress_pct=100)
+    add_job_event(db, job.id, "Manufacturability flow completed", 100)
+    db.commit()
     return current_version

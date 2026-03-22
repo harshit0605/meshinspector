@@ -53,7 +53,7 @@ def _region_entry(
         vertex_count=int(indices.size),
         coverage_pct=round(float(indices.size / max(len(vertices), 1) * 100.0), 2),
         min_thickness_mm=round(float(np.min(finite)), 4) if finite.size else None,
-        avg_thickness_mm=round(float(np.mean(finite)), 4) if finite.size else None,
+        avg_thickness_mm=round(float(np.mean(finite, dtype=np.float64)), 4) if finite.size else None,
         violation_count=int(np.sum(finite < threshold_mm)) if finite.size else 0,
         protected_by_default=protected_by_default,
         allowed_operations=allowed_operations,

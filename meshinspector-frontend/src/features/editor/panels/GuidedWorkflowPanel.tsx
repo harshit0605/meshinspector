@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { MATERIALS } from '@/lib/constants';
 import type { HollowRequestV2, MakeManufacturableRequest, MaterialType, ResizeRequestV2 } from '@/lib/api/types';
 
@@ -20,6 +21,11 @@ export default function GuidedWorkflowPanel({
   onMakeManufacturable: (request: MakeManufacturableRequest) => void;
   busy: boolean;
 }) {
+  const [targetRingSize, setTargetRingSize] = useState(7);
+  const [targetWeight, setTargetWeight] = useState(5);
+  const [wallThickness, setWallThickness] = useState(0.8);
+  const [minThickness, setMinThickness] = useState(0.6);
+
   return (
     <div className="space-y-4">
       <div className="p-4 rounded-2xl border border-zinc-800 bg-zinc-900/70">
@@ -36,6 +42,55 @@ export default function GuidedWorkflowPanel({
             ))}
           </select>
         </div>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <label className="text-xs text-zinc-500 uppercase tracking-[0.2em]">
+            Target Size
+            <input
+              type="number"
+              min={3}
+              max={15}
+              step={0.5}
+              value={targetRingSize}
+              onChange={(event) => setTargetRingSize(Number(event.target.value))}
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+            />
+          </label>
+          <label className="text-xs text-zinc-500 uppercase tracking-[0.2em]">
+            Target Weight
+            <input
+              type="number"
+              min={0.5}
+              step={0.1}
+              value={targetWeight}
+              onChange={(event) => setTargetWeight(Number(event.target.value))}
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+            />
+          </label>
+          <label className="text-xs text-zinc-500 uppercase tracking-[0.2em]">
+            Wall Thickness
+            <input
+              type="number"
+              min={0.3}
+              max={5}
+              step={0.05}
+              value={wallThickness}
+              onChange={(event) => setWallThickness(Number(event.target.value))}
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+            />
+          </label>
+          <label className="text-xs text-zinc-500 uppercase tracking-[0.2em]">
+            Min Thickness
+            <input
+              type="number"
+              min={0.2}
+              max={5}
+              step={0.05}
+              value={minThickness}
+              onChange={(event) => setMinThickness(Number(event.target.value))}
+              className="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100"
+            />
+          </label>
+        </div>
       </div>
 
       <ActionCard
@@ -48,7 +103,7 @@ export default function GuidedWorkflowPanel({
       <ActionCard
         title="Fit To Size"
         description="Create a new version resized to a production ring size."
-        onClick={() => onResize({ target_ring_size_us: 7, axis_mode: 'auto', preserve_head: true })}
+        onClick={() => onResize({ target_ring_size_us: targetRingSize, axis_mode: 'auto', preserve_head: true })}
         busy={busy}
       />
 
@@ -58,8 +113,8 @@ export default function GuidedWorkflowPanel({
         onClick={() => onHollow({
           mode: 'target_weight',
           material,
-          target_weight_g: 5,
-          min_allowed_thickness_mm: 0.6,
+          target_weight_g: targetWeight,
+          min_allowed_thickness_mm: minThickness,
           protect_regions: ['head', 'gem_seat', 'ornament_relief'],
           add_drain_holes: false,
         })}
@@ -72,8 +127,8 @@ export default function GuidedWorkflowPanel({
         onClick={() => onHollow({
           mode: 'fixed_thickness',
           material,
-          wall_thickness_mm: 0.8,
-          min_allowed_thickness_mm: 0.6,
+          wall_thickness_mm: wallThickness,
+          min_allowed_thickness_mm: minThickness,
           protect_regions: ['head', 'gem_seat', 'ornament_relief'],
           add_drain_holes: true,
         })}
@@ -85,9 +140,9 @@ export default function GuidedWorkflowPanel({
         description="Run the guided pipeline: repair, size, optimize, and validate."
         onClick={() => onMakeManufacturable({
           material,
-          target_ring_size_us: 7,
-          target_weight_g: 5,
-          min_allowed_thickness_mm: 0.6,
+          target_ring_size_us: targetRingSize,
+          target_weight_g: targetWeight,
+          min_allowed_thickness_mm: minThickness,
         })}
         busy={busy}
         accent

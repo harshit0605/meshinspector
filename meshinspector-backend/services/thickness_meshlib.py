@@ -21,6 +21,15 @@ class ThicknessResult:
     scalar_field_path: Path
 
 
+def _safe_round_stat(value: float | np.floating | None) -> float | None:
+    if value is None:
+        return None
+    numeric = float(value)
+    if not np.isfinite(numeric):
+        return None
+    return round(numeric, 4)
+
+
 def compute_thickness_meshlib(
     mesh_path: str | Path,
     output_dir: str | Path,
@@ -59,10 +68,10 @@ def compute_thickness_meshlib(
         )
 
     return ThicknessResult(
-        min_mm=round(float(np.min(valid)), 4),
-        avg_mm=round(float(np.mean(valid)), 4),
-        max_mm=round(float(np.max(valid)), 4),
-        violation_count=int(np.sum(valid < threshold)),
+        min_mm=_safe_round_stat(np.min(valid)),
+        avg_mm=_safe_round_stat(np.mean(valid, dtype=np.float64)),
+        max_mm=_safe_round_stat(np.max(valid)),
+        violation_count=int(np.sum(valid < threshold, dtype=np.int64)),
         threshold_mm=threshold,
         scalar_field_path=scalar_field_path,
     )

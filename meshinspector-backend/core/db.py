@@ -16,7 +16,16 @@ class Base(DeclarativeBase):
 
 database_url = settings.effective_database_url
 is_sqlite = database_url.startswith("sqlite")
-connect_args = {"check_same_thread": False} if is_sqlite else {}
+connect_args = (
+    {"check_same_thread": False}
+    if is_sqlite
+    else {
+        # Disable server-side prepared statements for psycopg connections.
+        # This avoids DuplicatePreparedStatement failures with pooled/proxied
+        # Postgres connections used by the dev queue and local app runtime.
+        "prepare_threshold": None,
+    }
+)
 
 engine = create_engine(
     database_url,

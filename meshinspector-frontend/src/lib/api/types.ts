@@ -132,6 +132,12 @@ export interface SectionContourSegment {
 
 export interface SectionContourPayload extends SectionSliceStats {
   section_constant: number;
+  plane_axis: [number, number, number];
+  plane_u_axis: [number, number, number];
+  plane_v_axis: [number, number, number];
+  plane_origin: [number, number, number];
+  projected_bounds_min: [number, number] | null;
+  projected_bounds_max: [number, number] | null;
   bounds_min: [number, number, number] | null;
   bounds_max: [number, number, number] | null;
   segments: SectionContourSegment[];

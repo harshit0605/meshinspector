@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     DEV_DB_QUEUE_RUNNER_ENABLED: bool = True
     DEV_DB_QUEUE_POLL_INTERVAL_MS: int = 1000
     DEV_DB_QUEUE_BATCH_SIZE: int = 1
+    DEV_DB_QUEUE_STALE_LOCK_MS: int = 120000
 
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str | None = None
@@ -60,6 +61,10 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+        "http://localhost:3002",
+        "http://127.0.0.1:3002",
     ]
 
     @property

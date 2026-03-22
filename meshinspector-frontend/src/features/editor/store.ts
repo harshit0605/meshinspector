@@ -2,6 +2,8 @@
 
 import { create } from 'zustand';
 import type { MaterialType } from '@/lib/api/types';
+import type { ContextToolId, ReviewPane, RightDockTab, ToolDrafts, ToolbarGroup } from '@/features/editor/workspace/types';
+import { DEFAULT_TOOL_DRAFTS } from '@/features/editor/workspace/types';
 
 type EditorStore = {
   wireframe: boolean;
@@ -14,6 +16,13 @@ type EditorStore = {
   compareOverlayEnabled: boolean;
   compareTargetVersionId: string | null;
   selectedMaterial: MaterialType;
+  activeToolbarGroup: ToolbarGroup | null;
+  openPopoverGroup: ToolbarGroup | null;
+  activeTool: ContextToolId | null;
+  rightDockTab: RightDockTab;
+  reviewPane: ReviewPane;
+  lastActiveToolByGroup: Partial<Record<ToolbarGroup, ContextToolId>>;
+  toolDrafts: ToolDrafts;
   setWireframe: (value: boolean) => void;
   setSectionEnabled: (value: boolean) => void;
   setSectionConstant: (value: number) => void;
@@ -25,6 +34,12 @@ type EditorStore = {
   setCompareOverlayEnabled: (value: boolean) => void;
   setCompareTargetVersionId: (value: string | null) => void;
   setSelectedMaterial: (value: MaterialType) => void;
+  setActiveToolbarGroup: (value: ToolbarGroup | null) => void;
+  setOpenPopoverGroup: (value: ToolbarGroup | null) => void;
+  setActiveTool: (value: ContextToolId | null, group?: ToolbarGroup | null) => void;
+  setRightDockTab: (value: RightDockTab) => void;
+  setReviewPane: (value: ReviewPane) => void;
+  updateToolDrafts: (value: Partial<ToolDrafts>) => void;
 };
 
 export const useEditorStore = create<EditorStore>((set) => ({
@@ -38,6 +53,13 @@ export const useEditorStore = create<EditorStore>((set) => ({
   compareOverlayEnabled: false,
   compareTargetVersionId: null,
   selectedMaterial: 'gold_18k',
+  activeToolbarGroup: null,
+  openPopoverGroup: null,
+  activeTool: null,
+  rightDockTab: 'model',
+  reviewPane: 'compare',
+  lastActiveToolByGroup: {},
+  toolDrafts: DEFAULT_TOOL_DRAFTS,
   setWireframe: (wireframe) => set({ wireframe }),
   setSectionEnabled: (sectionEnabled) => set({ sectionEnabled }),
   setSectionConstant: (sectionConstant) => set({ sectionConstant }),
@@ -78,4 +100,27 @@ export const useEditorStore = create<EditorStore>((set) => ({
   setCompareOverlayEnabled: (compareOverlayEnabled) => set({ compareOverlayEnabled }),
   setCompareTargetVersionId: (compareTargetVersionId) => set({ compareTargetVersionId }),
   setSelectedMaterial: (selectedMaterial) => set({ selectedMaterial }),
+  setActiveToolbarGroup: (activeToolbarGroup) => set({ activeToolbarGroup }),
+  setOpenPopoverGroup: (openPopoverGroup) => set({ openPopoverGroup }),
+  setActiveTool: (activeTool, group = null) =>
+    set((state) => ({
+      activeTool,
+      activeToolbarGroup: group,
+      lastActiveToolByGroup:
+        activeTool && group
+          ? {
+              ...state.lastActiveToolByGroup,
+              [group]: activeTool,
+            }
+          : state.lastActiveToolByGroup,
+    })),
+  setRightDockTab: (rightDockTab) => set({ rightDockTab }),
+  setReviewPane: (reviewPane) => set({ reviewPane }),
+  updateToolDrafts: (value) =>
+    set((state) => ({
+      toolDrafts: {
+        ...state.toolDrafts,
+        ...value,
+      },
+    })),
 }));

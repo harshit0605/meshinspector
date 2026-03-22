@@ -39,6 +39,7 @@ def execute_ingest_task(db: Session, model_id: str, version_id: str, job_id: str
     try:
         run_ingest_pipeline(db, model, version, job, Path(source_path))
     except Exception as exc:
+        db.rollback()
         set_job_status(db, job, "failed", error_code="INGEST_FAILED", error_message=str(exc))
         add_job_event(db, job.id, f"Ingest failed: {exc}", level="error")
         version.status = "failed"
@@ -92,6 +93,7 @@ def execute_operation_task(db: Session, operation_type: str, source_version_id: 
 
         raise RuntimeError(f"Unsupported operation type: {operation_type}")
     except Exception as exc:
+        db.rollback()
         set_job_status(db, job, "failed", error_code="OPERATION_FAILED", error_message=str(exc))
         add_job_event(db, job.id, f"{operation_type} failed: {exc}", level="error")
         db.commit()

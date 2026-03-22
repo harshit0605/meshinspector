@@ -31,6 +31,21 @@ class ManufacturabilityArtifacts:
     region_json_path: Path
 
 
+def _count_disconnected_shells(mesh: trimesh.Trimesh) -> int:
+    """Count connected face components without optional trimesh extras."""
+    if not mesh.faces.size:
+        return 0
+    if len(mesh.faces) == 1:
+        return 1
+
+    components = trimesh.graph.connected_components(
+        mesh.face_adjacency,
+        nodes=np.arange(len(mesh.faces)),
+        engine="scipy",
+    )
+    return len(components)
+
+
 def _build_recommendations(
     health: MeshHealthSnapshot,
     dimensions: DimensionsSnapshot,
@@ -78,7 +93,7 @@ def compute_manufacturability_snapshot(
 
     mesh = normalize_mesh_to_mm(mesh_path)
     volume_mm3 = abs(float(mesh.volume))
-    disconnected_shells = len(mesh.split(only_watertight=False)) if mesh.faces.size else 0
+    disconnected_shells = _count_disconnected_shells(mesh)
 
     health_raw = check_mesh_health(mesh_path)
     health = MeshHealthSnapshot(
