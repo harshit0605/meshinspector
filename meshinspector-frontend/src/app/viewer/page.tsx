@@ -23,6 +23,7 @@ import {
   useCompareOverlay,
   useHollowOperation,
   useInspectionSnapshots,
+  useMeshLibWorkbenchManifest,
   useMakeManufacturableOperation,
   useManufacturability,
   useModelVersions,
@@ -51,6 +52,7 @@ import type {
 import { getArtifactUrl } from '@/lib/api/client';
 
 const ViewerEngine = dynamic(() => import('@/features/editor/viewer/ViewerEngine'), { ssr: false });
+const MeshLibWorkbenchHost = dynamic(() => import('@/features/editor/viewer/MeshLibWorkbenchHost'), { ssr: false });
 
 function normalizeAxis(axis: [number, number, number] | null | undefined): [number, number, number] {
   if (!axis) return [0, 1, 0];
@@ -134,6 +136,7 @@ function ViewerPageContent() {
   const compareCacheQuery = useCompareCache(versionId);
   const inspectionSnapshotsQuery = useInspectionSnapshots(versionId);
   const viewerQuery = useViewerManifest(versionId);
+  const workbenchManifestQuery = useMeshLibWorkbenchManifest(versionId);
   const snapshotQuery = useManufacturability(versionId);
   const thicknessOverlayQuery = useThicknessOverlay(versionId, heatmapEnabled && !compareOverlayEnabled);
   const compareCacheTargets = useMemo(
@@ -873,22 +876,24 @@ function ViewerPageContent() {
         <section className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
           {previewLowUrl ? (
             <>
-              <ViewerEngine
-                lowUrl={previewLowUrl}
-                highUrl={previewHighUrl}
-                wireframe={wireframe}
-                sectionEnabled={sectionEnabled}
-                sectionConstant={sectionConstant}
-                sectionAxis={sectionAxis}
-                normalizedMeshUrl={normalizedMeshUrl}
-                regionArtifactUrl={regionArtifactUrl}
-                regionOverlayEnabled={regionOverlayEnabled}
-                selectedRegionId={selectedRegionId}
-                selectedRegionIds={selectedRegionIds}
-                scalarOverlay={scalarOverlay}
-                onRegionPick={onRegionPick}
-                onSectionContourChange={setSectionContour}
-              />
+              <MeshLibWorkbenchHost manifest={workbenchManifestQuery.data ?? null}>
+                <ViewerEngine
+                  lowUrl={previewLowUrl}
+                  highUrl={previewHighUrl}
+                  wireframe={wireframe}
+                  sectionEnabled={sectionEnabled}
+                  sectionConstant={sectionConstant}
+                  sectionAxis={sectionAxis}
+                  normalizedMeshUrl={normalizedMeshUrl}
+                  regionArtifactUrl={regionArtifactUrl}
+                  regionOverlayEnabled={regionOverlayEnabled}
+                  selectedRegionId={selectedRegionId}
+                  selectedRegionIds={selectedRegionIds}
+                  scalarOverlay={scalarOverlay}
+                  onRegionPick={onRegionPick}
+                  onSectionContourChange={setSectionContour}
+                />
+              </MeshLibWorkbenchHost>
               <ViewerMetricsHud snapshot={snapshotQuery.data ?? null} material={selectedMaterial} />
             </>
           ) : (

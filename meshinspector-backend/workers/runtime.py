@@ -10,6 +10,7 @@ from domain.models import JobRecord, ModelRecord, ModelVersionRecord
 from domain.schemas import (
     CompareRequest,
     HollowRequest,
+    InteractiveCommitRequest,
     MakeManufacturableRequest,
     ResizeRequest,
     ScoopRequest,
@@ -20,6 +21,7 @@ from services.ingest import run_ingest_pipeline
 from services.operations import (
     run_compare_operation,
     run_hollow_operation,
+    run_interactive_commit_operation,
     run_make_manufacturable_operation,
     run_repair_operation,
     run_resize_operation,
@@ -88,6 +90,19 @@ def execute_operation_task(db: Session, operation_type: str, source_version_id: 
                 job,
                 workdir,
                 MakeManufacturableRequest.model_validate(payload),
+            )
+            return {"version_id": version.id}
+        if operation_type == "interactive_commit":
+            upload_path = payload.get("upload_path")
+            if not upload_path:
+                raise RuntimeError("interactive_commit requires upload_path")
+            version = run_interactive_commit_operation(
+                db,
+                source_version,
+                job,
+                workdir,
+                InteractiveCommitRequest.model_validate(payload),
+                Path(upload_path),
             )
             return {"version_id": version.id}
 

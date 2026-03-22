@@ -6,6 +6,7 @@ import {
   createInspectionSnapshot,
   getCompareCache,
   getInspectionSnapshots,
+  getMeshLibWorkbenchManifest,
   downloadModel,
   getCompareOverlay,
   getJob,
@@ -16,6 +17,7 @@ import {
   getViewerManifest,
   submitCompare,
   submitHollow,
+  submitInteractiveCommit,
   submitMakeManufacturable,
   submitRepair,
   submitResize,
@@ -31,7 +33,9 @@ import type {
   HollowRequestV2,
   InspectionSnapshotResponse,
   InspectionSnapshotState,
+  InteractiveCommitRequest,
   MakeManufacturableRequest,
+  MeshLibWorkbenchManifest,
   ResizeRequestV2,
   ScoopRequestV2,
   ScalarOverlayResponse,
@@ -71,6 +75,15 @@ export function useViewerManifest(versionId: string | null) {
     queryKey: ['viewer-manifest', versionId],
     queryFn: () => getViewerManifest(versionId!),
     enabled: !!versionId,
+  });
+}
+
+export function useMeshLibWorkbenchManifest(versionId: string | null) {
+  return useQuery<MeshLibWorkbenchManifest>({
+    queryKey: ['meshlib-workbench', versionId],
+    queryFn: () => getMeshLibWorkbenchManifest(versionId!),
+    enabled: !!versionId,
+    staleTime: 1000 * 60,
   });
 }
 
@@ -145,6 +158,18 @@ export const useCompareOperation = createOperationMutation<CompareRequestV2>(sub
 export const useMakeManufacturableOperation = createOperationMutation<MakeManufacturableRequest>(submitMakeManufacturable);
 export const useScoopOperation = createOperationMutation<ScoopRequestV2>(submitScoop);
 export const useSmoothOperation = createOperationMutation<SmoothRequestV2>(submitSmooth);
+
+export function useInteractiveCommitOperation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ versionId, params, meshFile }: { versionId: string; params: InteractiveCommitRequest; meshFile: File }) =>
+      submitInteractiveCommit(versionId, params, meshFile),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['version', variables.versionId] });
+      queryClient.invalidateQueries({ queryKey: ['meshlib-workbench', variables.versionId] });
+    },
+  });
+}
 
 export function useCreateInspectionSnapshot() {
   const queryClient = useQueryClient();

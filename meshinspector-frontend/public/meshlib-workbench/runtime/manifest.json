@@ -1,0 +1,6 @@
+{
+  "status": "ready",
+  "message": "MeshLib workbench runtime bundle installed.",
+  "entry_html_url": "/meshlib-workbench/runtime/index.html",
+  "assets_base_url": "/meshlib-workbench/runtime"
+}

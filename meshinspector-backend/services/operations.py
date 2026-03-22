@@ -14,7 +14,17 @@ from sqlalchemy.orm import Session
 
 from core.logging import get_logger
 from domain.models import JobRecord, ModelVersionRecord
-from domain.schemas import CompareRequest, CompareResponse, HollowRequest, MakeManufacturableRequest, ResizeRequest, ScoopRequest, SmoothRequest, ThickenRequest
+from domain.schemas import (
+    CompareRequest,
+    CompareResponse,
+    HollowRequest,
+    InteractiveCommitRequest,
+    MakeManufacturableRequest,
+    ResizeRequest,
+    ScoopRequest,
+    SmoothRequest,
+    ThickenRequest,
+)
 from services.health import auto_repair_mesh
 from services.hollow import adaptive_hollow_to_weight, adaptive_protected_hollow_to_weight, apply_drain_holes, hollow_mesh, protected_hollow_mesh
 from services.manufacturability import compute_manufacturability_snapshot
@@ -30,6 +40,12 @@ from storage.repositories import (
 )
 
 logger = get_logger(__name__)
+
+INTERACTIVE_TOOL_TO_OPERATION_TYPE = {
+    "thicken_brush": "thicken",
+    "scoop_brush": "scoop",
+    "smooth_brush": "smooth",
+}
 
 
 def _load_normalized_artifact(db: Session, version_id: str, workdir: Path) -> Path:
@@ -622,3 +638,67 @@ def run_make_manufacturable_operation(
     add_job_event(db, job.id, "Manufacturability flow completed", 100)
     db.commit()
     return current_version
+
+
+def run_interactive_commit_operation(
+    db: Session,
+    source_version: ModelVersionRecord,
+    job: JobRecord,
+    workdir: Path,
+    request: InteractiveCommitRequest,
+    edited_mesh_source_path: Path,
+) -> ModelVersionRecord:
+    set_job_status(db, job, "running", progress_pct=5)
+    add_job_event(db, job.id, f"Importing interactive edit from {request.tool_id}", 5)
+
+    if not edited_mesh_source_path.exists():
+        raise RuntimeError(f"Edited mesh payload not found: {edited_mesh_source_path}")
+
+    from services.convert import to_ply
+
+    normalized_mesh = workdir / f"{job.id}_interactive_commit.ply"
+    to_ply(edited_mesh_source_path, normalized_mesh)
+    add_job_event(db, job.id, "Interactive edit normalized to production mesh", 40)
+
+    version_operation_type = INTERACTIVE_TOOL_TO_OPERATION_TYPE.get(request.tool_id, "interactive_commit")
+    new_version = create_version(
+        db,
+        model_id=source_version.model_id,
+        parent_version_id=source_version.id,
+        operation_type=version_operation_type,
+        operation_label=request.operation_label,
+        status="processing",
+    )
+
+    request_payload = {
+        **request.model_dump(mode="json"),
+        "source_version_id": source_version.id,
+        "job_id": job.id,
+        "uploaded_mesh_filename": edited_mesh_source_path.name,
+    }
+    request_payload_path = workdir / f"{job.id}_interactive_edit.json"
+    request_payload_path.write_text(json.dumps(request_payload, indent=2), encoding="utf-8")
+    register_file_artifact(
+        db,
+        new_version.id,
+        request_payload_path,
+        "interactive_edit_payload_json",
+        "application/json",
+        metadata_json={
+            "tool_id": request.tool_id,
+            "source_version_id": source_version.id,
+            "job_id": job.id,
+        },
+    )
+    upsert_snapshot(db, new_version.id, "interactive_edit", request_payload)
+    add_job_event(db, job.id, "Interactive edit metadata registered", 65)
+
+    _finalize_version(
+        db,
+        new_version,
+        job,
+        normalized_mesh,
+        workdir,
+        completion_message="Interactive edit committed",
+    )
+    return new_version

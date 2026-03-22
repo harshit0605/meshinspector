@@ -4,20 +4,33 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import tempfile
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 import meshlib.mrmeshpy as mm
 import numpy as np
 from sqlalchemy.orm import Session
 
-from api.serializers import serialize_artifact, serialize_inspection_snapshot, serialize_snapshot, serialize_version
+from api.serializers import serialize_artifact, serialize_inspection_snapshot, serialize_job, serialize_snapshot, serialize_version
 from core.db import get_db
 from domain.models import ModelArtifactRecord, ModelVersionRecord
-from domain.schemas import BranchVersionRequest, CompareCacheEntry, InspectionSnapshotResponse, InspectionSnapshotState, ModelVersionSummary, VersionDetailResponse, ViewerManifest
+from domain.schemas import (
+    BranchVersionRequest,
+    CompareCacheEntry,
+    InspectionSnapshotResponse,
+    InspectionSnapshotState,
+    InteractiveCommitRequest,
+    JobResponse,
+    MeshLibWorkbenchManifest,
+    ModelVersionSummary,
+    VersionDetailResponse,
+    ViewerManifest,
+)
 from services.versioning import duplicate_version, register_file_artifact
 from storage.object_store import object_store
-from storage.repositories import create_snapshot_record, get_artifact_by_type, get_snapshot, get_version_artifacts, list_snapshots_by_prefix
+from storage.repositories import create_job, create_snapshot_record, get_artifact_by_type, get_snapshot, get_version_artifacts, list_snapshots_by_prefix
+from workers.dispatch import dispatch_operation_task
 
 router = APIRouter()
 
@@ -44,6 +57,26 @@ def _load_npz_artifact(artifact: ModelArtifactRecord | None) -> dict[str, np.nda
     path = _materialize_artifact_to_path(artifact)
     payload = np.load(path)
     return {key: payload[key] for key in payload.files}
+
+
+WORKBENCH_BUILT_IN_UI = [
+    "ribbon",
+    "scene_tree",
+    "feature_search",
+    "toolbar",
+    "view_cube",
+    "scale_bar",
+    "notifications",
+    "viewport_tags",
+]
+
+WORKBENCH_INTERACTIVE_TOOLS = [
+    "select_mark_region",
+    "thicken_brush",
+    "scoop_brush",
+    "smooth_brush",
+    "measure_inspect",
+]
 
 
 @router.get("/versions/{version_id}", response_model=VersionDetailResponse)
@@ -94,6 +127,77 @@ async def get_viewer_manifest(version_id: str, db: Session = Depends(get_db)) ->
         measurements_summary=snapshot.dimensions.model_dump(mode="json"),
         needs_axis_confirmation=snapshot.dimensions.needs_axis_confirmation,
     )
+
+
+@router.get("/versions/{version_id}/meshlib-workbench", response_model=MeshLibWorkbenchManifest)
+async def get_meshlib_workbench_manifest(version_id: str, db: Session = Depends(get_db)) -> MeshLibWorkbenchManifest:
+    version = db.get(ModelVersionRecord, version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+
+    high = get_artifact_by_type(db, version_id, "preview_glb_high")
+    low = get_artifact_by_type(db, version_id, "preview_glb_low")
+    normalized = get_artifact_by_type(db, version_id, "normalized_mesh_ply")
+    return MeshLibWorkbenchManifest(
+        version_id=version_id,
+        entry_html_url="/meshlib-workbench/index.html",
+        runtime_asset_base_url="/meshlib-workbench/runtime",
+        normalized_mesh_url=f"/api/artifacts/{normalized.id}" if normalized else None,
+        preview_low_url=f"/api/artifacts/{low.id}" if low else None,
+        preview_high_url=f"/api/artifacts/{high.id}" if high else None,
+        commit_endpoint_url=f"/api/versions/{version_id}/interactive-commit",
+        built_in_ui=WORKBENCH_BUILT_IN_UI,
+        interactive_tools=WORKBENCH_INTERACTIVE_TOOLS,
+        feature_flags={
+            "supports_scene_tree": True,
+            "supports_feature_search": True,
+            "supports_toolbar": True,
+            "supports_view_cube": True,
+            "supports_scale_bar": True,
+            "supports_interactive_commit": True,
+        },
+        notes=[
+            "This endpoint describes the MeshLib workbench contract for the active version.",
+            "The frontend still falls back to the classic viewer until a compiled MeshLib WASM bundle is installed into /public/meshlib-workbench/runtime.",
+        ],
+    )
+
+
+@router.post("/versions/{version_id}/interactive-commit", response_model=JobResponse)
+async def submit_interactive_commit(
+    version_id: str,
+    request_json: str = Form(...),
+    mesh_file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> JobResponse:
+    version = db.get(ModelVersionRecord, version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    if version.status != "ready":
+        raise HTTPException(status_code=409, detail="Version is not ready for a new operation")
+
+    request = InteractiveCommitRequest.model_validate_json(request_json)
+    filename = mesh_file.filename or "interactive-edit.ply"
+    suffix = Path(filename).suffix or ".ply"
+    upload_dir = Path(tempfile.gettempdir()) / "meshinspector_interactive_uploads"
+
+    payload = request.model_dump(mode="json")
+    job = create_job(db, version_id, "interactive_commit", payload)
+    upload_path = upload_dir / job.id / f"interactive-edit{suffix}"
+    upload_path.parent.mkdir(parents=True, exist_ok=True)
+    upload_path.write_bytes(await mesh_file.read())
+
+    dispatch_payload = {
+        **payload,
+        "upload_path": str(upload_path.resolve()),
+        "uploaded_filename": filename,
+    }
+    if job.operation_request is not None:
+        job.operation_request.payload_json = dispatch_payload
+    dispatch_operation_task(db, "interactive_commit", version_id, job.id, dispatch_payload)
+    db.commit()
+    db.refresh(job)
+    return serialize_job(job)
 
 
 @router.get("/versions/{version_id}/compare-cache", response_model=list[CompareCacheEntry])

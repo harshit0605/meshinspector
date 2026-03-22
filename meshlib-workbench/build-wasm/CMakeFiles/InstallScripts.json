@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/harshit/Code/Zennah/meshinspector/meshlib-workbench/build-wasm/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

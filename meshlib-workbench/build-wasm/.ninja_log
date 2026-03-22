@@ -1,0 +1,9 @@
+# ninja log v7
+3	789	1774169187741715588	CMakeFiles/ViewerApp.dir/ViewerApp.cpp.o	93c6e57e23a7646a
+3	1044	1774169187741500328	CMakeFiles/MeshInspectorWorkbenchPlugin.dir/MeshInspectorWorkbenchPlugin.cpp.o	436b6175e37d17c2
+1044	1411	1774169188782680765	libMeshInspectorWorkbenchPlugin.a	f5162e2baa596887
+1	262	1774169472130086810	build.ninja	86b78bd375566f43
+1	262	1774169472129539433	/Users/harshit/Code/Zennah/meshinspector/meshlib-workbench/build-wasm/cmake_install.cmake	86b78bd375566f43
+3	14434	1774169248651395129	html/ViewerApp.js	341869e7d613e408
+1	269	1774169472130086810	build.ninja	86b78bd375566f43
+1	269	1774169472130086810	/Users/harshit/Code/Zennah/meshinspector/meshlib-workbench/build-wasm/cmake_install.cmake	86b78bd375566f43

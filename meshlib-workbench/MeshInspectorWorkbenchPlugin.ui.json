@@ -1,0 +1,33 @@
+{
+  "Order": 60,
+  "LibName": "meshinspector_meshlib_workbench",
+  "Tabs": [
+    {
+      "Name": "Modify",
+      "Priority": 40,
+      "Groups": [
+        {
+          "Name": "Local Editing",
+          "List": [
+            { "Name": "Select / Mark Region" },
+            { "Name": "Thicken Brush" },
+            { "Name": "Scoop Brush" },
+            { "Name": "Smooth Brush" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Inspect",
+      "Priority": 50,
+      "Groups": [
+        {
+          "Name": "Measurement",
+          "List": [
+            { "Name": "Measure / Inspect" }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "Items": [
+    {
+      "Name": "Select / Mark Region",
+      "Tooltip": "Selection bridge for painted, lassoed, or semantic edit masks.",
+      "Icon": "\uE1C9"
+    },
+    {
+      "Name": "Thicken Brush",
+      "Tooltip": "Pushes the surface outward under the cursor using MeshLib surface manipulation.",
+      "Icon": "\uE1B2"
+    },
+    {
+      "Name": "Scoop Brush",
+      "Tooltip": "Pushes the surface inward under the cursor for local recess and cavity work.",
+      "Icon": "\uE1C7"
+    },
+    {
+      "Name": "Smooth Brush",
+      "Tooltip": "Relaxes rough AI-generated chatter under the brush while preserving the surrounding surface.",
+      "Icon": "\uE1D5"
+    },
+    {
+      "Name": "Measure / Inspect",
+      "Tooltip": "Hook for hover coordinates, point-to-point measurement, and local thickness probes.",
+      "Icon": "\uE0C1"
+    }
+  ]
+}

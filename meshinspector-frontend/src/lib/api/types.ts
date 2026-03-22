@@ -268,6 +268,52 @@ export interface ViewerManifest {
   needs_axis_confirmation: boolean;
 }
 
+export interface InteractiveSelectionPayload {
+  mode: 'brush' | 'lasso' | 'faces' | 'vertices' | 'regions';
+  vertex_ids: number[];
+  face_ids: number[];
+  region_ids: string[];
+  brush_points_world: Array<[number, number, number]>;
+  metadata: Record<string, unknown>;
+}
+
+export interface InteractiveCommitRequest {
+  tool_id: 'select_mark_region' | 'thicken_brush' | 'scoop_brush' | 'smooth_brush' | 'measure_inspect';
+  operation_label: string;
+  selection?: InteractiveSelectionPayload | null;
+  brush_radius_mm?: number | null;
+  falloff_mm?: number | null;
+  target_thickness_mm?: number | null;
+  depth_mm?: number | null;
+  min_thickness_mm?: number | null;
+  iterations?: number | null;
+  strength?: number | null;
+  preserve_detail: boolean;
+  metadata: Record<string, unknown>;
+}
+
+export interface MeshLibWorkbenchManifest {
+  version_id: string;
+  entry_html_url: string;
+  runtime_asset_base_url: string;
+  normalized_mesh_url: string | null;
+  preview_low_url: string | null;
+  preview_high_url: string | null;
+  commit_endpoint_url: string;
+  built_in_ui: string[];
+  interactive_tools: string[];
+  feature_flags: Record<string, boolean>;
+  notes: string[];
+}
+
+export interface MeshLibRuntimeManifest {
+  status: 'missing' | 'ready';
+  message?: string;
+  entry_html_url?: string;
+  entry_js_url?: string;
+  assets_base_url?: string;
+}
+
 export interface VersionDetailResponse {
   version: VersionSummary;
   artifacts: ArtifactSummary[];

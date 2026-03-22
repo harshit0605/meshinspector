@@ -13,10 +13,12 @@ import type {
   HollowRequestV2,
   InspectionSnapshotResponse,
   InspectionSnapshotState,
+  InteractiveCommitRequest,
   JobResponse,
   JobEventResponse,
   MakeManufacturableRequest,
   ManufacturabilitySnapshot,
+  MeshLibWorkbenchManifest,
   MaterialType,
   ProcessRequest,
   ProcessResponse,
@@ -90,6 +92,10 @@ export async function getManufacturability(versionId: string): Promise<Manufactu
 
 export async function getViewerManifest(versionId: string): Promise<ViewerManifest> {
   return fetchApi(`/api/versions/${versionId}/viewer`);
+}
+
+export async function getMeshLibWorkbenchManifest(versionId: string): Promise<MeshLibWorkbenchManifest> {
+  return fetchApi(`/api/versions/${versionId}/meshlib-workbench`);
 }
 
 export async function getThicknessOverlay(versionId: string): Promise<ScalarOverlayResponse> {
@@ -206,6 +212,26 @@ export async function submitMakeManufacturable(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
   });
+}
+
+export async function submitInteractiveCommit(
+  versionId: string,
+  params: InteractiveCommitRequest,
+  meshFile: File,
+): Promise<JobResponse> {
+  const formData = new FormData();
+  formData.append('request_json', JSON.stringify(params));
+  formData.append('mesh_file', meshFile);
+
+  const response = await fetch(`${API_BASE}/api/versions/${versionId}/interactive-commit`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Interactive commit failed');
+  }
+  return response.json();
 }
 
 export async function analyzeModel(

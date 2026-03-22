@@ -29,6 +29,7 @@ class OperationType(str, Enum):
     SMOOTH = "smooth"
     COMPARE = "compare"
     MAKE_MANUFACTURABLE = "make_manufacturable"
+    INTERACTIVE_COMMIT = "interactive_commit"
 
 
 class ArtifactSummary(BaseModel):
@@ -131,6 +132,50 @@ class ViewerManifest(BaseModel):
     measurements_summary: dict[str, Any] = Field(default_factory=dict)
     can_edit: bool = True
     needs_axis_confirmation: bool = False
+
+
+class InteractiveSelectionPayload(BaseModel):
+    mode: Literal["brush", "lasso", "faces", "vertices", "regions"] = "brush"
+    vertex_ids: list[int] = Field(default_factory=list)
+    face_ids: list[int] = Field(default_factory=list)
+    region_ids: list[str] = Field(default_factory=list)
+    brush_points_world: list[tuple[float, float, float]] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class InteractiveCommitRequest(BaseModel):
+    tool_id: Literal[
+        "select_mark_region",
+        "thicken_brush",
+        "scoop_brush",
+        "smooth_brush",
+        "measure_inspect",
+    ] = "select_mark_region"
+    operation_label: str = Field(default="Interactive Edit Commit", min_length=1, max_length=255)
+    selection: InteractiveSelectionPayload | None = None
+    brush_radius_mm: float | None = Field(default=None, gt=0)
+    falloff_mm: float | None = Field(default=None, gt=0)
+    target_thickness_mm: float | None = Field(default=None, gt=0)
+    depth_mm: float | None = Field(default=None, gt=0)
+    min_thickness_mm: float | None = Field(default=None, ge=0.2)
+    iterations: int | None = Field(default=None, ge=1, le=100)
+    strength: float | None = Field(default=None, ge=0.0, le=1.0)
+    preserve_detail: bool = True
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class MeshLibWorkbenchManifest(BaseModel):
+    version_id: str
+    entry_html_url: str
+    runtime_asset_base_url: str
+    normalized_mesh_url: str | None = None
+    preview_low_url: str | None = None
+    preview_high_url: str | None = None
+    commit_endpoint_url: str
+    built_in_ui: list[str] = Field(default_factory=list)
+    interactive_tools: list[str] = Field(default_factory=list)
+    feature_flags: dict[str, bool] = Field(default_factory=dict)
+    notes: list[str] = Field(default_factory=list)
 
 
 class CompareCacheEntry(BaseModel):
