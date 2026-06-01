@@ -1,0 +1,33 @@
+{
+  "artifacts": {
+    "meshlib_cube_2mm_shifted_compare": {
+      "kind": "compare_npz",
+      "other_version_id": "cube-shifted-x-0.5mm",
+      "path": "scalar_artifacts/meshlib_cube_2mm_shifted_compare.npz",
+      "sha256": "933e23f2603abab70ad277f175e6355f9fa251a37d96ef4a0055f0e9c98d8690",
+      "source_fixture": "cube_2mm",
+      "summary": {
+        "max_signed_distance_mm": 0.5,
+        "mean_signed_distance_mm": 0.25,
+        "min_signed_distance_mm": 0.0
+      },
+      "target_fixture": "cube_2mm_shifted_x_0_5mm",
+      "vertex_count": 8
+    },
+    "meshlib_cube_2mm_thickness": {
+      "kind": "thickness_npz",
+      "path": "scalar_artifacts/meshlib_cube_2mm_thickness.npz",
+      "sha256": "680fdc1906550e438ce6e0ba6e7701c4e48b670d881b5ce4a523bdbc6ffef2b2",
+      "source_fixture": "cube_2mm",
+      "summary": {
+        "avg_mm": 1.7320506572723389,
+        "max_mm": 1.7320506572723389,
+        "min_mm": 1.7320506572723389,
+        "violation_count": 0
+      },
+      "threshold_mm": 0.6000000238418579,
+      "vertex_count": 8
+    }
+  },
+  "schema_version": 1
+}

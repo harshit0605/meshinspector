@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "samples": {
+    "frontend_ring_glb": {
+      "path": "meshinspector-frontend/models/ring.glb",
+      "mesh": {"vertices": 681282, "faces": 959286},
+      "sdk_stats": {
+        "volume_mm3": 0.01287253225043413,
+        "surface_area_mm2": 12.40223888988168,
+        "boundary_edge_count": 371468,
+        "connected_components": 22071
+      }
+    },
+    "frontend_pendant_glb": {
+      "path": "meshinspector-frontend/models/pendant.glb",
+      "mesh": {"vertices": 747881, "faces": 989844},
+      "sdk_stats": {
+        "volume_mm3": 0.0010282775698992304,
+        "surface_area_mm2": 0.9007213074871838,
+        "boundary_edge_count": 465816,
+        "connected_components": 33173
+      }
+    }
+  }
+}

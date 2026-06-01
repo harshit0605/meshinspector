@@ -54,6 +54,10 @@ venv/
 /meshinspector-backend/storage/ver_*/
 /meshinspector-backend/uploads/
 /meshinspector-backend/temp/
+/meshinspector-backend/geometry-rs/target/
+/meshinspector-backend/geometry_sdk/*.so
+/meshinspector-backend/geometry_sdk/*.dylib
+/meshinspector-backend/geometry_sdk/*.pyd
 
 # MeshLib
 /MeshLib/.git.nested-backup/

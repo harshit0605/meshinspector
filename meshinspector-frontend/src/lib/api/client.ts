@@ -20,13 +20,22 @@ export async function fetchApi<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...options.headers,
-    },
-  });
+
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers: {
+        ...options.headers,
+      },
+    });
+  } catch (error) {
+    throw new ApiError(
+      error instanceof Error && error.message ? `Network request failed: ${error.message}` : 'Network request failed',
+      0,
+      'Backend unavailable or network request blocked'
+    );
+  }
   
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));

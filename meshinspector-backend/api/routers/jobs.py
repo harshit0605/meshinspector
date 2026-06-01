@@ -12,12 +12,13 @@ from api.serializers import serialize_job, serialize_job_event
 from core.db import get_db
 from core.db import SessionLocal
 from domain.models import JobRecord
+from domain.schemas import JobResponse
 from storage.repositories import get_job_events
 
 router = APIRouter()
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", response_model=JobResponse)
 async def get_job(job_id: str, db: Session = Depends(get_db)):
     job = db.get(JobRecord, job_id)
     if job is None:

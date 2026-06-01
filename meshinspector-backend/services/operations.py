@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
+from collections.abc import Callable
 
 import meshlib.mrmeshpy as mm
 import numpy as np
@@ -129,6 +130,7 @@ def _finalize_version(
     complete_job: bool = True,
     completion_message: str = "Operation completed",
     progress_pct: int = 100,
+    on_before_commit: Callable[[ModelVersionRecord, JobRecord], None] | None = None,
 ) -> None:
     preview_high = workdir / f"{version.id}_high.glb"
     preview_low = workdir / f"{version.id}_low.glb"
@@ -164,8 +166,10 @@ def _finalize_version(
     snapshot.thickness.scalar_field_artifact_id = thickness_artifact.id
     upsert_snapshot(db, version.id, "manufacturability", snapshot.model_dump(mode="json"))
 
-    version.status = "ready"
+    version.status = "ready" if complete_job else "processing"
     job.version_id = version.id
+    if on_before_commit is not None:
+        on_before_commit(version, job)
     if complete_job:
         set_job_status(db, job, "succeeded", progress_pct=progress_pct)
         add_job_event(db, job.id, completion_message, progress_pct)
@@ -182,6 +186,7 @@ def run_repair_operation(
     workdir: Path,
     *,
     complete_job: bool = True,
+    on_before_commit: Callable[[ModelVersionRecord, JobRecord], None] | None = None,
 ) -> ModelVersionRecord:
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Repair started", 5)
@@ -215,6 +220,7 @@ def run_repair_operation(
         complete_job=complete_job,
         completion_message="Repair completed" if complete_job else "Repair step completed",
         progress_pct=100 if complete_job else 25,
+        on_before_commit=on_before_commit,
     )
     return new_version
 
@@ -227,6 +233,7 @@ def run_resize_operation(
     request: ResizeRequest,
     *,
     complete_job: bool = True,
+    on_before_commit: Callable[[ModelVersionRecord, JobRecord], None] | None = None,
 ) -> ModelVersionRecord:
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Resize started", 5)
@@ -272,6 +279,7 @@ def run_resize_operation(
         complete_job=complete_job,
         completion_message="Resize completed" if complete_job else "Resize step completed",
         progress_pct=100 if complete_job else 55,
+        on_before_commit=on_before_commit,
     )
     return new_version
 
@@ -284,6 +292,7 @@ def run_hollow_operation(
     request: HollowRequest,
     *,
     complete_job: bool = True,
+    on_before_commit: Callable[[ModelVersionRecord, JobRecord], None] | None = None,
 ) -> ModelVersionRecord:
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Hollowing started", 5)
@@ -360,6 +369,7 @@ def run_hollow_operation(
         complete_job=complete_job,
         completion_message="Hollowing completed" if complete_job else "Weight optimization step completed",
         progress_pct=100 if complete_job else 85,
+        on_before_commit=on_before_commit,
     )
     return new_version
 
@@ -511,7 +521,6 @@ def run_compare_operation(
     b = mm.loadMesh(str(other_mesh))
     scalars = mm.findSignedDistances(a, b)
     values = np.array([float(scalars.vec[i]) for i in range(scalars.size())], dtype=np.float32)
-    finite = values[np.isfinite(values)]
 
     from services.convert import normalize_mesh_to_mm
 
@@ -519,6 +528,9 @@ def run_compare_operation(
     mesh_b = normalize_mesh_to_mm(other_mesh)
     bbox_a = mesh_a.bounds[1] - mesh_a.bounds[0]
     bbox_b = mesh_b.bounds[1] - mesh_b.bounds[0]
+    max_expected_distance = max(float(np.linalg.norm(bbox_a)), float(np.linalg.norm(bbox_b)), 1.0) * 4.0
+    values = np.where(np.abs(values) <= max_expected_distance, values, np.nan).astype(np.float32)
+    finite = values[np.isfinite(values)]
     compare_npz = workdir / f"{job.id}_compare_{other_version.id}.npz"
     np.savez_compressed(compare_npz, values=np.nan_to_num(values, nan=0.0), other_version_id=np.array([other_version.id]))
     register_file_artifact(
@@ -527,7 +539,7 @@ def run_compare_operation(
         compare_npz,
         f"analysis_compare_npz_{other_version.id}",
         "application/octet-stream",
-        metadata_json={"other_version_id": other_version.id, "job_id": job.id},
+        metadata_json={"other_version_id": other_version.id, "job_id": job.id, "generated_by": "compare_job"},
     )
 
     response = CompareResponse(
@@ -544,6 +556,12 @@ def run_compare_operation(
         max_signed_distance_mm=round(float(np.max(finite)), 4) if finite.size else None,
         mean_signed_distance_mm=round(float(np.mean(finite)), 4) if finite.size else None,
     )
+    compare_artifact = get_artifact_by_type(db, source_version.id, f"analysis_compare_npz_{other_version.id}")
+    if compare_artifact is not None:
+        compare_artifact.metadata_json = {
+            **(compare_artifact.metadata_json or {}),
+            "summary": response.model_dump(mode="json"),
+        }
     set_job_status(db, job, "succeeded", progress_pct=100)
     add_job_event(db, job.id, "Compare completed", 100)
     db.commit()
@@ -615,16 +633,59 @@ def run_make_manufacturable_operation(
     workdir: Path,
     request: MakeManufacturableRequest,
 ) -> ModelVersionRecord:
+    raw_payload = dict(job.operation_request.payload_json or {}) if job.operation_request is not None else {}
+    resume_current_version_id = raw_payload.get("_resume_current_version_id")
+    completed_steps = list(raw_payload.get("_resume_completed_steps") or [])
+    completed_step_set = set(str(step) for step in completed_steps)
+    if resume_current_version_id:
+        resumed_version = db.get(ModelVersionRecord, resume_current_version_id)
+        current_version = resumed_version if resumed_version is not None else source_version
+    else:
+        current_version = source_version
+
+    def make_resume_checkpoint(step_name: str) -> Callable[[ModelVersionRecord, JobRecord], None]:
+        def _checkpoint(version: ModelVersionRecord, current_job: JobRecord) -> None:
+            if current_job.operation_request is None:
+                return
+            payload_state = dict(current_job.operation_request.payload_json or {})
+            prior_steps = [str(step) for step in payload_state.get("_resume_completed_steps") or []]
+            if step_name not in prior_steps:
+                prior_steps.append(step_name)
+            payload_state["_resume_completed_steps"] = prior_steps
+            payload_state["_resume_current_version_id"] = version.id
+            current_job.operation_request.payload_json = payload_state
+
+        return _checkpoint
+
     set_job_status(db, job, "running", progress_pct=5)
     add_job_event(db, job.id, "Manufacturability flow started", 5)
-    current_version = run_repair_operation(db, source_version, job, workdir, complete_job=False)
 
-    if request.target_ring_size_us:
+    if "repair" not in completed_step_set:
+        current_version = run_repair_operation(
+            db,
+            current_version,
+            job,
+            workdir,
+            complete_job=False,
+            on_before_commit=make_resume_checkpoint("repair"),
+        )
+        completed_step_set.add("repair")
+
+    if request.target_ring_size_us and "resize" not in completed_step_set:
         add_job_event(db, job.id, "Sizing branch for manufacturability", 35)
         resize_req = ResizeRequest(target_ring_size_us=request.target_ring_size_us)
-        current_version = run_resize_operation(db, current_version, job, workdir, resize_req, complete_job=False)
+        current_version = run_resize_operation(
+            db,
+            current_version,
+            job,
+            workdir,
+            resize_req,
+            complete_job=False,
+            on_before_commit=make_resume_checkpoint("resize"),
+        )
+        completed_step_set.add("resize")
 
-    if request.target_weight_g:
+    if request.target_weight_g and "hollow" not in completed_step_set:
         add_job_event(db, job.id, "Weight optimization branch for manufacturability", 65)
         hollow_req = HollowRequest(
             mode="target_weight",
@@ -632,10 +693,24 @@ def run_make_manufacturable_operation(
             target_weight_g=request.target_weight_g,
             min_allowed_thickness_mm=request.min_allowed_thickness_mm,
         )
-        current_version = run_hollow_operation(db, current_version, job, workdir, hollow_req, complete_job=False)
+        current_version = run_hollow_operation(
+            db,
+            current_version,
+            job,
+            workdir,
+            hollow_req,
+            complete_job=False,
+            on_before_commit=make_resume_checkpoint("hollow"),
+        )
+        completed_step_set.add("hollow")
 
     set_job_status(db, job, "succeeded", progress_pct=100)
     add_job_event(db, job.id, "Manufacturability flow completed", 100)
+    if job.operation_request is not None:
+        payload_state = dict(job.operation_request.payload_json or {})
+        payload_state.pop("_resume_completed_steps", None)
+        payload_state.pop("_resume_current_version_id", None)
+        job.operation_request.payload_json = payload_state
     db.commit()
     return current_version
 

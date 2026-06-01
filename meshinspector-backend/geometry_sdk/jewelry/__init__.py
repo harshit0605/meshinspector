@@ -1,0 +1,1 @@
+"""Jewelry-specific SDK algorithms."""

@@ -5,9 +5,9 @@ import {
   branchVersion,
   createInspectionSnapshot,
   getCompareCache,
+  getCompareSummary,
   getInspectionSnapshots,
   getMeshLibWorkbenchManifest,
-  downloadModel,
   getCompareOverlay,
   getJob,
   getManufacturability,
@@ -29,6 +29,7 @@ import {
 import type {
   BranchVersionRequest,
   CompareRequestV2,
+  CompareSummary,
   CompareCacheEntry,
   HollowRequestV2,
   InspectionSnapshotResponse,
@@ -61,28 +62,28 @@ export function useVersion(versionId: string | null) {
   });
 }
 
-export function useManufacturability(versionId: string | null) {
+export function useManufacturability(versionId: string | null, enabled = true) {
   return useQuery({
     queryKey: ['manufacturability', versionId],
     queryFn: () => getManufacturability(versionId!),
-    enabled: !!versionId,
+    enabled: !!versionId && enabled,
     staleTime: 1000 * 30,
   });
 }
 
-export function useViewerManifest(versionId: string | null) {
+export function useViewerManifest(versionId: string | null, enabled = true) {
   return useQuery({
     queryKey: ['viewer-manifest', versionId],
     queryFn: () => getViewerManifest(versionId!),
-    enabled: !!versionId,
+    enabled: !!versionId && enabled,
   });
 }
 
-export function useMeshLibWorkbenchManifest(versionId: string | null) {
+export function useMeshLibWorkbenchManifest(versionId: string | null, enabled = true) {
   return useQuery<MeshLibWorkbenchManifest>({
     queryKey: ['meshlib-workbench', versionId],
     queryFn: () => getMeshLibWorkbenchManifest(versionId!),
-    enabled: !!versionId,
+    enabled: !!versionId && enabled,
     staleTime: 1000 * 60,
   });
 }
@@ -116,6 +117,14 @@ export function useCompareCache(versionId: string | null) {
     queryKey: ['compare-cache', versionId],
     queryFn: () => getCompareCache(versionId!),
     enabled: !!versionId,
+  });
+}
+
+export function useCompareSummary(versionId: string | null, otherVersionId: string | null, enabled: boolean) {
+  return useQuery<CompareSummary>({
+    queryKey: ['compare-summary', versionId, otherVersionId],
+    queryFn: () => getCompareSummary(versionId!, otherVersionId!),
+    enabled: !!versionId && !!otherVersionId && enabled,
   });
 }
 
@@ -200,22 +209,6 @@ export function useRepairOperation() {
     mutationFn: (versionId: string) => submitRepair(versionId),
     onSuccess: (_data, versionId) => {
       queryClient.invalidateQueries({ queryKey: ['version', versionId] });
-    },
-  });
-}
-
-export function useDownloadModel() {
-  return useMutation({
-    mutationFn: ({ modelId, format }: { modelId: string; format: 'glb' | 'stl' }) => downloadModel(modelId, format),
-    onSuccess: (blob, { modelId, format }) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${modelId}.${format}`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
     },
   });
 }

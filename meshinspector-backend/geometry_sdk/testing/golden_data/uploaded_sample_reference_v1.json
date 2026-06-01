@@ -1,0 +1,567 @@
+{
+  "schema_version": 1,
+  "samples": {
+    "uploaded_ring_processed_stl": {
+      "description": "Local uploaded ring pipeline output captured from job_206245c1a926; source GLB matches frontend_ring_glb.",
+      "source": {
+        "path": "meshinspector-backend/storage/uploads/job_206245c1a926/source.glb",
+        "sha256": "67efed99a5e594d3c40f1cb6971b6124bf2474fb6bea7e057822b18916511cb1",
+        "bytes": 36751148,
+        "duplicates_real_sample": "frontend_ring_glb"
+      },
+      "processed": {
+        "path": "meshinspector-backend/storage/uploads/job_206245c1a926/ver_2549ca8c02a9.stl",
+        "sha256": "798ce3547080cca9e0a2724fc080b0ae21e05b34bee841f957bba3f21b2379ea",
+        "bytes": 47964384,
+        "mesh": {
+          "faces": 959286,
+          "vertices": 476796
+        },
+        "sdk_health": {
+          "boundary_edge_count": 233,
+          "holes_count": 82,
+          "is_closed": false,
+          "nonmanifold_edge_count": 1897,
+          "self_intersections": null,
+          "self_intersections_available": false
+        },
+        "sdk_stats": {
+          "bbox_max": [4.766572952270508, 5.005067825317383, 4.839170932769775],
+          "bbox_min": [-4.767542362213135, -5.009903907775879, -4.767917156219482],
+          "bbox_size": [9.534115314483643, 10.014971733093262, 9.607088088989258],
+          "boundary_edge_count": 233,
+          "connected_components": 144,
+          "face_count": 959286,
+          "surface_area_mm2": 1240.223888760303,
+          "vertex_count": 476796,
+          "volume_mm3": 12.872530841778902
+        },
+        "meshlib_health": {
+          "holes_count": 76,
+          "is_closed": false,
+          "self_intersections": 47
+        },
+        "packaged_fragment": {
+          "component_rank_by_size": 2,
+          "path": "meshinspector-backend/geometry_sdk/testing/golden_data/uploaded_fragments/uploaded_ring_processed_component_rank_2.npz",
+          "sha256": "afd2678dd5dbfdb2328e5bec06c4967180b2b8f3baf8208afe8630d24380c1c5",
+          "bytes": 62774,
+          "mesh": {
+            "faces": 6838,
+            "vertices": 2920
+          },
+          "sdk_health": {
+            "boundary_edge_count": 0,
+            "holes_count": 0,
+            "is_closed": false,
+            "nonmanifold_edge_count": 384,
+            "self_intersections": 4,
+            "self_intersections_available": true
+          },
+          "sdk_stats": {
+            "bbox_max": [-1.7070305347442627, -3.845363140106201, 3.13238263130188],
+            "bbox_min": [-2.7261300086975098, -4.536336898803711, 2.066626787185669],
+            "bbox_size": [1.019099473953247, 0.6909737586975098, 1.065755844116211],
+            "boundary_edge_count": 0,
+            "connected_components": 1,
+            "face_count": 6838,
+            "surface_area_mm2": 1.9174461634683404,
+            "vertex_count": 2920,
+            "volume_mm3": 0.010527644173189238
+          },
+          "meshlib_operations": {
+            "offset_0_05mm_voxel_0_025mm": {
+              "health": {
+                "boundary_edge_count": 0,
+                "holes_count": 0,
+                "is_closed": true,
+                "nonmanifold_edge_count": 0,
+                "self_intersections": 0,
+                "self_intersections_available": true
+              },
+              "mesh": {
+                "faces": 13084,
+                "vertices": 6544
+              },
+              "operation": "offset",
+              "params": {
+                "offset_mm": 0.05,
+                "voxel_size_mm": 0.025
+              },
+              "stats": {
+                "bbox_max": [-1.6612052917480469, -3.7972164154052734, 3.180070400238037],
+                "bbox_min": [-2.7753665447235107, -4.582814693450928, 2.0195045471191406],
+                "bbox_size": [1.1141612529754639, 0.7855982780456543, 1.1605658531188965],
+                "boundary_edge_count": 0,
+                "connected_components": 1,
+                "face_count": 13084,
+                "surface_area_mm2": 2.7246023504000214,
+                "vertex_count": 6544,
+                "volume_mm3": 0.12769735336828109
+              }
+            }
+          },
+          "sdk_rebuild_operations": {
+            "sdf_rebuild_offset_0_05mm_voxel_0_05mm": {
+              "health": {
+                "boundary_edge_count": 0,
+                "holes_count": 0,
+                "is_closed": true,
+                "nonmanifold_edge_count": 0,
+                "self_intersections": 0,
+                "self_intersections_available": true
+              },
+              "mesh": {
+                "faces": 9200,
+                "vertices": 4602
+              },
+              "operation": "rebuild_via_sdf",
+              "params": {
+                "offset_mm": 0.05,
+                "padding_mm": 0.1,
+                "voxel_size_mm": 0.05
+              },
+              "report": {
+                "extractor": "marching",
+                "input_boundary_edge_count": 0,
+                "input_face_count": 6838,
+                "input_nonmanifold_edge_count": 384,
+                "input_self_intersections": 4,
+                "input_vertex_count": 2920,
+                "offset_mm": 0.05,
+                "output_boundary_edge_count": 0,
+                "output_face_count": 9200,
+                "output_nonmanifold_edge_count": 0,
+                "output_self_intersections": 0,
+                "output_vertex_count": 4602,
+                "refine": true,
+                "voxel_size_mm": 0.05
+              },
+              "stats": {
+                "bbox_max": [-1.661335276564502, -3.797052753368269, 3.1779687727648573],
+                "bbox_min": [-2.771091789387372, -4.584372598223801, 2.018582112566615],
+                "bbox_size": [1.1097565128228701, 0.7873198448555323, 1.1593866601982423],
+                "boundary_edge_count": 0,
+                "connected_components": 1,
+                "face_count": 9200,
+                "surface_area_mm2": 2.683977718890667,
+                "vertex_count": 4602,
+                "volume_mm3": 0.12505465924621192
+              },
+              "meshlib_boolean_operations": {
+                "translated_x_0_3mm_difference": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 10048,
+                    "vertices": 5028
+                  },
+                  "operation": "difference",
+                  "params": {
+                    "target_translation_mm": [0.3, 0.0, 0.0]
+                  },
+                  "stats": {
+                    "bbox_max": [-1.6613352298736572, -3.7970528602600098, 3.177968740463257],
+                    "bbox_min": [-2.7710916996002197, -4.584372520446777, 2.0185821056365967],
+                    "bbox_size": [1.1097564697265625, 0.7873196601867676, 1.1593866348266602],
+                    "boundary_edge_count": 0,
+                    "connected_components": 2,
+                    "face_count": 10048,
+                    "surface_area_mm2": 2.6657432543271056,
+                    "vertex_count": 5028,
+                    "volume_mm3": 0.1198618511915011
+                  }
+                },
+                "translated_x_0_3mm_intersection": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 1480,
+                    "vertices": 742
+                  },
+                  "operation": "intersection",
+                  "params": {
+                    "target_translation_mm": [0.3, 0.0, 0.0]
+                  },
+                  "stats": {
+                    "bbox_max": [-1.9178508520126343, -4.035270690917969, 2.3270037174224854],
+                    "bbox_min": [-2.0764641761779785, -4.491730690002441, 2.155228853225708],
+                    "bbox_size": [0.15861332416534424, 0.45645999908447266, 0.17177486419677734],
+                    "boundary_edge_count": 0,
+                    "connected_components": 1,
+                    "face_count": 1480,
+                    "surface_area_mm2": 0.20653651493897127,
+                    "vertex_count": 742,
+                    "volume_mm3": 0.005192808799016659
+                  }
+                },
+                "translated_x_0_3mm_union": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 18404,
+                    "vertices": 9204
+                  },
+                  "operation": "union",
+                  "params": {
+                    "target_translation_mm": [0.3, 0.0, 0.0]
+                  },
+                  "stats": {
+                    "bbox_max": [-1.361335277557373, -3.7970528602600098, 3.177968740463257],
+                    "bbox_min": [-2.7710916996002197, -4.584372520446777, 2.0185821056365967],
+                    "bbox_size": [1.4097564220428467, 0.7873196601867676, 1.1593866348266602],
+                    "boundary_edge_count": 0,
+                    "connected_components": 1,
+                    "face_count": 18404,
+                    "surface_area_mm2": 5.161418921526782,
+                    "vertex_count": 9204,
+                    "volume_mm3": 0.24491651192023484
+                  }
+                },
+                "positive_x_bbox_box_difference": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 8416,
+                    "vertices": 4210
+                  },
+                  "operation": "difference",
+                  "params": {
+                    "padding_mm": 0.1,
+                    "target_center_bbox_shift_fraction": [0.45, 0.0, 0.0],
+                    "target_kind": "bbox_box_cutter",
+                    "target_size_bbox_fraction": [0.25, 1.25, 1.25],
+                    "voxel_size_mm": 0.05
+                  },
+                  "sdk_tolerances": {
+                    "bbox_size_atol": 0.05,
+                    "surface_area_rtol": 0.12,
+                    "volume_rtol": 0.1
+                  },
+                  "stats": {
+                    "bbox_max": [-1.8555426597595215, -3.7970528602600098, 3.177968740463257],
+                    "bbox_min": [-2.7710916996002197, -4.584372520446777, 2.0185821056365967],
+                    "bbox_size": [0.9155490398406982, 0.7873196601867676, 1.1593866348266602],
+                    "boundary_edge_count": 0,
+                    "connected_components": 1,
+                    "face_count": 8416,
+                    "surface_area_mm2": 2.4305608569916206,
+                    "vertex_count": 4210,
+                    "volume_mm3": 0.1122012510556075
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "uploaded_pendant_processed_stl": {
+      "description": "Local uploaded pendant pipeline output captured from job_31b811a4b39c; source GLB matches frontend_pendant_glb.",
+      "source": {
+        "path": "meshinspector-backend/storage/uploads/job_31b811a4b39c/source.glb",
+        "sha256": "9824b36c1a204f456e574fa8cdeba05805a71d123adb2ed85098dcf3a55af39a",
+        "bytes": 39683524,
+        "duplicates_real_sample": "frontend_pendant_glb"
+      },
+      "processed": {
+        "path": "meshinspector-backend/storage/uploads/job_31b811a4b39c/ver_c94db140bc28.stl",
+        "sha256": "f59e940786703fd3a448a54ee16c88dcfebb92efa912b224e0e026aa53b97060",
+        "bytes": 49492284,
+        "mesh": {
+          "faces": 989844,
+          "vertices": 492438
+        },
+        "sdk_health": {
+          "boundary_edge_count": 0,
+          "holes_count": 0,
+          "is_closed": false,
+          "nonmanifold_edge_count": 2744,
+          "self_intersections": null,
+          "self_intersections_available": false
+        },
+        "sdk_stats": {
+          "bbox_max": [1.935450553894043, 5.011152744293213, 0.6365445256233215],
+          "bbox_min": [-1.9397473335266113, -5.009764671325684, -0.6372418999671936],
+          "bbox_size": [3.8751978874206543, 10.020917415618896, 1.2737864255905151],
+          "boundary_edge_count": 0,
+          "connected_components": 179,
+          "face_count": 989844,
+          "surface_area_mm2": 90.07213098368771,
+          "vertex_count": 492438,
+          "volume_mm3": 1.0282775753599325
+        },
+        "meshlib_health": {
+          "holes_count": 0,
+          "is_closed": true,
+          "self_intersections": 3
+        },
+        "packaged_fragment": {
+          "component_rank_by_size": 2,
+          "path": "meshinspector-backend/geometry_sdk/testing/golden_data/uploaded_fragments/uploaded_pendant_processed_component_rank_2.npz",
+          "sha256": "51167ea579984e13a643431e128abbb437a317d1f74995733c1faea88999733b",
+          "bytes": 185026,
+          "mesh": {
+            "faces": 18952,
+            "vertices": 9475
+          },
+          "sdk_health": {
+            "boundary_edge_count": 0,
+            "holes_count": 0,
+            "is_closed": false,
+            "nonmanifold_edge_count": 4,
+            "self_intersections": 0,
+            "self_intersections_available": true
+          },
+          "sdk_stats": {
+            "bbox_max": [-0.007162154186517, 1.762296438217163, 0.3084505498409271],
+            "bbox_min": [-0.7667330503463745, 0.6304698586463928, -0.3090020418167114],
+            "bbox_size": [0.7595708961598575, 1.1318265795707703, 0.6174525916576385],
+            "boundary_edge_count": 0,
+            "connected_components": 1,
+            "face_count": 18952,
+            "surface_area_mm2": 1.609429455657718,
+            "vertex_count": 9475,
+            "volume_mm3": 0.08120834589020101
+          },
+          "meshlib_operations": {
+            "offset_0_05mm_voxel_0_025mm": {
+              "health": {
+                "boundary_edge_count": 0,
+                "holes_count": 0,
+                "is_closed": true,
+                "nonmanifold_edge_count": 0,
+                "self_intersections": 0,
+                "self_intersections_available": true
+              },
+              "mesh": {
+                "faces": 10852,
+                "vertices": 5428
+              },
+              "operation": "offset",
+              "params": {
+                "offset_mm": 0.05,
+                "voxel_size_mm": 0.025
+              },
+              "stats": {
+                "bbox_max": [0.040129344910383224, 1.8106781244277954, 0.35564470291137695],
+                "bbox_min": [-0.8150873184204102, 0.5833319425582886, -0.3560974597930908],
+                "bbox_size": [0.8552166633307934, 1.2273461818695068, 0.7117421627044678],
+                "boundary_edge_count": 0,
+                "connected_components": 1,
+                "face_count": 10852,
+                "surface_area_mm2": 2.2557773112773325,
+                "vertex_count": 5428,
+                "volume_mm3": 0.17714616391826132
+              }
+            }
+          },
+          "sdk_rebuild_operations": {
+            "sdf_rebuild_offset_0mm_voxel_0_05mm": {
+              "health": {
+                "boundary_edge_count": 0,
+                "holes_count": 0,
+                "is_closed": true,
+                "nonmanifold_edge_count": 0,
+                "self_intersections": 0,
+                "self_intersections_available": true
+              },
+              "mesh": {
+                "faces": 5748,
+                "vertices": 2878
+              },
+              "operation": "rebuild_via_sdf",
+              "params": {
+                "offset_mm": 0.0,
+                "padding_mm": 0.1,
+                "voxel_size_mm": 0.05
+              },
+              "report": {
+                "extractor": "marching",
+                "input_boundary_edge_count": 0,
+                "input_face_count": 18952,
+                "input_nonmanifold_edge_count": 4,
+                "input_self_intersections": 0,
+                "input_vertex_count": 9475,
+                "offset_mm": 0.0,
+                "output_boundary_edge_count": 0,
+                "output_face_count": 5748,
+                "output_nonmanifold_edge_count": 0,
+                "output_self_intersections": 0,
+                "output_vertex_count": 2878,
+                "refine": true,
+                "voxel_size_mm": 0.05
+              },
+              "stats": {
+                "bbox_max": [-0.010978283255092695, 1.7605883586446127, 0.29788824313219964],
+                "bbox_min": [-0.7523332464123932, 0.6337577698414, -0.2970998511132381],
+                "bbox_size": [0.7413549631573005, 1.1268305888032129, 0.5949880942454377],
+                "boundary_edge_count": 0,
+                "connected_components": 2,
+                "face_count": 5748,
+                "surface_area_mm2": 1.5042528535183628,
+                "vertex_count": 2878,
+                "volume_mm3": 0.07749838363276823
+              },
+              "meshlib_boolean_operations": {
+                "translated_x_0_3mm_difference": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 6206,
+                    "vertices": 3109
+                  },
+                  "operation": "difference",
+                  "params": {
+                    "target_translation_mm": [0.3, 0.0, 0.0]
+                  },
+                  "stats": {
+                    "bbox_max": [-0.010978283360600471, 1.7605884075164795, 0.29788824915885925],
+                    "bbox_min": [-0.7523332238197327, 0.6337577700614929, -0.29709985852241516],
+                    "bbox_size": [0.7413549404591322, 1.1268306374549866, 0.5949881076812744],
+                    "boundary_edge_count": 0,
+                    "connected_components": 3,
+                    "face_count": 6206,
+                    "surface_area_mm2": 1.5257114676737822,
+                    "vertex_count": 3109,
+                    "volume_mm3": 0.07688762232707477
+                  }
+                },
+                "translated_x_0_3mm_intersection": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 674,
+                    "vertices": 343
+                  },
+                  "operation": "intersection",
+                  "params": {
+                    "target_translation_mm": [0.3, 0.0, 0.0]
+                  },
+                  "sdk_tolerances": {
+                    "bbox_size_atol": 0.075,
+                    "surface_area_atol": 0.065
+                  },
+                  "stats": {
+                    "bbox_max": [-0.023063944652676582, 1.7349269390106201, 0.058965351432561874],
+                    "bbox_min": [-0.4523332417011261, 1.0554778575897217, -0.05974932760000229],
+                    "bbox_size": [0.4292692970484495, 0.6794490814208984, 0.11871467903256416],
+                    "boundary_edge_count": 0,
+                    "connected_components": 3,
+                    "face_count": 674,
+                    "surface_area_mm2": 0.07561985074755158,
+                    "vertex_count": 343,
+                    "volume_mm3": 0.0006107620915446012
+                  }
+                },
+                "translated_x_0_3mm_union": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 11514,
+                    "vertices": 5759
+                  },
+                  "operation": "union",
+                  "params": {
+                    "target_translation_mm": [0.3, 0.0, 0.0]
+                  },
+                  "stats": {
+                    "bbox_max": [0.28902173042297363, 1.7605884075164795, 0.29788824915885925],
+                    "bbox_min": [-0.7523332238197327, 0.6337577700614929, -0.29709985852241516],
+                    "bbox_size": [1.0413549542427063, 1.1268306374549866, 0.5949881076812744],
+                    "boundary_edge_count": 0,
+                    "connected_components": 2,
+                    "face_count": 11514,
+                    "surface_area_mm2": 2.9328858513502274,
+                    "vertex_count": 5759,
+                    "volume_mm3": 0.15438600662407687
+                  }
+                },
+                "positive_x_bbox_box_difference": {
+                  "health": {
+                    "boundary_edge_count": 0,
+                    "holes_count": 0,
+                    "is_closed": true,
+                    "nonmanifold_edge_count": 0,
+                    "self_intersections": 0,
+                    "self_intersections_available": true
+                  },
+                  "mesh": {
+                    "faces": 4124,
+                    "vertices": 2066
+                  },
+                  "operation": "difference",
+                  "params": {
+                    "padding_mm": 0.1,
+                    "target_center_bbox_shift_fraction": [0.45, 0.0, 0.0],
+                    "target_kind": "bbox_box_cutter",
+                    "target_size_bbox_fraction": [0.25, 1.25, 1.25],
+                    "voxel_size_mm": 0.05
+                  },
+                  "sdk_tolerances": {
+                    "bbox_size_atol": 0.05,
+                    "surface_area_rtol": 0.12,
+                    "volume_rtol": 0.1
+                  },
+                  "stats": {
+                    "bbox_max": [-0.14071540534496307, 1.7605884075164795, 0.28159722685813904],
+                    "bbox_min": [-0.7523332238197327, 0.6451071500778198, -0.2798646092414856],
+                    "bbox_size": [0.6116178184747696, 1.1154812574386597, 0.5614618360996246],
+                    "boundary_edge_count": 0,
+                    "connected_components": 2,
+                    "face_count": 4124,
+                    "surface_area_mm2": 1.224603297479699,
+                    "vertex_count": 2066,
+                    "volume_mm3": 0.0504827946362647
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

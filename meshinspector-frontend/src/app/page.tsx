@@ -41,7 +41,7 @@ export default function HomePage() {
             <span className="text-xl font-semibold text-white">MeshInspector</span>
           </div>
           <div className="glass-strong px-4 py-2 rounded-full">
-            <span className="text-sm text-zinc-400">v1.0</span>
+            <span className="text-sm text-zinc-400">v0.2.0</span>
           </div>
         </div>
       </nav>

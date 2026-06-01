@@ -1,12 +1,13 @@
 'use client';
 
-import type { CompareCacheEntry, ScalarOverlayResponse, VersionSummary } from '@/lib/api/types';
+import type { CompareCacheEntry, CompareSummary, VersionSummary } from '@/lib/api/types';
 
 export default function ComparePanel({
   versions,
   currentVersionId,
   compareTargetVersionId,
   compareEnabled,
+  compareReady,
   onCompareToggle,
   onCompareTargetChange,
   summary,
@@ -16,9 +17,10 @@ export default function ComparePanel({
   currentVersionId: string;
   compareTargetVersionId: string | null;
   compareEnabled: boolean;
+  compareReady: boolean;
   onCompareToggle: () => void;
   onCompareTargetChange: (value: string | null) => void;
-  summary: ScalarOverlayResponse | null;
+  summary: CompareSummary | null;
   cacheEntries: CompareCacheEntry[];
 }) {
   const options = versions.filter((version) => version.id !== currentVersionId);
@@ -30,11 +32,15 @@ export default function ComparePanel({
         <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Compare</p>
         <button
           onClick={onCompareToggle}
+          disabled={!compareEnabled && !compareReady}
           className={`rounded-xl border px-3 py-2 text-sm ${compareEnabled ? 'border-blue-500/40 bg-blue-500/15 text-blue-200' : 'border-zinc-800 bg-zinc-950 text-zinc-300'}`}
         >
           {compareEnabled ? 'Overlay On' : 'Overlay Off'}
         </button>
       </div>
+      {!compareEnabled && !compareReady && (
+        <p className="mt-3 text-xs text-zinc-500">Pick a cached compare target before enabling the overlay.</p>
+      )}
 
       <div className="mt-4">
         <label className="text-xs uppercase tracking-[0.2em] text-zinc-500">Compare Against</label>
@@ -52,10 +58,10 @@ export default function ComparePanel({
         </select>
       </div>
 
-      {summary && summary.summary ? (
+      {summary ? (
         <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-3 text-sm text-zinc-300">
-          <p>Max abs distance: {String(summary.summary.max_abs_distance_mm ?? 'n/a')} mm</p>
-          <p className="mt-1">Mean distance: {String(summary.summary.mean_distance_mm ?? 'n/a')} mm</p>
+          <p>Max signed distance: {String(summary.max_signed_distance_mm ?? 'n/a')} mm</p>
+          <p className="mt-1">Mean signed distance: {String(summary.mean_signed_distance_mm ?? 'n/a')} mm</p>
         </div>
       ) : (
         <p className="mt-4 text-sm text-zinc-500">Select another version to visualize signed-distance deltas.</p>

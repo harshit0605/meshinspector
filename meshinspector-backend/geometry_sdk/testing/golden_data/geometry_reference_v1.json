@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "fixtures": {
+    "cube_2mm": {
+      "mesh": {"vertices": 8, "faces": 12},
+      "trimesh": {"volume_mm3": 8.0, "surface_area_mm2": 24.0, "is_watertight": true},
+      "meshlib_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0},
+      "meshlib_thickness": {"min_mm": 1.7320506572723389, "avg_mm": 1.7320506572723389, "max_mm": 1.7320506572723389, "violation_count": 0},
+      "sdk_stats": {"volume_mm3": 8.0, "surface_area_mm2": 24.0, "boundary_edge_count": 0, "connected_components": 1},
+      "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 2.4494898319244385, "avg_mm": 2.7247449159622192, "max_mm": 3.0, "valid_vertex_count": 8, "violation_count": 0}
+    },
+    "open_cube_2mm": {
+      "mesh": {"vertices": 8, "faces": 10},
+      "trimesh": {"volume_mm3": 4.0, "surface_area_mm2": 20.0, "is_watertight": false},
+      "meshlib_health": {"is_closed": false, "holes_count": 1, "self_intersections": 0},
+      "meshlib_thickness": {"min_mm": 1.7320506572723389, "avg_mm": 1.8660253286361694, "max_mm": 2.0, "violation_count": 0},
+      "sdk_stats": {"volume_mm3": 6.666666666666667, "surface_area_mm2": 20.0, "boundary_edge_count": 4, "connected_components": 1},
+      "sdk_health": {"is_closed": false, "holes_count": 1, "self_intersections": 0, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 2.2360680103302, "avg_mm": 2.654068572180612, "max_mm": 3.0, "valid_vertex_count": 7, "violation_count": 0}
+    },
+    "ring_default": {
+      "mesh": {"vertices": 576, "faces": 1152},
+      "trimesh": {"volume_mm3": 243.59320096874907, "surface_area_mm2": 420.76144247542777, "is_watertight": true},
+      "meshlib_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0},
+      "meshlib_thickness": {"min_mm": 2.0, "avg_mm": 2.0, "max_mm": 2.0, "violation_count": 0},
+      "sdk_stats": {"volume_mm3": 243.59320096874904, "surface_area_mm2": 420.76144247542777, "boundary_edge_count": 0, "connected_components": 1},
+      "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 2.3963372707366943, "avg_mm": 2.39781653881073, "max_mm": 2.4000000953674316, "valid_vertex_count": 576, "violation_count": 0},
+      "sdk_ring_measurement": {"inner_diameter_mm": 15.6, "estimated_ring_size_us": 5.0, "ring_axis_confidence": 0.951, "band_width_min_mm": 1.2, "band_width_max_mm": 2.4, "head_height_mm": 1.2},
+      "sdk_region_counts": {"inner_band": 144, "outer_band": 76, "head": 95, "ornament_relief": 250, "unknown": 11},
+      "sdk_manufacturability": {"export_ready": true, "health_score": 100, "gold_18k_weight_g": 3.795}
+    },
+    "ring_with_head": {
+      "mesh": {"vertices": 582, "faces": 1160},
+      "trimesh": {"volume_mm3": 251.40173430208242, "surface_area_mm2": 445.28835438867117, "is_watertight": true},
+      "meshlib_health": {"is_closed": true, "holes_count": 0, "self_intersections": 22},
+      "meshlib_thickness": {"min_mm": 0.015764331445097923, "avg_mm": 1.9769874284991233, "max_mm": 2.0, "violation_count": 4},
+      "sdk_stats": {"volume_mm3": 251.4017343020824, "surface_area_mm2": 445.28835438867117, "boundary_edge_count": 0, "connected_components": 2},
+      "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 22, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 0.013207316398620605, "avg_mm": 2.368260560781276, "max_mm": 4.400000095367432, "valid_vertex_count": 582, "violation_count": 2},
+      "sdk_ring_measurement": {"inner_diameter_mm": 15.695, "estimated_ring_size_us": 5.0, "ring_axis_confidence": 0.949, "band_width_min_mm": 1.2, "band_width_max_mm": 2.42, "head_height_mm": 4.049},
+      "sdk_region_counts": {"inner_band": 122, "outer_band": 98, "head": 21, "ornament_relief": 284, "unknown": 57}
+    },
+    "thin_wall_ring": {
+      "mesh": {"vertices": 384, "faces": 768},
+      "trimesh": {"volume_mm3": 19.53720789014132, "surface_area_mm2": 120.96922674374139, "is_watertight": true},
+      "meshlib_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0},
+      "meshlib_thickness": {"min_mm": 2.0, "avg_mm": 2.0, "max_mm": 2.0, "violation_count": 0},
+      "sdk_stats": {"volume_mm3": 19.537207890141328, "surface_area_mm2": 120.96922674374139, "boundary_edge_count": 0, "connected_components": 1},
+      "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 0.6991022825241089, "avg_mm": 0.6994430869817734, "max_mm": 0.699999988079071, "valid_vertex_count": 384, "violation_count": 0}
+    },
+    "hollowed_ring": {
+      "mesh": {"vertices": 1152, "faces": 2304},
+      "trimesh": {"volume_mm3": 148.43960684033144, "surface_area_mm2": 683.7373440225701, "is_watertight": true},
+      "meshlib_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0},
+      "meshlib_thickness": {"min_mm": 1.2916862964630127, "avg_mm": 1.651937661278579, "max_mm": 2.0, "violation_count": 0},
+      "sdk_stats": {"volume_mm3": 148.43960684033144, "surface_area_mm2": 683.7373440225701, "boundary_edge_count": 0, "connected_components": 2},
+      "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 0.4495163559913635, "avg_mm": 0.45007020235061646, "max_mm": 0.4506884217262268, "valid_vertex_count": 1152, "violation_count": 1152}
+    },
+    "pendant": {
+      "mesh": {"vertices": 34, "faces": 64},
+      "trimesh": {"volume_mm3": 128.58163327467017, "surface_area_mm2": 259.5642232470317, "is_watertight": true},
+      "meshlib_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0},
+      "meshlib_thickness": {"min_mm": 2.0, "avg_mm": 2.0, "max_mm": 2.0, "violation_count": 0},
+      "sdk_stats": {"volume_mm3": 128.58163327467014, "surface_area_mm2": 259.5642232470317, "boundary_edge_count": 0, "connected_components": 1},
+      "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": 1.2000000476837158, "avg_mm": 1.2541426630581127, "max_mm": 1.2755558490753174, "valid_vertex_count": 34, "violation_count": 0}
+    },
+    "crossing_triangles": {
+      "mesh": {"vertices": 6, "faces": 2},
+      "trimesh": {"volume_mm3": 0.0, "surface_area_mm2": 2.7, "is_watertight": false},
+      "meshlib_health": {"is_closed": false, "holes_count": 2, "self_intersections": 2},
+      "meshlib_thickness": {"min_mm": 1.4810531865805387e-05, "avg_mm": 1.4942834226239938, "max_mm": 2.0, "violation_count": 1},
+      "sdk_stats": {"volume_mm3": 0.0, "surface_area_mm2": 2.7, "boundary_edge_count": 6, "connected_components": 2},
+      "sdk_health": {"is_closed": false, "holes_count": 2, "self_intersections": 2, "nonmanifold_edge_count": 0},
+      "sdk_ray_thickness": {"min_mm": null, "avg_mm": null, "max_mm": null, "valid_vertex_count": 0, "violation_count": 0}
+    }
+  }
+}

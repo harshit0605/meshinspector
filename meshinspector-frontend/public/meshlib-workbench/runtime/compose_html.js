@@ -31,7 +31,7 @@ var ComposeHTMLBody = function (scripts, deferScripts) {
     }
 }
 
-ComposeHTMLHead(["styles.css"], ["tool_not_supp.svg"]);
+ComposeHTMLHead(["styles.css"], []);
 ComposeHTMLBody([
     "ios_detect.js",
     "color_theme.js",

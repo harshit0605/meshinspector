@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-import tempfile
+
+import shutil
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -14,14 +15,17 @@ from sqlalchemy.orm import Session
 
 from api.serializers import serialize_artifact, serialize_inspection_snapshot, serialize_job, serialize_snapshot, serialize_version
 from core.db import get_db
+from core.config import settings
 from domain.models import ModelArtifactRecord, ModelVersionRecord
 from domain.schemas import (
     BranchVersionRequest,
     CompareCacheEntry,
+    CompareResponse,
     InspectionSnapshotResponse,
     InspectionSnapshotState,
     InteractiveCommitRequest,
     JobResponse,
+    ManufacturabilitySnapshot,
     MeshLibWorkbenchManifest,
     ModelVersionSummary,
     VersionDetailResponse,
@@ -31,6 +35,7 @@ from services.versioning import duplicate_version, register_file_artifact
 from storage.object_store import object_store
 from storage.repositories import create_job, create_snapshot_record, get_artifact_by_type, get_snapshot, get_version_artifacts, list_snapshots_by_prefix
 from workers.dispatch import dispatch_operation_task
+from utils.file_io import validate_file_extension
 
 router = APIRouter()
 
@@ -41,14 +46,19 @@ def _load_json_artifact(artifact: ModelArtifactRecord | None) -> dict | None:
     if object_store.driver == "local":
         path = object_store.get_local_path(artifact.storage_key)
     else:
-        path = object_store.download_to_path(artifact.storage_key, Path("temp") / "downloads" / Path(artifact.storage_key).name)
+        path = object_store.download_to_path(artifact.storage_key, _download_temp_path(artifact))
     return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def _download_temp_path(artifact: ModelArtifactRecord) -> Path:
+    filename = f"{artifact.id}_{Path(artifact.storage_key).name}"
+    return settings.TEMP_DIR / "downloads" / artifact.version_id / filename
 
 
 def _materialize_artifact_to_path(artifact: ModelArtifactRecord) -> Path:
     if object_store.driver == "local":
         return object_store.get_local_path(artifact.storage_key)
-    return object_store.download_to_path(artifact.storage_key, Path("temp") / "downloads" / Path(artifact.storage_key).name)
+    return object_store.download_to_path(artifact.storage_key, _download_temp_path(artifact))
 
 
 def _load_npz_artifact(artifact: ModelArtifactRecord | None) -> dict[str, np.ndarray] | None:
@@ -92,12 +102,12 @@ async def get_version(version_id: str, db: Session = Depends(get_db)) -> Version
     )
 
 
-@router.get("/versions/{version_id}/manuf")
-async def get_manufacturability_snapshot(version_id: str, db: Session = Depends(get_db)):
+@router.get("/versions/{version_id}/manuf", response_model=ManufacturabilitySnapshot)
+async def get_manufacturability_snapshot(version_id: str, db: Session = Depends(get_db)) -> ManufacturabilitySnapshot:
     snapshot = get_snapshot(db, version_id)
     if snapshot is None:
         raise HTTPException(status_code=404, detail="Manufacturability snapshot not found")
-    return snapshot.payload_json
+    return serialize_snapshot(snapshot)
 
 
 @router.get("/versions/{version_id}/viewer", response_model=ViewerManifest)
@@ -158,7 +168,7 @@ async def get_meshlib_workbench_manifest(version_id: str, db: Session = Depends(
         },
         notes=[
             "This endpoint describes the MeshLib workbench contract for the active version.",
-            "The frontend still falls back to the classic viewer until a compiled MeshLib WASM bundle is installed into /public/meshlib-workbench/runtime.",
+            "The runtime is served from /public/meshlib-workbench/runtime and the frontend host loads this contract into the embedded MeshLib workbench.",
         ],
     )
 
@@ -178,18 +188,29 @@ async def submit_interactive_commit(
 
     request = InteractiveCommitRequest.model_validate_json(request_json)
     filename = mesh_file.filename or "interactive-edit.ply"
-    suffix = Path(filename).suffix or ".ply"
-    upload_dir = Path(tempfile.gettempdir()) / "meshinspector_interactive_uploads"
+    ext = validate_file_extension(filename)
+    if not ext:
+        raise HTTPException(status_code=400, detail=f"Invalid file type. Allowed: {', '.join(sorted(settings.ALLOWED_EXTENSIONS))}")
+    mesh_file.file.seek(0, 2)
+    size_mb = mesh_file.file.tell() / (1024 * 1024)
+    mesh_file.file.seek(0)
+    if size_mb > settings.MAX_FILE_SIZE_MB:
+        raise HTTPException(status_code=400, detail=f"File too large. Maximum: {settings.MAX_FILE_SIZE_MB}MB")
+    suffix = ext or ".ply"
+    upload_dir = settings.TEMP_DIR / "interactive_uploads"
 
     payload = request.model_dump(mode="json")
     job = create_job(db, version_id, "interactive_commit", payload)
     upload_path = upload_dir / job.id / f"interactive-edit{suffix}"
     upload_path.parent.mkdir(parents=True, exist_ok=True)
-    upload_path.write_bytes(await mesh_file.read())
+    with upload_path.open("wb") as buffer:
+        shutil.copyfileobj(mesh_file.file, buffer)
+    upload_storage_key = f"interactive_uploads/{job.id}/interactive-edit{suffix}"
+    object_store.put_file(upload_path, upload_storage_key)
 
     dispatch_payload = {
         **payload,
-        "upload_path": str(upload_path.resolve()),
+        "upload_storage_key": upload_storage_key,
         "uploaded_filename": filename,
     }
     if job.operation_request is not None:
@@ -216,9 +237,24 @@ async def get_compare_cache(version_id: str, db: Session = Depends(get_db)) -> l
                 artifact_id=artifact.id,
                 created_at=artifact.created_at,
                 generated_by=artifact.metadata_json.get("generated_by"),
+                summary=CompareResponse.model_validate(summary) if isinstance((summary := artifact.metadata_json.get("summary")), dict) else None,
             )
         )
     return sorted(entries, key=lambda entry: entry.created_at, reverse=True)
+
+
+@router.get("/versions/{version_id}/compare/{other_version_id}", response_model=CompareResponse)
+async def get_compare_summary(version_id: str, other_version_id: str, db: Session = Depends(get_db)) -> CompareResponse:
+    version = db.get(ModelVersionRecord, version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    artifact = get_artifact_by_type(db, version_id, f"analysis_compare_npz_{other_version_id}")
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="Compare result not found")
+    summary = artifact.metadata_json.get("summary") if artifact.metadata_json else None
+    if not isinstance(summary, dict):
+        raise HTTPException(status_code=409, detail="Compare result cached without summary metadata")
+    return CompareResponse.model_validate(summary)
 
 
 @router.post("/versions/{version_id}/branch", response_model=ModelVersionSummary)
@@ -230,6 +266,17 @@ async def branch_version(
     version = db.get(ModelVersionRecord, version_id)
     if version is None:
         raise HTTPException(status_code=404, detail="Version not found")
+    if version.status != "ready":
+        raise HTTPException(status_code=409, detail="Only ready versions can be branched")
+    required_artifacts = ("normalized_mesh_ply", "preview_glb_high", "preview_glb_low", "manufacturing_stl")
+    missing_artifacts = [artifact_type for artifact_type in required_artifacts if get_artifact_by_type(db, version.id, artifact_type) is None]
+    if missing_artifacts:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Version is missing required artifacts for branching: {', '.join(missing_artifacts)}",
+        )
+    if get_snapshot(db, version.id, "manufacturability") is None:
+        raise HTTPException(status_code=409, detail="Version is missing manufacturability analysis required for branching")
     cloned = duplicate_version(
         db,
         version,
@@ -320,41 +367,7 @@ async def get_compare_overlay(version_id: str, other_version_id: str, db: Sessio
                 "cached": True,
             },
         }
-
-    path_a = _materialize_artifact_to_path(artifact_a)
-    path_b = _materialize_artifact_to_path(artifact_b)
-    mesh_a = mm.loadMesh(str(path_a))
-    mesh_b = mm.loadMesh(str(path_b))
-    scalars = mm.findSignedDistances(mesh_a, mesh_b)
-    values = np.array([float(scalars.vec[i]) for i in range(scalars.size())], dtype=np.float32)
-    finite = values[np.isfinite(values)]
-    abs_max = float(np.max(np.abs(finite))) if finite.size else 0.0
-    compare_npz = Path("temp") / "downloads" / f"{version_id}_compare_{other_version_id}.npz"
-    compare_npz.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(compare_npz, values=np.nan_to_num(values, nan=0.0), other_version_id=np.array([other_version_id]))
-    register_file_artifact(
-        db,
-        version_id,
-        compare_npz,
-        f"analysis_compare_npz_{other_version_id}",
-        "application/octet-stream",
-        metadata_json={"other_version_id": other_version_id, "generated_by": "overlay_endpoint"},
-    )
-    db.commit()
-    return {
-        "overlay_type": "compare",
-        "values": np.nan_to_num(values, nan=0.0).round(5).tolist(),
-        "min_value": round(float(np.min(finite)), 5) if finite.size else 0.0,
-        "max_value": round(float(np.max(finite)), 5) if finite.size else 0.0,
-        "center_value": 0.0,
-        "threshold_mm": None,
-        "summary": {
-            "other_version_id": other_version_id,
-            "max_abs_distance_mm": round(abs_max, 5),
-            "mean_distance_mm": round(float(np.mean(finite)), 5) if finite.size else 0.0,
-            "cached": False,
-        },
-    }
+    raise HTTPException(status_code=404, detail="Compare overlay not cached; submit compare job first")
 
 
 @router.get("/artifacts/{artifact_id}")
@@ -367,6 +380,6 @@ async def download_artifact(artifact_id: str, db: Session = Depends(get_db)):
         path = object_store.get_local_path(artifact.storage_key)
         return FileResponse(path, media_type=artifact.mime_type, filename=Path(path).name)
 
-    temp_path = Path("temp") / "downloads" / Path(artifact.storage_key).name
+    temp_path = _download_temp_path(artifact)
     object_store.download_to_path(artifact.storage_key, temp_path)
     return FileResponse(temp_path, media_type=artifact.mime_type, filename=temp_path.name)

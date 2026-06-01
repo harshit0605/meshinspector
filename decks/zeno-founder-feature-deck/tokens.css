@@ -1,0 +1,62 @@
+/* Hallmark · pre-emit critique: P5 H4 E4 S5 R5 V4
+ * Hallmark · macrostructure: Executive Workbench Deck · tone: technical-luxury · anchor hue: molten-gold
+ */
+:root {
+  --color-obsidian: oklch(13% 0.018 255);
+  --color-graphite: oklch(18% 0.018 255);
+  --color-panel: oklch(22% 0.016 255);
+  --color-panel-2: oklch(27% 0.014 255);
+  --color-ink: oklch(94% 0.018 83);
+  --color-muted: oklch(70% 0.02 255);
+  --color-dim: oklch(55% 0.018 255);
+  --color-rule: oklch(35% 0.018 255);
+  --color-gold: oklch(77% 0.14 78);
+  --color-gold-strong: oklch(83% 0.17 82);
+  --color-amber-soft: oklch(69% 0.105 67);
+  --color-steel: oklch(70% 0.064 235);
+  --color-cyan: oklch(75% 0.1 215);
+  --color-rose: oklch(65% 0.13 28);
+  --color-success: oklch(72% 0.1 148);
+  --color-shadow: oklch(7% 0.01 255);
+
+  --font-display: "Bodoni 72", "Didot", "Cormorant Garamond", Georgia, serif;
+  --font-body: "Avenir Next", "Neue Haas Grotesk Text", "Helvetica Neue", Helvetica, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-30: 120px;
+
+  --text-xs: 12px;
+  --text-sm: 15px;
+  --text-base: 20px;
+  --text-lg: 28px;
+  --text-xl: 38px;
+  --text-2xl: 54px;
+  --text-3xl: 78px;
+  --text-display: 116px;
+
+  --radius-1: 4px;
+  --radius-2: 8px;
+  --radius-3: 14px;
+  --radius-round: 999px;
+
+  --rule-hairline: 1px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur-med: 360ms;
+  --dur-slow: 760ms;
+}
+

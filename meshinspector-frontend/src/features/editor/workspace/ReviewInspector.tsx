@@ -2,7 +2,7 @@
 
 import ComparePanel from '@/features/editor/panels/ComparePanel';
 import VersionHistoryPanel from '@/features/editor/panels/VersionHistoryPanel';
-import type { CompareCacheEntry, ScalarOverlayResponse, VersionSummary } from '@/lib/api/types';
+import type { CompareCacheEntry, CompareSummary, VersionSummary } from '@/lib/api/types';
 import type { ReviewPane } from './types';
 
 export default function ReviewInspector({
@@ -12,6 +12,7 @@ export default function ReviewInspector({
   currentVersionId,
   compareTargetVersionId,
   compareEnabled,
+  compareReady,
   onCompareToggle,
   onCompareTargetChange,
   compareSummary,
@@ -27,9 +28,10 @@ export default function ReviewInspector({
   currentVersionId: string;
   compareTargetVersionId: string | null;
   compareEnabled: boolean;
+  compareReady: boolean;
   onCompareToggle: () => void;
   onCompareTargetChange: (value: string | null) => void;
-  compareSummary: ScalarOverlayResponse | null;
+  compareSummary: CompareSummary | null;
   cacheEntries: CompareCacheEntry[];
   onOpenVersion: (versionId: string) => void;
   onBranchVersion: (versionId: string) => void;
@@ -51,6 +53,7 @@ export default function ReviewInspector({
           currentVersionId={currentVersionId}
           compareTargetVersionId={compareTargetVersionId}
           compareEnabled={compareEnabled}
+          compareReady={compareReady}
           onCompareToggle={onCompareToggle}
           onCompareTargetChange={onCompareTargetChange}
           summary={compareSummary}

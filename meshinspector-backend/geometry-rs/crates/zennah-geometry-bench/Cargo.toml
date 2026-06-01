@@ -1,0 +1,17 @@
+[package]
+name = "zennah-geometry-bench"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+zennah-geometry-core.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "mesh_stats"
+harness = false

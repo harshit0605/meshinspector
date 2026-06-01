@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     AUTO_CREATE_SCHEMA: bool = True
 
     QUEUE_BACKEND: Literal["celery", "database"] = "database"
+    COMPAT_PROCESS_ROUTE_ENABLED: bool = False
     DEV_DB_QUEUE_RUNNER_ENABLED: bool = True
     DEV_DB_QUEUE_POLL_INTERVAL_MS: int = 1000
     DEV_DB_QUEUE_BATCH_SIZE: int = 1
@@ -41,7 +42,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str | None = None
     CELERY_RESULT_BACKEND: str | None = None
-    CELERY_TASK_ALWAYS_EAGER: bool = True
+    CELERY_TASK_ALWAYS_EAGER: bool = False
 
     OBJECT_STORE_DRIVER: Literal["local", "s3"] = "local"
     OBJECT_STORE_BUCKET: str = "meshinspector"

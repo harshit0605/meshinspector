@@ -75,6 +75,10 @@ export default function MeshLibWorkbenchHost({ manifest, children }: MeshLibWork
   }, [apiBase, manifest]);
 
   useEffect(() => {
+    setWorkbenchReady(false);
+  }, [normalizedManifest?.version_id]);
+
+  useEffect(() => {
     const handleMessage = (event: MessageEvent<WorkbenchMessage>) => {
       if (event.origin !== window.location.origin) {
         return;
@@ -101,6 +105,22 @@ export default function MeshLibWorkbenchHost({ manifest, children }: MeshLibWork
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
+  }, [normalizedManifest, runtimeManifest]);
+
+  useEffect(() => {
+    if (!iframeRef.current?.contentWindow || !normalizedManifest || runtimeManifest?.status !== 'ready') {
+      return;
+    }
+    iframeRef.current.contentWindow.postMessage(
+      {
+        type: 'meshlib-workbench:init',
+        payload: {
+          manifest: normalizedManifest,
+          runtimeManifest,
+        },
+      },
+      window.location.origin,
+    );
   }, [normalizedManifest, runtimeManifest]);
 
   const runtimeReady = runtimeManifest?.status === 'ready' && !!manifest;
@@ -138,9 +158,9 @@ export default function MeshLibWorkbenchHost({ manifest, children }: MeshLibWork
       <div className="pointer-events-none absolute bottom-4 right-4 z-20 max-w-sm rounded-2xl border border-amber-500/20 bg-zinc-950/92 px-4 py-3 text-xs text-zinc-300 shadow-[0_18px_48px_rgba(0,0,0,0.35)] backdrop-blur">
         <p className="text-[10px] uppercase tracking-[0.24em] text-amber-300">MeshLib Workbench</p>
         <p className="mt-2 leading-5 text-zinc-300">
-          The MeshLib Viewer host seam is active, but a compiled runtime bundle is not installed in
+          The MeshLib Viewer host seam is active, but the runtime bundle is not available in
           <span className="mx-1 rounded bg-zinc-900 px-1.5 py-0.5 text-zinc-100">/public/meshlib-workbench/runtime</span>.
-          The classic viewer remains active until the WASM workbench is built.
+          The classic viewer remains active until the MeshLib WASM workbench is installed.
         </p>
         {(runtimeManifest?.message || runtimeLoadError) && (
           <p className="mt-2 text-zinc-500">{runtimeManifest?.message || runtimeLoadError}</p>

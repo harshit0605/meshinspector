@@ -57,6 +57,12 @@ def serialize_artifact(artifact: ModelArtifactRecord) -> ArtifactSummary:
 
 
 def serialize_job(job: JobRecord) -> JobResponse:
+    result_json = None
+    if job.operation_request is not None:
+        payload = job.operation_request.payload_json or {}
+        raw_result = payload.get("_result")
+        if isinstance(raw_result, dict):
+            result_json = raw_result
     return JobResponse(
         id=job.id,
         version_id=job.version_id,
@@ -65,6 +71,7 @@ def serialize_job(job: JobRecord) -> JobResponse:
         progress_pct=job.progress_pct,
         error_code=job.error_code,
         error_message=job.error_message,
+        result_json=result_json,
         started_at=job.started_at,
         finished_at=job.finished_at,
         created_at=job.created_at,

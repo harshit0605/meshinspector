@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 from typing import Any, Dict, Union
 
@@ -10,6 +9,7 @@ import numpy as np
 from scipy.spatial import cKDTree
 import trimesh
 
+from core.config import settings
 from core.logging import get_logger
 from services.convert import normalize_mesh_to_mm
 from utils.units import mm3_to_grams, MATERIAL_DENSITIES
@@ -491,7 +491,8 @@ def adaptive_hollow_to_weight(
     best_thickness = None
     best_weight = None
     
-    temp_dir = Path(tempfile.gettempdir())
+    temp_dir = settings.TEMP_DIR / "hollow"
+    temp_dir.mkdir(parents=True, exist_ok=True)
     
     for iteration in range(max_iterations):
         # Current guess: midpoint
@@ -609,7 +610,8 @@ def adaptive_protected_hollow_to_weight(
     best_result: Path | None = None
     best_thickness: float | None = None
     best_weight: float | None = None
-    temp_dir = Path(tempfile.gettempdir())
+    temp_dir = settings.TEMP_DIR / "hollow"
+    temp_dir.mkdir(parents=True, exist_ok=True)
 
     for iteration in range(max_iterations):
         current_thickness = (min_t + max_t) / 2.0

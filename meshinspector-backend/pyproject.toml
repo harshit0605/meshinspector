@@ -1,6 +1,6 @@
 [project]
 name = "meshinspector-backend"
-version = "0.1.0"
+version = "0.2.0"
 description = "Backend API for MeshInspector - 3D jewelry manufacturability analysis"
 readme = "README.md"
 requires-python = ">=3.11"

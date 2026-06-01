@@ -40,9 +40,10 @@ type EditorStore = {
   setRightDockTab: (value: RightDockTab) => void;
   setReviewPane: (value: ReviewPane) => void;
   updateToolDrafts: (value: Partial<ToolDrafts>) => void;
+  resetWorkspaceState: () => void;
 };
 
-export const useEditorStore = create<EditorStore>((set) => ({
+const DEFAULT_EDITOR_STATE = {
   wireframe: false,
   sectionEnabled: false,
   sectionConstant: 0,
@@ -52,14 +53,18 @@ export const useEditorStore = create<EditorStore>((set) => ({
   selectedRegionIds: [],
   compareOverlayEnabled: false,
   compareTargetVersionId: null,
-  selectedMaterial: 'gold_18k',
+  selectedMaterial: 'gold_18k' as MaterialType,
   activeToolbarGroup: null,
   openPopoverGroup: null,
   activeTool: null,
-  rightDockTab: 'model',
-  reviewPane: 'compare',
-  lastActiveToolByGroup: {},
+  rightDockTab: 'model' as RightDockTab,
+  reviewPane: 'compare' as ReviewPane,
+  lastActiveToolByGroup: {} as Partial<Record<ToolbarGroup, ContextToolId>>,
   toolDrafts: DEFAULT_TOOL_DRAFTS,
+};
+
+export const useEditorStore = create<EditorStore>((set) => ({
+  ...DEFAULT_EDITOR_STATE,
   setWireframe: (wireframe) => set({ wireframe }),
   setSectionEnabled: (sectionEnabled) => set({ sectionEnabled }),
   setSectionConstant: (sectionConstant) => set({ sectionConstant }),
@@ -123,4 +128,5 @@ export const useEditorStore = create<EditorStore>((set) => ({
         ...value,
       },
     })),
+  resetWorkspaceState: () => set({ ...DEFAULT_EDITOR_STATE }),
 }));

@@ -22,6 +22,8 @@ class UploadResponse(BaseModel):
     filename: str
     file_format: str
     preview_url: str
+    version_id: str | None = None
+    job_id: str | None = None
 
 
 class AnalysisResult(BaseModel):

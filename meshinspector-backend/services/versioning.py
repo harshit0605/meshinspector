@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from core.config import settings
 from domain.models import AnalysisSnapshotRecord, ModelArtifactRecord, ModelVersionRecord
 from storage.object_store import object_store
 from storage.repositories import create_artifact, create_version, generate_id
@@ -61,7 +61,7 @@ def duplicate_version(
         status="ready",
     )
 
-    scratch = Path(tempfile.gettempdir()) / f"meshinspector_clone_{cloned.id}"
+    scratch = settings.TEMP_DIR / "clones" / cloned.id
     scratch.mkdir(parents=True, exist_ok=True)
 
     for artifact in source_version.artifacts:

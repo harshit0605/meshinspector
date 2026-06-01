@@ -1,0 +1,23 @@
+[workspace]
+members = [
+  "crates/zennah-geometry-core",
+  "crates/zennah-geometry-py",
+  "crates/zennah-geometry-bench",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "LicenseRef-Zennah-Proprietary"
+publish = false
+rust-version = "1.82"
+
+[workspace.dependencies]
+zennah-geometry-core = { path = "crates/zennah-geometry-core" }
+pyo3 = { version = "0.28.3", features = ["extension-module", "abi3-py311"] }
+numpy = "0.28.0"
+criterion = "0.5"
+nalgebra = "0.33"
+num-bigint = "0.4"
+num-traits = "0.2"
+rayon = "1.12"

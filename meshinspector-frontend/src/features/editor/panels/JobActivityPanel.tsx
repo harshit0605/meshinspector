@@ -21,7 +21,13 @@ export default function JobActivityPanel({
       </div>
       <div className="mt-3 space-y-2">
         {events.length === 0 ? (
-          <p className="text-sm text-zinc-500">No live job events yet.</p>
+          job?.status === 'failed' ? (
+            <div className="rounded-xl border border-rose-900/60 bg-rose-950/40 px-3 py-3">
+              <p className="text-sm text-rose-200">{job.error_message ?? job.error_code ?? 'Job failed.'}</p>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-500">No live job events yet.</p>
+          )
         ) : (
           events.map((event) => (
             <div key={event.id} className="rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2">

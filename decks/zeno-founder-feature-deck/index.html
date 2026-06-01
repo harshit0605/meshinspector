@@ -1,0 +1,1112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MeshInspector x Zeno · Founder Deck</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23130f0a'/%3E%3Cpath d='M32 9 50 32 32 55 14 32Z' fill='%23e8b850'/%3E%3Ccircle cx='32' cy='32' r='11' fill='%23130f0a'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--color-obsidian);
+      color: var(--color-ink);
+      font-family: var(--font-body);
+      text-rendering: geometricPrecision;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .deck {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background:
+        linear-gradient(90deg, color-mix(in oklch, var(--color-rule), transparent 92%) 1px, transparent 1px),
+        linear-gradient(0deg, color-mix(in oklch, var(--color-rule), transparent 92%) 1px, transparent 1px),
+        radial-gradient(circle at 74% 24%, color-mix(in oklch, var(--color-gold), transparent 85%), transparent 36%),
+        var(--color-obsidian);
+      background-size: 96px 96px, 96px 96px, auto, auto;
+    }
+
+    .stage {
+      width: 1920px;
+      height: 1080px;
+      position: relative;
+      transform-origin: center;
+      overflow: hidden;
+      background: var(--color-obsidian);
+      box-shadow: 0 28px 80px color-mix(in oklch, var(--color-shadow), transparent 30%);
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      padding: var(--space-20) var(--space-24);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(18px);
+      transition: opacity var(--dur-med) var(--ease-out), transform var(--dur-med) var(--ease-out);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 12% 12%, color-mix(in oklch, var(--color-steel), transparent 92%), transparent 31%),
+        linear-gradient(135deg, color-mix(in oklch, var(--color-panel), transparent 25%), transparent 48%),
+        var(--color-obsidian);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+
+    .slide-inner {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      gap: var(--space-12);
+    }
+
+    .slide::before {
+      content: "";
+      position: absolute;
+      inset: var(--space-8);
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 18%);
+      pointer-events: none;
+    }
+
+    .slide::after {
+      content: attr(data-kicker);
+      position: absolute;
+      left: var(--space-10);
+      bottom: var(--space-8);
+      color: var(--color-dim);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+    }
+
+    .deck-title {
+      position: absolute;
+      left: var(--space-10);
+      top: var(--space-8);
+      z-index: 5;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+
+    .progress {
+      position: absolute;
+      top: var(--space-8);
+      right: var(--space-10);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+    }
+
+    .progress-line {
+      width: 180px;
+      height: 2px;
+      background: color-mix(in oklch, var(--color-rule), transparent 18%);
+      overflow: hidden;
+    }
+
+    .progress-line span {
+      display: block;
+      height: 100%;
+      width: var(--deck-progress, 10%);
+      background: var(--color-gold);
+      transition: width var(--dur-med) var(--ease-out);
+    }
+
+    .controls {
+      position: absolute;
+      right: var(--space-10);
+      bottom: var(--space-8);
+      z-index: 10;
+      display: flex;
+      gap: var(--space-2);
+    }
+
+    .controls button {
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 10%);
+      background: color-mix(in oklch, var(--color-panel), transparent 12%);
+      color: var(--color-ink);
+      border-radius: var(--radius-round);
+      padding: var(--space-2) var(--space-4);
+      cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+    }
+
+    .controls button:hover,
+    .controls button:focus-visible {
+      border-color: var(--color-gold);
+      outline: none;
+    }
+
+    .controls button:active {
+      transform: translateY(1px);
+    }
+
+    .notes {
+      position: absolute;
+      z-index: 20;
+      right: var(--space-10);
+      bottom: var(--space-20);
+      width: 540px;
+      max-height: 420px;
+      overflow: auto;
+      border: var(--rule-hairline) solid var(--color-rule);
+      border-radius: var(--radius-2);
+      background: color-mix(in oklch, var(--color-obsidian), transparent 4%);
+      box-shadow: 0 22px 60px color-mix(in oklch, var(--color-shadow), transparent 20%);
+      padding: var(--space-6);
+      color: var(--color-muted);
+      font-size: var(--text-sm);
+      line-height: 1.55;
+      display: none;
+    }
+
+    .notes.open {
+      display: block;
+    }
+
+    body.exporting .controls,
+    body.exporting .notes {
+      display: none !important;
+    }
+
+    .notes strong {
+      color: var(--color-ink);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1,
+    h2 {
+      font-family: var(--font-display);
+      font-weight: 500;
+      line-height: 0.95;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    h1 {
+      font-size: var(--text-display);
+      max-width: 1280px;
+    }
+
+    h2 {
+      font-size: var(--text-3xl);
+      max-width: 1040px;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    p,
+    li {
+      font-size: var(--text-base);
+      line-height: 1.45;
+      color: var(--color-muted);
+    }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-gold);
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+    }
+
+    .lead {
+      max-width: 880px;
+      color: var(--color-ink);
+      font-size: var(--text-lg);
+      line-height: 1.34;
+    }
+
+    .muted {
+      color: var(--color-muted);
+    }
+
+    .gold {
+      color: var(--color-gold);
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+      gap: var(--space-16);
+      align-items: center;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-6);
+    }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-6);
+    }
+
+    .tight {
+      gap: var(--space-3);
+    }
+
+    .panel {
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 8%);
+      background: color-mix(in oklch, var(--color-panel), transparent 20%);
+      border-radius: var(--radius-2);
+      padding: var(--space-6);
+    }
+
+    .panel h3 {
+      margin-bottom: var(--space-4);
+    }
+
+    .metric-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: var(--space-3);
+      align-items: baseline;
+      border-top: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 18%);
+      padding: var(--space-4) 0;
+    }
+
+    .metric-row:first-child {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .metric-row span:first-child {
+      color: var(--color-muted);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .metric-row span:last-child {
+      color: var(--color-ink);
+      font-size: var(--text-lg);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .large-number {
+      font-family: var(--font-display);
+      font-size: 132px;
+      line-height: 0.86;
+      color: var(--color-gold);
+    }
+
+    .artifact {
+      position: relative;
+      min-height: 570px;
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 10%);
+      border-radius: var(--radius-2);
+      background:
+        radial-gradient(circle at 50% 40%, color-mix(in oklch, var(--color-gold), transparent 78%), transparent 27%),
+        linear-gradient(135deg, color-mix(in oklch, var(--color-panel-2), transparent 20%), color-mix(in oklch, var(--color-panel), transparent 25%));
+      overflow: hidden;
+    }
+
+    .ring-diagram {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .ring {
+      width: 450px;
+      height: 450px;
+      border-radius: 50%;
+      border: 74px solid color-mix(in oklch, var(--color-gold-strong), white 8%);
+      box-shadow:
+        inset 18px 30px 48px color-mix(in oklch, var(--color-shadow), transparent 45%),
+        0 34px 80px color-mix(in oklch, var(--color-shadow), transparent 28%),
+        0 0 0 1px color-mix(in oklch, var(--color-gold), white 10%);
+      transform: rotateX(58deg) rotateZ(-22deg);
+      position: relative;
+    }
+
+    .ring::before,
+    .ring::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: color-mix(in oklch, var(--color-gold-strong), white 4%);
+      box-shadow: 0 12px 28px color-mix(in oklch, var(--color-shadow), transparent 50%);
+    }
+
+    .ring::before {
+      top: -120px;
+      width: 150px;
+      height: 150px;
+    }
+
+    .ring::after {
+      top: -78px;
+      width: 260px;
+      height: 62px;
+      border-radius: 50% 50% 38% 38%;
+    }
+
+    .callout {
+      position: absolute;
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-gold), transparent 10%);
+      background: color-mix(in oklch, var(--color-obsidian), transparent 7%);
+      border-radius: var(--radius-1);
+      padding: var(--space-3) var(--space-4);
+      color: var(--color-ink);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 16px 32px color-mix(in oklch, var(--color-shadow), transparent 35%);
+    }
+
+    .callout.a { left: 80px; top: 110px; }
+    .callout.b { right: 76px; top: 200px; }
+    .callout.c { left: 112px; bottom: 110px; }
+    .callout.d { right: 120px; bottom: 86px; }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-5);
+      align-items: stretch;
+    }
+
+    .step {
+      position: relative;
+      min-height: 340px;
+      padding: var(--space-6);
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 10%);
+      border-radius: var(--radius-2);
+      background: color-mix(in oklch, var(--color-panel), transparent 16%);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .step::before {
+      content: attr(data-step);
+      font-family: var(--font-display);
+      font-size: 86px;
+      color: color-mix(in oklch, var(--color-gold), transparent 45%);
+      line-height: 1;
+    }
+
+    .step p {
+      font-size: var(--text-sm);
+    }
+
+    .tool-map {
+      display: grid;
+      grid-template-columns: 0.9fr 1.2fr 0.9fr;
+      gap: var(--space-8);
+      align-items: center;
+    }
+
+    .tool-slide {
+      grid-template-rows: auto 1fr;
+      align-items: stretch;
+    }
+
+    .tool-column {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .tool-pill {
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 12%);
+      border-radius: var(--radius-round);
+      padding: var(--space-3) var(--space-5);
+      color: var(--color-ink);
+      background: color-mix(in oklch, var(--color-panel), transparent 22%);
+      font-size: var(--text-base);
+    }
+
+    .tool-center {
+      min-height: 520px;
+      border: var(--rule-hairline) solid var(--color-rule);
+      border-radius: var(--radius-2);
+      background:
+        linear-gradient(90deg, color-mix(in oklch, var(--color-rule), transparent 82%) 1px, transparent 1px),
+        linear-gradient(0deg, color-mix(in oklch, var(--color-rule), transparent 82%) 1px, transparent 1px),
+        color-mix(in oklch, var(--color-panel), transparent 16%);
+      background-size: 48px 48px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tool-center .mini-mesh {
+      width: 360px;
+      height: 360px;
+      border-radius: 46% 54% 48% 52%;
+      background:
+        linear-gradient(120deg, color-mix(in oklch, var(--color-gold-strong), white 8%), color-mix(in oklch, var(--color-amber-soft), black 5%));
+      clip-path: polygon(48% 0, 60% 28%, 100% 37%, 68% 57%, 80% 100%, 50% 74%, 19% 100%, 31% 57%, 0 38%, 39% 28%);
+      filter: drop-shadow(0 30px 50px color-mix(in oklch, var(--color-shadow), transparent 25%));
+    }
+
+    .axis {
+      position: absolute;
+      left: var(--space-5);
+      bottom: var(--space-5);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+    }
+
+    .axis span {
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--color-panel-2);
+    }
+
+    .feature-matrix {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-5);
+    }
+
+    .feature {
+      padding: var(--space-6);
+      border-top: 2px solid var(--color-gold);
+      background: linear-gradient(180deg, color-mix(in oklch, var(--color-panel), transparent 8%), transparent);
+      min-height: 210px;
+    }
+
+    .feature h3 {
+      margin-bottom: var(--space-4);
+    }
+
+    .feature p {
+      font-size: var(--text-sm);
+    }
+
+    .demo-steps {
+      counter-reset: demo;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--space-5);
+    }
+
+    .demo-step {
+      counter-increment: demo;
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: var(--space-5);
+      align-items: start;
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 10%);
+      padding: var(--space-5);
+      border-radius: var(--radius-2);
+      background: color-mix(in oklch, var(--color-panel), transparent 20%);
+    }
+
+    .demo-step::before {
+      content: counter(demo, decimal-leading-zero);
+      color: var(--color-gold);
+      font-family: var(--font-display);
+      font-size: var(--text-2xl);
+      line-height: 0.95;
+    }
+
+    .demo-step p {
+      font-size: var(--text-sm);
+      margin-top: var(--space-2);
+    }
+
+    .commercial {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-6);
+      align-items: stretch;
+    }
+
+    .offer {
+      padding: var(--space-8);
+      border: var(--rule-hairline) solid color-mix(in oklch, var(--color-rule), transparent 10%);
+      border-radius: var(--radius-2);
+      background: color-mix(in oklch, var(--color-panel), transparent 16%);
+      min-height: 470px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .offer.featured {
+      border-color: var(--color-gold);
+      background:
+        linear-gradient(180deg, color-mix(in oklch, var(--color-gold), transparent 88%), color-mix(in oklch, var(--color-panel), transparent 12%));
+    }
+
+    .price {
+      font-family: var(--font-display);
+      font-size: var(--text-3xl);
+      color: var(--color-gold);
+      line-height: 0.9;
+    }
+
+    .small-list {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .small-list li {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      padding-left: var(--space-5);
+      position: relative;
+    }
+
+    .small-list li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.62em;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-gold);
+    }
+
+    .timeline {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-5);
+      align-items: end;
+      min-height: 520px;
+    }
+
+    .phase {
+      border-left: 2px solid var(--color-gold);
+      padding: var(--space-5);
+      background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--color-panel), transparent 18%));
+      min-height: calc(250px + var(--height));
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      gap: var(--space-4);
+    }
+
+    .phase p {
+      font-size: var(--text-sm);
+    }
+
+    .closing {
+      display: grid;
+      grid-template-columns: 1fr 0.82fr;
+      gap: var(--space-16);
+      align-items: end;
+    }
+
+    .ask {
+      border: var(--rule-hairline) solid var(--color-gold);
+      padding: var(--space-8);
+      border-radius: var(--radius-2);
+      background:
+        radial-gradient(circle at 85% 15%, color-mix(in oklch, var(--color-gold), transparent 70%), transparent 34%),
+        color-mix(in oklch, var(--color-panel), transparent 12%);
+    }
+
+    .ask h3 {
+      color: var(--color-gold);
+      font-size: var(--text-xl);
+    }
+
+    .footer-mark {
+      position: absolute;
+      left: var(--space-10);
+      bottom: var(--space-8);
+      color: var(--color-dim);
+      font-family: var(--font-mono);
+      font-size: var(--text-xs);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      z-index: 8;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide,
+      .progress-line span,
+      .controls button {
+        transition-duration: var(--dur-fast);
+      }
+    }
+
+    @page {
+      size: 1920px 1080px;
+      margin: 0;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 1920px;
+        height: auto;
+        overflow: visible;
+        background: white;
+      }
+
+      .deck {
+        display: block;
+        position: static;
+        width: 1920px;
+        height: auto;
+        background: white;
+      }
+
+      .stage {
+        display: block;
+        position: static;
+        width: 1920px;
+        height: auto;
+        transform: none !important;
+        box-shadow: none;
+        overflow: visible;
+      }
+
+      .slide {
+        display: block !important;
+        position: relative;
+        inset: auto;
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+        break-after: page;
+        page-break-after: always;
+        width: 1920px;
+        height: 1080px;
+      }
+
+      .slide:last-of-type {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .deck-title,
+      .progress,
+      .controls,
+      .notes {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="deck" aria-label="MeshInspector founder pitch deck">
+    <div class="stage" id="stage">
+      <div class="deck-title">MeshInspector · Zeno founder discussion</div>
+      <div class="progress" aria-hidden="true">
+        <span id="counter">01 / 10</span>
+        <div class="progress-line"><span id="progressBar"></span></div>
+      </div>
+
+      <section class="slide active" data-kicker="01 · thesis" data-notes="Zeno already has the exciting part: users can generate jewelry models from prompts or images. The missing layer is confidence before manufacturing. This deck is about that bridge: exact size, weight class, wall thickness, repairs, hollowing, version comparison, and manufacturing STL export. Keep the opening short and make it clear this is a product layer, not a one-off script.">
+        <div class="slide-inner grid-2">
+          <div class="stack">
+            <p class="eyebrow">AI jewelry generation needs a manufacturing bridge</p>
+            <h1>From beautiful mesh to production-ready jewelry.</h1>
+            <p class="lead">MeshInspector checks, edits, and prepares generated 3D jewelry models before they become STL files, prints, or castable pieces.</p>
+          </div>
+          <div class="artifact" aria-hidden="true">
+            <div class="ring-diagram">
+              <div class="ring"></div>
+            </div>
+            <div class="callout a">ring size</div>
+            <div class="callout b">weight class</div>
+            <div class="callout c">wall thickness</div>
+            <div class="callout d">STL export</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="02 · gap" data-notes="This is the key problem statement. Generated jewelry can look visually impressive and still fail manufacturing expectations. The founder likely understands generation, so focus on what happens after generation: users care whether it will fit, whether the weight is acceptable, whether it prints, and whether a jeweler still needs manual CAD cleanup.">
+        <div class="slide-inner grid-2">
+          <div class="stack">
+            <p class="eyebrow">The gap after image-to-3D</p>
+            <h2>Looking right is not the same as being manufacturable.</h2>
+            <p class="lead muted">A generated model can impress the customer and still be wrong for production.</p>
+          </div>
+          <div class="panel">
+            <div class="metric-row"><span>Exact size</span><span>must fit</span></div>
+            <div class="metric-row"><span>Material weight</span><span>must price</span></div>
+            <div class="metric-row"><span>Wall thickness</span><span>must cast</span></div>
+            <div class="metric-row"><span>Mesh health</span><span>must print</span></div>
+            <div class="metric-row"><span>Export</span><span>must trust</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="03 · product" data-notes="Here, describe MeshInspector in one sentence and then walk through the three layers. Measurement tells the user what they have. Correction lets them change it. Versioned export gives a controlled workflow instead of destructive edits. This is the central feature positioning.">
+        <div class="slide-inner stack">
+          <div class="stack tight">
+            <p class="eyebrow">What the product adds</p>
+            <h2>MeshInspector is the manufacturing control layer.</h2>
+          </div>
+          <div class="feature-matrix">
+            <div class="feature">
+              <h3>Measure</h3>
+              <p>Dimensions, ring measurements, material weight prediction, and viewport metrics in millimeters.</p>
+            </div>
+            <div class="feature">
+              <h3>Correct</h3>
+              <p>Repair, resize, hollow, thicken, smooth, scoop, and prepare the generated mesh for downstream manufacturing.</p>
+            </div>
+            <div class="feature">
+              <h3>Control</h3>
+              <p>Version history, compare overlays, manufacturability snapshots, and current-version STL export.</p>
+            </div>
+          </div>
+          <p class="lead">The user moves from “this looks good” to “this is sized, weighted, checked, and ready to export.”</p>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="04 · workflow" data-notes="Use this as the workflow slide. It shows where MeshInspector fits inside Zeno: after generation, before customer or manufacturing export. Emphasize that it can start as a hosted review tool and later become an embedded workflow step.">
+        <div class="slide-inner stack">
+          <div class="stack tight">
+            <p class="eyebrow">Where it fits inside Zeno</p>
+            <h2>A production checkpoint between generation and export.</h2>
+          </div>
+          <div class="pipeline">
+            <div class="step" data-step="01">
+              <div>
+                <h3>Generate</h3>
+                <p>Image or text to jewelry model through Zeno's existing generation workflow.</p>
+              </div>
+            </div>
+            <div class="step" data-step="02">
+              <div>
+                <h3>Inspect</h3>
+                <p>Measure size, weight, thickness, mesh health, and manufacturability risk.</p>
+              </div>
+            </div>
+            <div class="step" data-step="03">
+              <div>
+                <h3>Modify</h3>
+                <p>Repair, resize, hollow, thicken, smooth, scoop, or tune the model to target constraints.</p>
+              </div>
+            </div>
+            <div class="step" data-step="04">
+              <div>
+                <h3>Export</h3>
+                <p>Download the selected manufacturing STL with version history and comparison intact.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="05 · workbench" data-notes="This slide presents the tool surface without overloading the founder with implementation. The point is that this is more than a checklist: it is a workbench. Mention the Rhino-like direction and direct mesh interaction roadmap if relevant, but keep the focus on user workflow.">
+        <div class="slide-inner tool-slide">
+          <div class="stack tight">
+            <p class="eyebrow">Workbench model</p>
+            <h2>Tools surround the mesh, not the other way around.</h2>
+          </div>
+          <div class="tool-map">
+            <div class="tool-column">
+              <div class="tool-pill">Auto repair</div>
+              <div class="tool-pill">Fit to size</div>
+              <div class="tool-pill">Weight control</div>
+              <div class="tool-pill">Prepare for casting</div>
+            </div>
+            <div class="tool-center">
+              <div class="mini-mesh"></div>
+              <div class="axis"><span>X</span><span>Y</span><span>Z</span><span>mm</span></div>
+            </div>
+            <div class="tool-column">
+              <div class="tool-pill">Protected hollow</div>
+              <div class="tool-pill">Thicken region</div>
+              <div class="tool-pill">Scoop / recess</div>
+              <div class="tool-pill">Compare versions</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="06 · feature inventory" data-notes="This is the feature-list slide. Do not read every line. Point out that the tool covers the main production anxieties: dimensions, weight, printability, editability, and version control.">
+        <div class="slide-inner stack">
+          <div class="stack tight">
+            <p class="eyebrow">Feature surface</p>
+            <h2>What Zeno can expose as production confidence.</h2>
+          </div>
+          <div class="grid-3">
+            <div class="panel stack tight">
+              <h3>Model confidence</h3>
+              <ul class="small-list">
+                <li>model ingestion and normalization</li>
+                <li>mesh health checks</li>
+                <li>holes and self-intersections</li>
+                <li>manufacturability recommendations</li>
+              </ul>
+            </div>
+            <div class="panel stack tight">
+              <h3>Jewelry constraints</h3>
+              <ul class="small-list">
+                <li>ring size and inner diameter</li>
+                <li>material-based weight prediction</li>
+                <li>wall thickness control</li>
+                <li>weight-class targeting</li>
+              </ul>
+            </div>
+            <div class="panel stack tight">
+              <h3>Production edits</h3>
+              <ul class="small-list">
+                <li>repair, resize, hollow</li>
+                <li>thicken, smooth, scoop</li>
+                <li>versioning and compare</li>
+                <li>manufacturing STL export</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="07 · live demo" data-notes="This is your demo checklist. Use it while presenting. If time is short, only do upload, metrics, one repair/resize, compare, and export. The deck makes the live demo look intentional rather than improvised.">
+        <div class="slide-inner grid-2">
+          <div class="stack">
+            <p class="eyebrow">Suggested live demo</p>
+            <h2>Show one generated model becoming controlled.</h2>
+            <p class="lead muted">Keep the demo short: one model, one correction path, one export.</p>
+          </div>
+          <div class="demo-steps">
+            <div class="demo-step">
+              <div><h3>Upload</h3><p>Open a Zeno/Tripo-generated jewelry model.</p></div>
+            </div>
+            <div class="demo-step">
+              <div><h3>Inspect</h3><p>Show size, weight, thickness, issues, and recommendations.</p></div>
+            </div>
+            <div class="demo-step">
+              <div><h3>Correct</h3><p>Run repair, resize, hollow, or targeted thickening.</p></div>
+            </div>
+            <div class="demo-step">
+              <div><h3>Compare</h3><p>Show before/after version history and visual difference.</p></div>
+            </div>
+            <div class="demo-step">
+              <div><h3>Export</h3><p>Download STL from the currently selected version.</p></div>
+            </div>
+            <div class="demo-step">
+              <div><h3>Pitch</h3><p>Position it as Zeno's manufacturing-ready export layer.</p></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="08 · packaging" data-notes="This slide frames commercial possibilities without locking you into one implementation. Start with hosted review as the pilot, then embedded manufacturing as the production direction, and premium export as the monetization hook for Zeno.">
+        <div class="slide-inner stack">
+          <div class="stack tight">
+            <p class="eyebrow">Commercial packaging for Zeno</p>
+            <h2>Three ways this becomes a product feature.</h2>
+          </div>
+          <div class="commercial">
+            <div class="offer">
+              <div class="stack tight">
+                <h3>Hosted review tool</h3>
+                <p>Fastest pilot path. Zeno sends generated models into a controlled evaluation workspace.</p>
+              </div>
+              <p class="muted">Best for pilot</p>
+            </div>
+            <div class="offer featured">
+              <div class="stack tight">
+                <h3>Embedded manufacturing step</h3>
+                <p>Generation flows into size, weight, thickness, repair, version compare, and export.</p>
+              </div>
+              <p class="muted">Best for production</p>
+            </div>
+            <div class="offer">
+              <div class="stack tight">
+                <h3>Premium export feature</h3>
+                <p>Zeno can package “Manufacturing-ready STL” or “Weight-optimized jewelry model”.</p>
+              </div>
+              <p class="muted">Best for monetization</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="09 · pilot" data-notes="This is the commercial ask. Keep it calm and precise. The first ask is a paid pilot, not a source-code sale. Mention that the software includes third-party licensed runtime components, but do not name vendors. The pilot validates the feature with Zeno's real generated models.">
+        <div class="slide-inner grid-2">
+          <div class="stack">
+            <p class="eyebrow">Recommended next step</p>
+            <h2>A paid pilot, then a commercial license.</h2>
+            <p class="lead muted">The goal is to validate production value before deeper integration.</p>
+          </div>
+          <div class="offer featured">
+            <div class="stack">
+              <p class="eyebrow">Pilot proposal</p>
+              <p class="price">45 days</p>
+              <h3>INR 7.5L-12L</h3>
+              <ul class="small-list">
+                <li>limited Zeno model validation</li>
+                <li>hosted evaluation access</li>
+                <li>standard third-party runtime coverage</li>
+                <li>success metrics and production plan</li>
+                <li>no source code transfer</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="slide" data-kicker="10 · close" data-notes="Close by asking for a concrete decision: paid pilot scope and model access. Stay firm on IP. If he asks about source code, say the product is licensed, not transferred. If he asks about internal stack, say it includes licensed third-party geometry components and commercial runtime rights will be covered in the agreed package.">
+        <div class="slide-inner closing">
+          <div class="stack">
+            <p class="eyebrow">The ask</p>
+            <h2>Make Zeno the first commercial partner for manufacturable AI jewelry.</h2>
+            <p class="lead">Validate on real generated models, define the integration path, then license the production workflow.</p>
+          </div>
+          <div class="ask stack">
+            <h3>Decision to ask for</h3>
+            <ul class="small-list">
+              <li>approve paid pilot scope</li>
+              <li>share representative generated models</li>
+              <li>define success metrics</li>
+              <li>review commercial license after pilot</li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-mark">MeshInspector · independently owned manufacturability engine</div>
+      </section>
+
+      <div class="controls">
+        <button type="button" id="prevBtn" aria-label="Previous slide">Prev</button>
+        <button type="button" id="notesBtn" aria-label="Toggle speaker notes">Notes</button>
+        <button type="button" id="nextBtn" aria-label="Next slide">Next</button>
+      </div>
+      <aside class="notes" id="notesPanel" aria-live="polite"></aside>
+    </div>
+  </main>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const counter = document.getElementById('counter');
+    const progressBar = document.getElementById('progressBar');
+    const notesPanel = document.getElementById('notesPanel');
+    const notesBtn = document.getElementById('notesBtn');
+    const storageKey = 'meshinspector-zeno-founder-deck-slide';
+    let index = Math.min(Number(localStorage.getItem(storageKey) || 0), slides.length - 1);
+
+    function fitStage() {
+      const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+      stage.style.transform = `scale(${scale})`;
+    }
+
+    function showSlide(nextIndex) {
+      index = Math.max(0, Math.min(slides.length - 1, nextIndex));
+      slides.forEach((slide, slideIndex) => {
+        slide.classList.toggle('active', slideIndex === index);
+      });
+      localStorage.setItem(storageKey, String(index));
+      counter.textContent = `${String(index + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
+      progressBar.style.setProperty('--deck-progress', `${((index + 1) / slides.length) * 100}%`);
+      notesPanel.innerHTML = `<strong>Speaker notes</strong><br>${slides[index].dataset.notes || ''}`;
+      history.replaceState(null, '', `#slide-${index + 1}`);
+    }
+
+    function move(delta) {
+      showSlide(index + delta);
+    }
+
+    document.getElementById('prevBtn').addEventListener('click', () => move(-1));
+    document.getElementById('nextBtn').addEventListener('click', () => move(1));
+    notesBtn.addEventListener('click', () => notesPanel.classList.toggle('open'));
+
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight' || event.key === ' ' || event.key === 'PageDown') {
+        event.preventDefault();
+        move(1);
+      }
+      if (event.key === 'ArrowLeft' || event.key === 'PageUp') {
+        event.preventDefault();
+        move(-1);
+      }
+      if (event.key === 'Home') {
+        event.preventDefault();
+        showSlide(0);
+      }
+      if (event.key === 'End') {
+        event.preventDefault();
+        showSlide(slides.length - 1);
+      }
+      if (event.key.toLowerCase() === 'n') {
+        notesPanel.classList.toggle('open');
+      }
+    });
+
+    stage.addEventListener('click', (event) => {
+      if (event.target.closest('button') || event.target.closest('.notes')) return;
+      const midpoint = window.innerWidth / 2;
+      move(event.clientX > midpoint ? 1 : -1);
+    });
+
+    window.addEventListener('resize', fitStage);
+    window.addEventListener('hashchange', () => {
+      const nextHashMatch = location.hash.match(/slide-(\d+)/);
+      if (nextHashMatch) {
+        showSlide(Number(nextHashMatch[1]) - 1);
+      }
+    });
+
+    const hashMatch = location.hash.match(/slide-(\d+)/);
+    if (hashMatch) {
+      index = Math.min(slides.length - 1, Math.max(0, Number(hashMatch[1]) - 1));
+    }
+
+    fitStage();
+    showSlide(index);
+  </script>
+</body>
+</html>

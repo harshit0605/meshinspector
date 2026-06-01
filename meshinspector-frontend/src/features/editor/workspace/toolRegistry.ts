@@ -264,8 +264,8 @@ export const WORKSPACE_COMMANDS: WorkspaceCommandDefinition[] = [
   {
     id: 'restore-branch',
     group: 'review',
-    label: 'Restore As Branch',
-    description: 'Branch from an existing version in review mode.',
+    label: 'Branch In History',
+    description: 'Open version history and branch from a specific version.',
     icon: 'RB',
     surface: 'review',
     dockTab: 'review',

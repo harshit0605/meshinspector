@@ -94,6 +94,7 @@ export interface CompareCacheEntry {
   artifact_id: string;
   created_at: string;
   generated_by?: string | null;
+  summary?: CompareSummary | null;
 }
 
 export interface InspectionSnapshotState {
@@ -174,6 +175,7 @@ export interface JobResponse {
   progress_pct: number;
   error_code?: string | null;
   error_message?: string | null;
+  result_json?: Record<string, unknown> | null;
   started_at?: string | null;
   finished_at?: string | null;
   created_at: string;
@@ -347,6 +349,17 @@ export interface ThickenRequestV2 {
 
 export interface CompareRequestV2 {
   other_version_id: string;
+}
+
+export interface CompareSummary {
+  version_id: string;
+  other_version_id: string;
+  volume_delta_mm3: number;
+  weight_delta_g: number;
+  bbox_delta_mm: [number, number, number];
+  min_signed_distance_mm?: number | null;
+  max_signed_distance_mm?: number | null;
+  mean_signed_distance_mm?: number | null;
 }
 
 export interface SmoothRequestV2 {

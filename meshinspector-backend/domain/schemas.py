@@ -21,6 +21,7 @@ class MaterialType(str, Enum):
 
 class OperationType(str, Enum):
     INGEST = "ingest"
+    BRANCH = "branch"
     REPAIR = "repair"
     RESIZE = "resize"
     HOLLOW = "hollow"
@@ -183,6 +184,7 @@ class CompareCacheEntry(BaseModel):
     artifact_id: str
     created_at: datetime
     generated_by: str | None = None
+    summary: "CompareResponse | None" = None
 
 
 class InspectionSnapshotState(BaseModel):
@@ -216,6 +218,7 @@ class JobResponse(BaseModel):
     progress_pct: int
     error_code: str | None = None
     error_message: str | None = None
+    result_json: dict[str, Any] | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
     created_at: datetime

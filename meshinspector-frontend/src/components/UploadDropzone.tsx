@@ -4,7 +4,7 @@
  * Drag-and-drop file upload component with glassmorphism
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { ALLOWED_EXTENSIONS, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
@@ -19,21 +19,31 @@ export default function UploadDropzone({
     isUploading = false,
     error = null
 }: UploadDropzoneProps) {
+    const acceptedExtensions = ALLOWED_EXTENSIONS;
+    const [rejectionMessage, setRejectionMessage] = useState<string | null>(null);
+    const extensionAcceptMap = useMemo(() => ({
+        'model/gltf-binary': ['.glb'],
+        'model/gltf+json': ['.gltf'],
+        'model/stl': ['.stl'],
+        'model/obj': ['.obj'],
+        'application/octet-stream': ['.ply'],
+    }), []);
+
     const onDrop = useCallback((acceptedFiles: File[]) => {
+        setRejectionMessage(null);
         if (acceptedFiles.length > 0) {
             onFileSelect(acceptedFiles[0]);
         }
     }, [onFileSelect]);
 
+    const onDropRejected = useCallback(() => {
+        setRejectionMessage(`Use one of ${acceptedExtensions.join(', ')} under ${MAX_FILE_SIZE_MB}MB.`);
+    }, [acceptedExtensions]);
+
     const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
         onDrop,
-        accept: {
-            'model/gltf-binary': ['.glb'],
-            'model/gltf+json': ['.gltf'],
-            'model/stl': ['.stl'],
-            'model/obj': ['.obj'],
-            'application/octet-stream': ['.ply'],
-        },
+        onDropRejected,
+        accept: extensionAcceptMap,
         maxSize: MAX_FILE_SIZE_MB * 1024 * 1024,
         multiple: false,
         disabled: isUploading,
@@ -87,20 +97,20 @@ export default function UploadDropzone({
                 Drag and drop or <span className="text-amber-400 font-medium">browse</span> to upload
             </p>
             <div className="flex items-center gap-3 text-xs text-zinc-500">
-                <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">.glb</span>
-                <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">.gltf</span>
-                <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">.stl</span>
-                <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">.obj</span>
-                <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">.ply</span>
+                {acceptedExtensions.map((extension) => (
+                    <span key={extension} className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10">
+                        {extension}
+                    </span>
+                ))}
             </div>
             <p className="text-xs text-zinc-600 mt-3">
                 Maximum file size: {MAX_FILE_SIZE_MB}MB
             </p>
 
             {/* Error message */}
-            {error && (
+            {(error || rejectionMessage) && (
                 <div className="absolute bottom-6 left-6 right-6 px-4 py-3 bg-red-500/20 border border-red-500/30 rounded-xl">
-                    <p className="text-sm text-red-400 text-center">{error}</p>
+                    <p className="text-sm text-red-400 text-center">{error ?? rejectionMessage}</p>
                 </div>
             )}
 

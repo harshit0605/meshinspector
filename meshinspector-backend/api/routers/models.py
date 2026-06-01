@@ -13,6 +13,7 @@ from core.config import settings
 from core.db import get_db
 from domain.models import ModelRecord
 from domain.schemas import CreateModelResponse, ModelSummary, ModelVersionSummary
+from storage.object_store import object_store
 from storage.repositories import create_job, create_model, create_version, get_latest_version, list_model_versions
 from utils.file_io import validate_file_extension
 from workers.dispatch import dispatch_ingest_task
@@ -48,8 +49,15 @@ async def create_model_from_upload(
     source_path = settings.TEMP_DIR / f"{version.id}{ext}"
     with source_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+    source_storage_key = f"uploads/{job.id}/source{ext}"
+    object_store.put_file(source_path, source_storage_key)
+    if job.operation_request is not None:
+        job.operation_request.payload_json = {
+            "source_filename": file.filename or "unknown",
+            "source_storage_key": source_storage_key,
+        }
 
-    dispatch_ingest_task(db, model.id, version.id, job.id, str(source_path))
+    dispatch_ingest_task(db, model.id, version.id, job.id, source_storage_key=source_storage_key)
     db.commit()
     db.refresh(version)
     db.refresh(job)

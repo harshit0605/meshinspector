@@ -4,11 +4,10 @@
 
 import { fetchApi } from './client';
 import type {
-  AnalysisResultRaw,
-  AnalysisResponse,
   BranchVersionRequest,
   CompareCacheEntry,
   CompareRequestV2,
+  CompareSummary,
   CreateModelResponse,
   HollowRequestV2,
   InspectionSnapshotResponse,
@@ -19,9 +18,6 @@ import type {
   MakeManufacturableRequest,
   ManufacturabilitySnapshot,
   MeshLibWorkbenchManifest,
-  MaterialType,
-  ProcessRequest,
-  ProcessResponse,
   ResizeRequestV2,
   VersionSummary,
   ScoopRequestV2,
@@ -34,29 +30,23 @@ import type {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-function transformAnalysisResult(raw: AnalysisResultRaw): AnalysisResponse {
-  return {
-    volume_mm3: raw.volume_mm3,
-    weight_grams: raw.weight_g,
-    bounding_box: {
-      x: raw.bbox_mm[0],
-      y: raw.bbox_mm[1],
-      z: raw.bbox_mm[2],
-    },
-    is_watertight: raw.is_watertight,
-    vertex_count: raw.vertex_count,
-    face_count: raw.face_count,
-  };
-}
-
 export async function uploadModel(file: File): Promise<CreateModelResponse> {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await fetch(`${API_BASE}/api/models`, {
-    method: 'POST',
-    body: formData,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/models`, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (error) {
+    throw new Error(
+      error instanceof Error && error.message
+        ? `Upload request failed: ${error.message}`
+        : 'Upload request failed: backend unavailable or network request blocked'
+    );
+  }
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -108,6 +98,10 @@ export async function getCompareOverlay(versionId: string, otherVersionId: strin
 
 export async function getCompareCache(versionId: string): Promise<CompareCacheEntry[]> {
   return fetchApi(`/api/versions/${versionId}/compare-cache`);
+}
+
+export async function getCompareSummary(versionId: string, otherVersionId: string): Promise<CompareSummary> {
+  return fetchApi(`/api/versions/${versionId}/compare/${otherVersionId}`);
 }
 
 export async function getInspectionSnapshots(versionId: string): Promise<InspectionSnapshotResponse[]> {
@@ -223,37 +217,22 @@ export async function submitInteractiveCommit(
   formData.append('request_json', JSON.stringify(params));
   formData.append('mesh_file', meshFile);
 
-  const response = await fetch(`${API_BASE}/api/versions/${versionId}/interactive-commit`, {
-    method: 'POST',
-    body: formData,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}/api/versions/${versionId}/interactive-commit`, {
+      method: 'POST',
+      body: formData,
+    });
+  } catch (error) {
+    throw new Error(
+      error instanceof Error && error.message
+        ? `Interactive commit request failed: ${error.message}`
+        : 'Interactive commit request failed: backend unavailable or network request blocked'
+    );
+  }
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.detail || 'Interactive commit failed');
   }
   return response.json();
-}
-
-export async function analyzeModel(
-  modelId: string,
-  material: MaterialType = 'gold_18k',
-): Promise<AnalysisResponse> {
-  const raw = await fetchApi<AnalysisResultRaw>(`/api/analyze/${modelId}?material=${material}`);
-  return transformAnalysisResult(raw);
-}
-
-export async function processModel(params: ProcessRequest): Promise<ProcessResponse> {
-  return fetchApi<ProcessResponse>('/api/process', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
-  });
-}
-
-export async function downloadModel(modelId: string, format: 'glb' | 'stl'): Promise<Blob> {
-  const response = await fetch(`${API_BASE}/api/download/${modelId}/${format}`);
-  if (!response.ok) {
-    throw new Error('Download failed');
-  }
-  return response.blob();
 }

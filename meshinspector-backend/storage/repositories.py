@@ -253,6 +253,17 @@ def get_latest_version(db: Session, model_id: str) -> ModelVersionRecord | None:
     )
 
 
+def get_latest_ready_version(db: Session, model_id: str) -> ModelVersionRecord | None:
+    return db.scalar(
+        select(ModelVersionRecord)
+        .where(
+            ModelVersionRecord.model_id == model_id,
+            ModelVersionRecord.status == "ready",
+        )
+        .order_by(ModelVersionRecord.created_at.desc())
+    )
+
+
 def list_model_versions(db: Session, model_id: str) -> list[ModelVersionRecord]:
     return list(
         db.scalars(
@@ -345,22 +356,32 @@ def claim_next_database_task(
             ),
         )
 
-    task = db.scalar(
-        select(DevTaskQueueRecord)
-        .where(claimable_clause)
-        .order_by(DevTaskQueueRecord.created_at.asc())
-        .with_for_update(skip_locked=True)
+    tasks = list(
+        db.scalars(
+            select(DevTaskQueueRecord)
+            .where(claimable_clause)
+            .order_by(DevTaskQueueRecord.created_at.asc())
+            .with_for_update(skip_locked=True)
+        )
     )
-    if task is None:
-        return None
+    for task in tasks:
+        if task.job_id:
+            job = db.get(JobRecord, task.job_id)
+            if job is not None and job.status in {"succeeded", "failed"}:
+                task.status = "succeeded" if job.status == "succeeded" else "failed"
+                task.error_message = job.error_message if job.status == "failed" else None
+                task.locked_at = None
+                task.locked_by = None
+                continue
 
-    task.status = "running"
-    task.locked_at = datetime.now(timezone.utc)
-    task.locked_by = runner_id
-    task.error_message = None
-    task.attempts += 1
-    db.flush()
-    return task
+        task.status = "running"
+        task.locked_at = datetime.now(timezone.utc)
+        task.locked_by = runner_id
+        task.error_message = None
+        task.attempts += 1
+        db.flush()
+        return task
+    return None
 
 
 def complete_database_task(

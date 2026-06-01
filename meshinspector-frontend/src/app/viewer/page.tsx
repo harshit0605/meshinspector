@@ -21,6 +21,7 @@ import {
   useCompareCache,
   useCompareOperation,
   useCompareOverlay,
+  useCompareSummary,
   useHollowOperation,
   useInspectionSnapshots,
   useMeshLibWorkbenchManifest,
@@ -130,14 +131,16 @@ function ViewerPageContent() {
   const setRightDockTab = useEditorStore((state) => state.setRightDockTab);
   const setReviewPane = useEditorStore((state) => state.setReviewPane);
   const updateToolDrafts = useEditorStore((state) => state.updateToolDrafts);
+  const resetWorkspaceState = useEditorStore((state) => state.resetWorkspaceState);
 
   const versionsQuery = useModelVersions(modelId);
   const versionDetailQuery = useVersion(versionId);
+  const versionArtifactsReady = versionDetailQuery.data?.version.status === 'ready';
   const compareCacheQuery = useCompareCache(versionId);
   const inspectionSnapshotsQuery = useInspectionSnapshots(versionId);
-  const viewerQuery = useViewerManifest(versionId);
-  const workbenchManifestQuery = useMeshLibWorkbenchManifest(versionId);
-  const snapshotQuery = useManufacturability(versionId);
+  const viewerQuery = useViewerManifest(versionId, versionArtifactsReady);
+  const workbenchManifestQuery = useMeshLibWorkbenchManifest(versionId, versionArtifactsReady);
+  const snapshotQuery = useManufacturability(versionId, versionArtifactsReady);
   const thicknessOverlayQuery = useThicknessOverlay(versionId, heatmapEnabled && !compareOverlayEnabled);
   const compareCacheTargets = useMemo(
     () => new Set((compareCacheQuery.data ?? []).map((entry) => entry.other_version_id)),
@@ -148,6 +151,11 @@ function ViewerPageContent() {
     !!compareTargetVersionId &&
     (compareTargetVersionId ? compareCacheTargets.has(compareTargetVersionId) : false);
   const compareOverlayQuery = useCompareOverlay(versionId, compareTargetVersionId, compareOverlayReady);
+  const compareSummaryQuery = useCompareSummary(
+    versionId,
+    compareTargetVersionId,
+    !!compareTargetVersionId && compareCacheTargets.has(compareTargetVersionId),
+  );
   const repairMutation = useRepairOperation();
   const resizeMutation = useResizeOperation();
   const hollowMutation = useHollowOperation();
@@ -186,6 +194,20 @@ function ViewerPageContent() {
     setActiveJobId(null);
   }, [modelId, queryClient, versionId]));
   const jobEvents = useJobEventStream(activeJobId);
+  const previousModelIdRef = useRef<string | null>(modelId);
+
+  useEffect(() => {
+    if (previousModelIdRef.current === modelId) {
+      return;
+    }
+    previousModelIdRef.current = modelId;
+    resetWorkspaceState();
+    setSectionContour(null);
+    setResizeAxisMode('auto');
+    setManualResizeAxis(null);
+    setUrlStateReady(false);
+    urlSyncRef.current = null;
+  }, [modelId, resetWorkspaceState]);
 
   useEffect(() => {
     if (!urlVersionId) {
@@ -222,34 +244,28 @@ function ViewerPageContent() {
     setCompareOverlayEnabled(decodeBoolean(searchParams.get('compare'), false));
 
     const planeValue = Number(searchParams.get('plane'));
-    if (Number.isFinite(planeValue)) {
-      setSectionConstant(planeValue);
-    }
+    setSectionConstant(Number.isFinite(planeValue) ? planeValue : 0);
 
     const regionId = searchParams.get('region');
-    if (regionId) {
-      setSelectedRegionId(regionId);
-    }
+    setSelectedRegionId(regionId || null);
     const selectedIds = searchParams.get('regions_selected');
-    if (selectedIds) {
-      setSelectedRegionIds(selectedIds.split(',').filter(Boolean));
-    }
+    setSelectedRegionIds(selectedIds ? selectedIds.split(',').filter(Boolean) : []);
     const axisMode = searchParams.get('axis_mode');
-    if (axisMode === 'auto' || axisMode === 'manual') {
-      setResizeAxisMode(axisMode);
-    }
+    setResizeAxisMode(axisMode === 'manual' ? 'manual' : 'auto');
     const axis = searchParams.get('axis');
     if (axis) {
       const values = axis.split(',').map(Number);
       if (values.length === 3 && values.every(Number.isFinite)) {
         setManualResizeAxis([values[0], values[1], values[2]]);
+      } else {
+        setManualResizeAxis(null);
       }
+    } else {
+      setManualResizeAxis(null);
     }
 
     const compareTarget = searchParams.get('compare_target');
-    if (compareTarget) {
-      setCompareTargetVersionId(compareTarget);
-    }
+    setCompareTargetVersionId(compareTarget || null);
     urlSyncRef.current = searchParams.toString();
     setUrlStateReady(true);
   }, [
@@ -332,6 +348,7 @@ function ViewerPageContent() {
     }
     void queryClient.invalidateQueries({ queryKey: ['compare-cache', versionId] });
     if (compareTargetVersionId) {
+      void queryClient.invalidateQueries({ queryKey: ['compare-summary', versionId, compareTargetVersionId] });
       void queryClient.invalidateQueries({ queryKey: ['compare-overlay', versionId, compareTargetVersionId] });
       setCompareOverlayEnabled(true);
     }
@@ -382,6 +399,11 @@ function ViewerPageContent() {
     return path ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${path}` : null;
   }, [viewerQuery.data]);
   const scalarOverlay = compareOverlayEnabled ? compareOverlayQuery.data ?? null : heatmapEnabled ? thicknessOverlayQuery.data ?? null : null;
+  const compareSummary =
+    compareSummaryQuery.data ??
+    (compareTargetVersionId
+      ? (compareCacheQuery.data ?? []).find((entry) => entry.other_version_id === compareTargetVersionId)?.summary ?? null
+      : null);
   const sectionAxis = useMemo<[number, number, number]>(() => {
     if (resizeAxisMode === 'manual' && manualResizeAxis) {
       return normalizeAxis(manualResizeAxis);
@@ -430,9 +452,32 @@ function ViewerPageContent() {
     if (sectionEnabled) values.push('Section');
     if (heatmapEnabled && !compareOverlayEnabled) values.push('Heatmap');
     if (regionOverlayEnabled) values.push('Regions');
-    if (compareOverlayEnabled) values.push('Compare');
+    if (compareOverlayEnabled && compareOverlayReady) values.push('Compare');
     return values;
-  }, [compareOverlayEnabled, heatmapEnabled, regionOverlayEnabled, sectionEnabled, wireframe]);
+  }, [compareOverlayEnabled, compareOverlayReady, heatmapEnabled, regionOverlayEnabled, sectionEnabled, wireframe]);
+
+  const activeJobStatus = currentJob.data?.status ?? jobEvents.terminalStatus?.status ?? null;
+  const activeJobRecord = currentJob.data ?? jobEvents.terminalStatus ?? null;
+  const activeJobFailure =
+    activeJobStatus === 'failed'
+      ? currentJob.data?.error_message ??
+        currentJob.data?.error_code ??
+        jobEvents.terminalStatus?.error_message ??
+        jobEvents.terminalStatus?.error_code ??
+        'The active job failed.'
+      : null;
+  const versionStatus = versionDetailQuery.data?.version.status ?? null;
+  const viewerFailureMessage =
+    activeJobFailure ??
+    (versionStatus === 'failed'
+      ? 'This version failed to prepare viewer artifacts. Check Activity for the failed job.'
+      : viewerQuery.error instanceof Error
+        ? viewerQuery.error.message
+        : workbenchManifestQuery.error instanceof Error
+          ? workbenchManifestQuery.error.message
+          : snapshotQuery.error instanceof Error
+            ? snapshotQuery.error.message
+            : null);
 
   const onRepair = () => {
     if (!versionId) return;
@@ -807,9 +852,15 @@ function ViewerPageContent() {
             currentVersionId={versionId!}
             compareTargetVersionId={compareTargetVersionId}
             compareEnabled={compareOverlayEnabled}
-            onCompareToggle={() => setCompareOverlayEnabled(!compareOverlayEnabled)}
+            compareReady={compareOverlayReady}
+            onCompareToggle={() => {
+              if (!compareOverlayEnabled && !compareOverlayReady) {
+                return;
+              }
+              setCompareOverlayEnabled(!compareOverlayEnabled);
+            }}
             onCompareTargetChange={onRequestCompare}
-            compareSummary={compareOverlayQuery.data ?? null}
+            compareSummary={compareSummary}
             cacheEntries={compareCacheQuery.data ?? []}
             onOpenVersion={onOpenVersion}
             onBranchVersion={onBranchVersion}
@@ -853,9 +904,16 @@ function ViewerPageContent() {
           <h1 className="text-lg font-semibold text-white">Manufacturing Workspace</h1>
         </div>
         <div className="flex items-center gap-3">
-          {currentJob.data && (
-            <div className="rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-xs text-amber-200">
-              {currentJob.data.operation_type} {currentJob.data.progress_pct}%
+          {activeJobRecord && (
+            <div
+              className={`rounded-full px-3 py-1 text-xs ${
+                activeJobStatus === 'failed'
+                  ? 'border border-rose-500/30 bg-rose-500/10 text-rose-200'
+                  : 'border border-amber-500/30 bg-amber-500/10 text-amber-200'
+              }`}
+            >
+              {activeJobRecord.operation_type} {activeJobStatus}
+              {typeof activeJobRecord.progress_pct === 'number' ? ` ${activeJobRecord.progress_pct}%` : ''}
             </div>
           )}
           <div className="rounded-full border border-zinc-800 bg-zinc-900 px-3 py-1 text-xs text-zinc-400">
@@ -896,6 +954,13 @@ function ViewerPageContent() {
               </MeshLibWorkbenchHost>
               <ViewerMetricsHud snapshot={snapshotQuery.data ?? null} material={selectedMaterial} />
             </>
+          ) : viewerFailureMessage ? (
+            <div className="flex h-full items-center justify-center px-8">
+              <div className="max-w-lg rounded-2xl border border-rose-900/60 bg-rose-950/30 px-6 py-5 text-center">
+                <p className="text-xs uppercase tracking-[0.22em] text-rose-300/80">Viewer Unavailable</p>
+                <p className="mt-3 text-sm text-rose-100">{viewerFailureMessage}</p>
+              </div>
+            </div>
           ) : (
             <div className="flex h-full items-center justify-center text-zinc-500">Preparing viewer artifacts...</div>
           )}
@@ -934,7 +999,7 @@ function ViewerPageContent() {
         material={selectedMaterial}
         selectedRegionCount={selectedRegionIds.length}
         overlays={activeOverlays}
-        job={currentJob.data ?? jobEvents.terminalStatus ?? null}
+        job={activeJobRecord}
       />
     </main>
   );
@@ -989,12 +1054,6 @@ export default function ViewerPage() {
       <ViewerPageContent />
     </Suspense>
   );
-}
-
-function regionsHaveScoopTarget(regions: RegionManifestEntry[], selectedRegionId: string | null) {
-  const primary = regions.find((region) => region.region_id === selectedRegionId && region.allowed_operations?.includes('scoop'));
-  if (primary) return true;
-  return regions.some((region) => region.allowed_operations?.includes('scoop') && region.vertex_count > 0);
 }
 
 function getScoopCommandAvailability(
