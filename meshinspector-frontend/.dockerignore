@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+.env
+.env.*
+models
+e2e
+test-results
+playwright-report
+playwright.config.*
+.vscode
+.idea
+*.md
+Dockerfile
+.dockerignore
+bun.lock

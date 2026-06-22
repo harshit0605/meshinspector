@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import logging
+import threading
+import urllib.request
 from collections.abc import Callable
 
 from sqlalchemy import event
@@ -11,7 +14,49 @@ from core.config import settings
 from storage.repositories import add_job_event, create_database_task
 from workers.tasks import ingest_model_task, run_operation_task
 
+logger = logging.getLogger(__name__)
+
 _AFTER_COMMIT_CALLBACKS = "meshinspector_after_commit_callbacks"
+
+
+def _fetch_id_token(audience: str) -> str | None:
+    """OIDC identity token from the GCE metadata server (None when not on GCP)."""
+    try:
+        request = urllib.request.Request(
+            "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/"
+            f"default/identity?audience={audience}&format=full",
+            headers={"Metadata-Flavor": "Google"},
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:  # noqa: S310
+            return response.read().decode()
+    except Exception:  # noqa: BLE001 - not on GCP / metadata unavailable
+        return None
+
+
+def _wake_worker() -> None:
+    """Best-effort: nudge the scale-to-zero worker to drain the queue now.
+
+    Fired after commit so the job row is visible. Runs in a daemon thread so it never
+    blocks or fails the API response; a missed wake is recovered by the scheduler backstop
+    or the next job's wake (the drain loops until the queue is empty)."""
+    base = settings.WORKER_WAKE_URL
+    if not base:
+        return
+
+    def _fire() -> None:
+        url = base.rstrip("/")
+        try:
+            token = _fetch_id_token(url)
+            headers = {"Content-Type": "application/json"}
+            if token:
+                headers["Authorization"] = f"Bearer {token}"
+            request = urllib.request.Request(url + "/internal/drain", method="POST", data=b"{}", headers=headers)
+            with urllib.request.urlopen(request, timeout=15):  # noqa: S310
+                return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("worker wake failed (%s); queue will drain via backstop/next job", exc)
+
+    threading.Thread(target=_fire, daemon=True).start()
 
 
 def _enqueue_after_commit(db: Session, callback: Callable[[], None]) -> None:
@@ -60,6 +105,7 @@ def dispatch_ingest_task(
             job_id=job_id,
         )
         add_job_event(db, job_id, "Queued on database worker", 0)
+        _enqueue_after_commit(db, _wake_worker)
         return
 
     _enqueue_after_commit(
@@ -88,6 +134,7 @@ def dispatch_operation_task(
             job_id=job_id,
         )
         add_job_event(db, job_id, "Queued on database worker", 0)
+        _enqueue_after_commit(db, _wake_worker)
         return
 
     _enqueue_after_commit(

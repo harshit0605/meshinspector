@@ -1,0 +1,23 @@
+# Keep `gcloud builds submit` uploads small. (Per-service builds submit their own
+# subdir, which also honors .gitignore; this covers root-level submits.)
+.git/
+**/node_modules/
+**/.next/
+**/.venv/
+**/geometry-rs/target/
+**/__pycache__/
+*.db
+*.db-shm
+*.db-wal
+**/temp/
+**/storage/
+**/data/
+**/models/
+**/uploads/
+MeshLib/
+meshlib-workbench/
+docs/
+decks/
+.codex/
+.playwright-mcp/
+.pytest_cache/

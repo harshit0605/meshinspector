@@ -1,0 +1,115 @@
+# Push-to-deploy pipeline: build both images, migrate, and deploy all 3 Cloud Run
+# services. Wired to a Cloud Build trigger on push to `master` (see deploy/README.md).
+#
+# Substitutions default to the meshinspector-prod setup; override per environment.
+# $PROJECT_ID and $SHORT_SHA are provided by Cloud Build.
+substitutions:
+  _REGION: us-central1
+  _AR_REPO: meshinspector
+  _RUNTIME_SA: meshinspector-run@meshinspector-prod.iam.gserviceaccount.com
+  _SQL_CONN: meshinspector-prod:us-central1:meshinspector-db
+  _BUCKET: meshinspector-prod-artifacts
+  _API_URL: https://meshinspector-api-plrqikz2ta-uc.a.run.app
+  _WORKER_URL: https://meshinspector-worker-plrqikz2ta-uc.a.run.app
+  _FRONTEND_URL: https://meshinspector-frontend-plrqikz2ta-uc.a.run.app
+  _BACKEND_ENV: QUEUE_BACKEND=database,OBJECT_STORE_DRIVER=s3,OBJECT_STORE_BUCKET=meshinspector-prod-artifacts,OBJECT_STORE_PREFIX=artifacts,S3_ENDPOINT_URL=https://storage.googleapis.com,S3_REGION=auto,AUTO_CREATE_SCHEMA=false
+  _BACKEND_SECRETS: DATABASE_URL=meshinspector-database-url:latest,DIRECT_URL=meshinspector-database-url:latest,S3_ACCESS_KEY_ID=meshinspector-s3-access-key:latest,S3_SECRET_ACCESS_KEY=meshinspector-s3-secret-key:latest
+
+options:
+  machineType: E2_HIGHCPU_8
+  env: ["DOCKER_BUILDKIT=1"]
+timeout: 3000s
+
+steps:
+  # 1) Build + push the backend image (Rust kernel compiles in-image).
+  - id: build-backend
+    name: gcr.io/cloud-builders/docker
+    env: ["DOCKER_BUILDKIT=1"]
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:latest",
+           "meshinspector-backend"]
+
+  # 2) Build + push the frontend image (API URL baked in at build time).
+  - id: build-frontend
+    name: gcr.io/cloud-builders/docker
+    env: ["DOCKER_BUILDKIT=1"]
+    waitFor: ["-"]   # parallel with backend
+    args: ["build", "--build-arg", "NEXT_PUBLIC_API_URL=${_API_URL}",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:$SHORT_SHA",
+           "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:latest",
+           "meshinspector-frontend"]
+
+  - id: push-backend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["build-backend"]
+    args: ["push", "--all-tags", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend"]
+  - id: push-frontend
+    name: gcr.io/cloud-builders/docker
+    waitFor: ["build-frontend"]
+    args: ["push", "--all-tags", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend"]
+
+  # 3) Run DB migrations (alembic upgrade head) as a Cloud Run Job.
+  - id: migrate
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    waitFor: ["push-backend"]
+    args:
+      - -c
+      - |
+        set -e
+        IMG=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA
+        gcloud run jobs deploy meshinspector-migrate --image "$$IMG" --region ${_REGION} \
+          --service-account ${_RUNTIME_SA} --set-cloudsql-instances ${_SQL_CONN} \
+          --set-secrets DATABASE_URL=meshinspector-database-url:latest,DIRECT_URL=meshinspector-database-url:latest \
+          --set-env-vars ROLE=migrate,AUTO_CREATE_SCHEMA=false --max-retries 1 --task-timeout 600s
+        gcloud run jobs execute meshinspector-migrate --region ${_REGION} --wait
+
+  # 4) Deploy API (web).
+  - id: deploy-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    waitFor: ["migrate"]
+    args:
+      - -c
+      - |
+        set -e
+        gcloud run deploy meshinspector-api \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA --region ${_REGION} \
+          --service-account ${_RUNTIME_SA} --add-cloudsql-instances ${_SQL_CONN} \
+          --set-secrets ${_BACKEND_SECRETS} \
+          --set-env-vars ROLE=web,WORKER_WAKE_URL=${_WORKER_URL},CORS_ORIGINS=${_FRONTEND_URL},${_BACKEND_ENV} \
+          --cpu 2 --memory 2Gi --max-instances 10 --port 8080 --allow-unauthenticated
+
+  # 5) Deploy worker (scale-to-zero, drain-driven, OIDC-gated).
+  - id: deploy-worker
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    waitFor: ["migrate"]
+    args:
+      - -c
+      - |
+        set -e
+        gcloud run deploy meshinspector-worker \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA --region ${_REGION} \
+          --service-account ${_RUNTIME_SA} --add-cloudsql-instances ${_SQL_CONN} \
+          --set-secrets ${_BACKEND_SECRETS} \
+          --set-env-vars ROLE=worker,DEV_DB_QUEUE_RUNNER_ENABLED=false,WORKER_DRAIN_ENABLED=true,${_BACKEND_ENV} \
+          --cpu 2 --memory 2Gi --min-instances 0 --max-instances 3 \
+          --port 8080 --timeout 3600 --no-allow-unauthenticated
+
+  # 6) Deploy frontend.
+  - id: deploy-frontend
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    waitFor: ["push-frontend"]
+    args:
+      - -c
+      - |
+        set -e
+        gcloud run deploy meshinspector-frontend \
+          --image ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:$SHORT_SHA --region ${_REGION} \
+          --cpu 1 --memory 512Mi --max-instances 5 --port 8080 --allow-unauthenticated
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/backend:$SHORT_SHA
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/frontend:$SHORT_SHA
