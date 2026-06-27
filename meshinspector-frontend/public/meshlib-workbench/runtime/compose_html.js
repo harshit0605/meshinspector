@@ -44,8 +44,8 @@ ComposeHTMLBody([
     "web_request.js",
     "version.js",
     "post_load.js",
-    "wasm_loader.js",
     "runtime_bootstrap.js",
+    "wasm_loader.js",
     "config.js",
     "error.js",
     "download_desktop_window.js"

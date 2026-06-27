@@ -10893,7 +10893,7 @@ def test_finalize_version_surfaces_deferred_hollow_metadata_in_snapshot_recommen
     def fake_upsert_snapshot(db, version_id, snapshot_type, payload):  # noqa: ANN001, ANN202
         calls.append(("snapshot", payload))
 
-    monkeypatch.setattr(operations_service, "to_glb", lambda source, target: Path(target).write_bytes(b"glb"))
+    monkeypatch.setattr(operations_service, "to_glb", lambda source, target, **_: Path(target).write_bytes(b"glb"))
     monkeypatch.setattr(operations_service, "to_stl", lambda source, target: Path(target).write_bytes(b"stl"))
     monkeypatch.setattr(operations_service, "register_file_artifact", fake_register_file_artifact)
     monkeypatch.setattr(operations_service, "compute_manufacturability_snapshot", lambda *_args, **_kwargs: (snapshot, artifacts))

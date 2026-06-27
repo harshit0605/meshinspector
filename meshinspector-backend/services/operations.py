@@ -423,6 +423,7 @@ def _finalize_version(
     complete_job: bool = True,
     completion_message: str = "Operation completed",
     progress_pct: int = 100,
+    defer_analysis: bool = False,
     on_before_commit: Callable[[ModelVersionRecord, JobRecord], None] | None = None,
     normalized_mesh_metadata: dict[str, object] | None = None,
 ) -> None:
@@ -433,7 +434,9 @@ def _finalize_version(
     manufacturing_stl = workdir / f"{version.id}.stl"
 
     to_glb(normalized_mesh_path, preview_high)
-    to_glb(normalized_mesh_path, preview_low)
+    # "low" = lightweight LOD for fast frontend loading — decimate it instead of
+    # writing a full-resolution duplicate of "high".
+    to_glb(normalized_mesh_path, preview_low, decimate_faces=20000)
     to_stl(normalized_mesh_path, manufacturing_stl)
 
     register_file_artifact(
@@ -448,31 +451,37 @@ def _finalize_version(
     register_file_artifact(db, version.id, preview_low, "preview_glb_low", "model/gltf-binary")
     register_file_artifact(db, version.id, manufacturing_stl, "manufacturing_stl", "application/sla")
 
-    snapshot, artifacts = compute_manufacturability_snapshot(normalized_mesh_path, workdir)
-    thickness_artifact = register_file_artifact(
-        db,
-        version.id,
-        artifacts.thickness_scalar_path,
-        "analysis_thickness_npz",
-        "application/octet-stream",
-    )
-    register_file_artifact(
-        db,
-        version.id,
-        artifacts.region_json_path,
-        "analysis_regions_json",
-        "application/json",
-    )
-    snapshot.version_id = version.id
-    snapshot.thickness.scalar_field_artifact_id = thickness_artifact.id
-    if normalized_mesh_metadata and normalized_mesh_metadata.get("full_voxel_hollow_deferred"):
-        recommendation = (
-            "Full voxel hollow/drain finalization deferred for this large mesh; "
-            "use an offline full-resolution hollow pass before casting."
+    # Heaviest finalize step, and only the analysis panel needs it. When deferred,
+    # the operation returns after the previews and the snapshot is computed lazily
+    # on first request — off the operation's critical path. (Threads wouldn't help:
+    # the kernels already saturate all cores via rayon, so concurrent finalize just
+    # oversubscribes the CPU; deferring is the real lever.)
+    if not defer_analysis:
+        snapshot, artifacts = compute_manufacturability_snapshot(normalized_mesh_path, workdir)
+        thickness_artifact = register_file_artifact(
+            db,
+            version.id,
+            artifacts.thickness_scalar_path,
+            "analysis_thickness_npz",
+            "application/octet-stream",
         )
-        if recommendation not in snapshot.recommendations:
-            snapshot.recommendations.append(recommendation)
-    upsert_snapshot(db, version.id, "manufacturability", snapshot.model_dump(mode="json"))
+        register_file_artifact(
+            db,
+            version.id,
+            artifacts.region_json_path,
+            "analysis_regions_json",
+            "application/json",
+        )
+        snapshot.version_id = version.id
+        snapshot.thickness.scalar_field_artifact_id = thickness_artifact.id
+        if normalized_mesh_metadata and normalized_mesh_metadata.get("full_voxel_hollow_deferred"):
+            recommendation = (
+                "Full voxel hollow/drain finalization deferred for this large mesh; "
+                "use an offline full-resolution hollow pass before casting."
+            )
+            if recommendation not in snapshot.recommendations:
+                snapshot.recommendations.append(recommendation)
+        upsert_snapshot(db, version.id, "manufacturability", snapshot.model_dump(mode="json"))
 
     version.status = "ready" if complete_job else "processing"
     job.version_id = version.id

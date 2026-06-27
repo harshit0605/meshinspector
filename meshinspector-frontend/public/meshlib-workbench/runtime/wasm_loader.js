@@ -10,11 +10,19 @@ var clearWasmLoadProgress = function () {
     progressHolder.setAttribute('style', 'visibility: hidden');
 }
 
+// Pre-create the resource/logo directories MeshLib's WASM expects, so it does
+// not fault when loading its embedded logos (runs before the module starts).
+function ensureMeshLibLogoDirectories() {
+    Module.FS_createPath('/resource', 'logos', true, true);
+    Module.FS_createPath('/resource/logos', 'X1', true, true);
+    Module.FS_createPath('/resource/logos', 'X3', true, true);
+}
+
 var statusElement = document.getElementById("status")
     , logoElement = document.getElementById("logo")
     , spinnerElement = document.getElementById("spinner")
     , Module = {
-        preRun: [],
+        preRun: [ensureMeshLibLogoDirectories],
         postRun: [],
         locateFile: function (path, prefix) {
             return prefix + path + window.location.search;
