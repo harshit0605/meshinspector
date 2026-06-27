@@ -2,11 +2,13 @@ use super::super::exact_boolean::{ExactBooleanOperand, ExactBooleanOutputFaceSou
 use super::super::exact_cut_apply::ExactCutMeshResult;
 use super::output_topology::OutputFaceTopology;
 use super::prepared_base_contours::register_prepared_base_contour_edge_indices;
+use std::collections::BTreeSet;
 
 pub(crate) struct ExactMeshlibPreparedBaseTopologyInput<'a> {
     pub cut_mesh: &'a ExactCutMeshResult,
     pub prepared_faces: &'a [usize],
     pub vertex_map: &'a [Option<usize>],
+    pub contour_vertex_maps: Vec<([usize; 2], [usize; 2])>,
     pub output_vertices: &'a [[f64; 3]],
     pub operand: ExactBooleanOperand,
     pub first_virtual_vertex: usize,
@@ -28,6 +30,7 @@ pub(crate) fn output_topology_from_prepared_base(
         return Err("prepared base first virtual vertex must match output vertex count");
     }
     let mut vertex_map = input.vertex_map.to_vec();
+    seed_prepared_base_contour_vertices(&mut vertex_map, &input.contour_vertex_maps);
     let mut vertices = input.output_vertices.to_vec();
     let mut next_virtual_vertex = input.first_virtual_vertex;
     let mut faces = Vec::with_capacity(input.prepared_faces.len());
@@ -95,6 +98,34 @@ pub(crate) fn output_topology_from_prepared_base(
         face_sources,
         virtual_vertices,
     })
+}
+
+fn seed_prepared_base_contour_vertices(
+    vertex_map: &mut Vec<Option<usize>>,
+    contour_vertex_maps: &[([usize; 2], [usize; 2])],
+) {
+    let mut seeded = BTreeSet::new();
+    for (source_edge, output_edge) in contour_vertex_maps {
+        seed_prepared_base_vertex(vertex_map, &mut seeded, source_edge[0], output_edge[0]);
+        seed_prepared_base_vertex(vertex_map, &mut seeded, source_edge[1], output_edge[1]);
+    }
+}
+
+fn seed_prepared_base_vertex(
+    vertex_map: &mut Vec<Option<usize>>,
+    seeded: &mut BTreeSet<usize>,
+    source: usize,
+    output: usize,
+) {
+    if !seeded.insert(source) {
+        return;
+    }
+    if vertex_map.len() <= source {
+        vertex_map.resize(source + 1, None);
+    }
+    if vertex_map[source].is_none() {
+        vertex_map[source] = Some(output);
+    }
 }
 
 fn mapped_vertex(

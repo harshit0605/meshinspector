@@ -22,8 +22,10 @@ pub struct ExactIntersectionContour {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct DirectedEdge {
-    face: usize,
-    local_edge: usize,
+    from: usize,
+    to: usize,
+    left_face: Option<usize>,
+    right_face: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
@@ -37,14 +39,26 @@ impl MeshTopologyLite {
         let mut directed_edges = HashMap::with_capacity(faces.len() * 3);
         for (face_index, face) in faces.iter().enumerate() {
             for local_edge in 0..3 {
-                let edge = [face[local_edge], face[(local_edge + 1) % 3]];
-                directed_edges.insert(
-                    (edge[0], edge[1]),
-                    DirectedEdge {
-                        face: face_index,
-                        local_edge,
-                    },
-                );
+                let from = face[local_edge];
+                let to = face[(local_edge + 1) % 3];
+                directed_edges
+                    .entry((from, to))
+                    .or_insert(DirectedEdge {
+                        from,
+                        to,
+                        left_face: None,
+                        right_face: None,
+                    })
+                    .left_face = Some(face_index);
+                directed_edges
+                    .entry((to, from))
+                    .or_insert(DirectedEdge {
+                        from: to,
+                        to: from,
+                        left_face: None,
+                        right_face: None,
+                    })
+                    .right_face = Some(face_index);
             }
         }
         Self {
@@ -54,35 +68,33 @@ impl MeshTopologyLite {
     }
 
     fn face_edge(&self, face: usize, local_edge: usize) -> DirectedEdge {
-        DirectedEdge { face, local_edge }
+        let vertices = self.faces[face];
+        self.find_directed([vertices[local_edge], vertices[(local_edge + 1) % 3]])
+            .expect("face edge should be present in topology")
     }
 
     fn edge_vertices(&self, edge: DirectedEdge) -> [usize; 2] {
-        let face = self.faces[edge.face];
-        [face[edge.local_edge], face[(edge.local_edge + 1) % 3]]
+        [edge.from, edge.to]
     }
 
     fn find_directed(&self, edge: [usize; 2]) -> Option<DirectedEdge> {
         self.directed_edges.get(&(edge[0], edge[1])).copied()
     }
 
-    fn next(&self, edge: DirectedEdge) -> DirectedEdge {
-        DirectedEdge {
-            face: edge.face,
-            local_edge: (edge.local_edge + 1) % 3,
-        }
+    fn next(&self, edge: DirectedEdge) -> Option<DirectedEdge> {
+        let face = self.faces[edge.left_face?];
+        let third = third_vertex(face, edge.from, edge.to)?;
+        self.find_directed([edge.from, third])
     }
 
-    fn prev(&self, edge: DirectedEdge) -> DirectedEdge {
-        DirectedEdge {
-            face: edge.face,
-            local_edge: (edge.local_edge + 2) % 3,
-        }
+    fn prev(&self, edge: DirectedEdge) -> Option<DirectedEdge> {
+        let face = self.faces[edge.right_face?];
+        let third = third_vertex(face, edge.from, edge.to)?;
+        self.find_directed([edge.from, third])
     }
 
     fn sym(&self, edge: DirectedEdge) -> Option<DirectedEdge> {
-        let vertices = self.edge_vertices(edge);
-        self.find_directed([vertices[1], vertices[0]])
+        self.find_directed([edge.to, edge.from])
     }
 }
 
@@ -187,7 +199,7 @@ fn make_record(
             ExactContourIntersection {
                 edge_owner: ExactTriangleOwner::First,
                 edge: first_topology.edge_vertices(directed),
-                edge_left_face: Some(directed.face),
+                edge_left_face: directed.left_face,
                 triangle_owner: ExactTriangleOwner::Second,
                 triangle_face: second_face,
                 triangle: second_faces[second_face],
@@ -203,7 +215,7 @@ fn make_record(
             ExactContourIntersection {
                 edge_owner: ExactTriangleOwner::Second,
                 edge: second_topology.edge_vertices(directed),
-                edge_left_face: Some(directed.face),
+                edge_left_face: directed.left_face,
                 triangle_owner: ExactTriangleOwner::First,
                 triangle_face: first_face,
                 triangle: first_faces[first_face],
@@ -270,8 +282,12 @@ fn find_next(
 ) -> Option<usize> {
     let edge_topology = topology_for(record.edge_owner, first_topology, second_topology);
     let tri_topology = topology_for(record.triangle_owner, first_topology, second_topology);
-    let current_edge = edge_topology.find_directed(record.edge)?;
-    let left_face = record.edge_left_face?;
+    let stored_edge = edge_topology.find_directed(record.edge)?;
+    let current_edge = match record.edge_owner {
+        ExactTriangleOwner::First => stored_edge,
+        ExactTriangleOwner::Second => edge_topology.sym(stored_edge).unwrap_or(stored_edge),
+    };
+    let left_face = current_edge.left_face?;
 
     let same_owner_candidates = same_owner_successor_edges(edge_topology, current_edge);
     for edge in same_owner_candidates {
@@ -288,7 +304,7 @@ fn find_next(
         return Some(index);
     }
 
-    for edge in triangle_face_edges(tri_topology, record.triangle_face) {
+    for edge in triangle_successor_edges(tri_topology, record.triangle_face) {
         let Some(index) = lookup_directed(
             lookup,
             RecordKey {
@@ -321,19 +337,35 @@ fn same_owner_successor_edges(
     topology: &MeshTopologyLite,
     current_edge: DirectedEdge,
 ) -> Vec<DirectedEdge> {
-    let mut candidates = vec![topology.next(current_edge)];
-    if let Some(sym) = topology.sym(current_edge) {
-        candidates.push(topology.prev(sym));
+    let mut candidates = Vec::with_capacity(2);
+    if let Some(next) = topology.next(current_edge) {
+        candidates.push(next);
+    }
+    if let Some(prev_sym) = topology
+        .sym(current_edge)
+        .and_then(|sym| topology.prev(sym))
+    {
+        candidates.push(prev_sym);
     }
     candidates
 }
 
-fn triangle_face_edges(topology: &MeshTopologyLite, face: usize) -> [DirectedEdge; 3] {
-    [
-        topology.face_edge(face, 0),
-        topology.face_edge(face, 1),
-        topology.face_edge(face, 2),
-    ]
+fn triangle_successor_edges(topology: &MeshTopologyLite, face: usize) -> Vec<DirectedEdge> {
+    let edge = topology.face_edge(face, 0);
+    let mut candidates = Vec::with_capacity(3);
+    candidates.push(edge);
+    if let Some(next) = topology.next(edge) {
+        candidates.push(next);
+    }
+    if let Some(prev_sym) = topology.sym(edge).and_then(|sym| topology.prev(sym)) {
+        candidates.push(prev_sym);
+    }
+    candidates
+}
+
+fn third_vertex(face: [usize; 3], first: usize, second: usize) -> Option<usize> {
+    face.into_iter()
+        .find(|vertex| *vertex != first && *vertex != second)
 }
 
 fn build_contours(
@@ -462,5 +494,149 @@ mod tests {
         .unwrap();
 
         assert!(contours.is_empty());
+    }
+
+    #[test]
+    fn triangle_successor_edges_include_adjacent_symmetric_face_candidate() {
+        let topology = MeshTopologyLite::new(vec![[0, 1, 2], [1, 0, 3]]);
+
+        let candidates = triangle_successor_edges(&topology, 0)
+            .into_iter()
+            .map(|edge| topology.edge_vertices(edge))
+            .collect::<Vec<_>>();
+
+        assert_eq!(candidates, vec![[0, 1], [0, 2], [1, 2]]);
+    }
+
+    #[test]
+    fn shifted_cube_contours_form_meshlib_style_closed_ring() {
+        let first_vertices = vec![
+            [-1.0, -1.0, -1.0],
+            [1.0, -1.0, -1.0],
+            [1.0, 1.0, -1.0],
+            [-1.0, 1.0, -1.0],
+            [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [-1.0, 1.0, 1.0],
+        ];
+        let first_faces = vec![
+            [0, 3, 2],
+            [0, 2, 1],
+            [4, 5, 6],
+            [4, 6, 7],
+            [0, 1, 5],
+            [0, 5, 4],
+            [1, 2, 6],
+            [1, 6, 5],
+            [2, 3, 7],
+            [2, 7, 6],
+            [3, 0, 4],
+            [3, 4, 7],
+        ];
+        let second_vertices = first_vertices
+            .iter()
+            .map(|vertex| [vertex[0] + 1.0, vertex[1], vertex[2]])
+            .collect::<Vec<_>>();
+        let one_mesh = super::super::exact_one_mesh::exact_one_mesh_intersection_contours(
+            &first_vertices,
+            &first_faces,
+            &second_vertices,
+            &first_faces,
+            8,
+            1e-9,
+        )
+        .unwrap();
+
+        assert_eq!(one_mesh.first.len(), 1);
+        let contour = &one_mesh.first[0];
+        assert!(contour.closed);
+        assert_eq!(contour.intersections.len(), 16);
+        let primitives = contour
+            .intersections
+            .iter()
+            .map(|intersection| intersection.primitive.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            primitives,
+            vec![
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([0, 2]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([1, 2]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(6),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(6),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([1, 6]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(7),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([1, 5]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([0, 5]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(5),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(5),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(5),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([5, 0]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([1, 0]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([2, 0]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(0),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(0),
+            ]
+        );
+        let coordinates = contour
+            .intersections
+            .iter()
+            .map(|intersection| quantized_unit_point(intersection.coordinate))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            coordinates,
+            vec![
+                [1, 1, -1],
+                [1, 1, -1],
+                [1, 1, 0],
+                [1, 1, 1],
+                [1, 1, 1],
+                [1, 0, 1],
+                [1, -1, 1],
+                [1, -1, 1],
+                [0, -1, 1],
+                [0, -1, 1],
+                [0, -1, 1],
+                [0, -1, 0],
+                [0, -1, -1],
+                [0, 0, -1],
+                [0, 1, -1],
+                [0, 1, -1],
+            ]
+        );
+        let second_primitives = one_mesh.second[0]
+            .intersections
+            .iter()
+            .map(|intersection| intersection.primitive.clone())
+            .collect::<Vec<_>>();
+        assert_eq!(
+            second_primitives,
+            vec![
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(8),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(8),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([2, 7]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([6, 7]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(3),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([6, 4]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(2),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(2),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([4, 6]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([4, 7]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([4, 3]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(10),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(10),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Face(10),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([3, 4]),
+                super::super::exact_one_mesh::ExactOneMeshPrimitive::Edge([3, 7]),
+            ]
+        );
+    }
+
+    fn quantized_unit_point(point: [f64; 3]) -> [i32; 3] {
+        [
+            point[0].round() as i32,
+            point[1].round() as i32,
+            point[2].round() as i32,
+        ]
     }
 }

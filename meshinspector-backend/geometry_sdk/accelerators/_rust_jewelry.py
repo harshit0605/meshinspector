@@ -18,8 +18,6 @@ def _require_rust_kernel(name: str):
 
 def ring_diameter_for_size(size: float) -> float | None:
     kernel = _require_rust_kernel("ring_diameter_for_size")
-    if kernel is None:
-        return None
     return float(kernel(float(size)))
 
 
@@ -27,16 +25,12 @@ def closest_ring_size(inner_diameter_mm: float | None) -> float | None:
     if inner_diameter_mm is None:
         return None
     kernel = _require_rust_kernel("closest_ring_size")
-    if kernel is None:
-        return None
     value = kernel(float(inner_diameter_mm))
     return None if value is None else float(value)
 
 
 def measure_ring(mesh: MeshDocument, *, axis_override: Any = None) -> RingMeasurement | None:
     kernel = _require_rust_kernel("measure_ring")
-    if kernel is None:
-        return None
     axis = None if axis_override is None else np.asarray(axis_override, dtype=np.float64)
     payload: dict[str, Any] = kernel(mesh.vertices, axis)
     return RingMeasurement(

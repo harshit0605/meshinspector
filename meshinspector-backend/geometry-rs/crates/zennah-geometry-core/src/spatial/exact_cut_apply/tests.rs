@@ -7,6 +7,52 @@ use super::super::exact_one_mesh::{
 use super::*;
 
 #[test]
+fn exact_cut_mesh_records_original_face_source_events_without_cuts() {
+    let vertices = vec![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 2.0, 0.0]];
+    let faces = vec![[0, 1, 2]];
+    let contours = Vec::new();
+
+    let result = exact_cut_mesh_by_contours(&vertices, &faces, &contours, 1e-9).unwrap();
+
+    assert_eq!(result.source_face_for_faces, vec![0]);
+    assert_eq!(
+        result.cut_face_source_events,
+        vec![ExactCutFaceSourceEvent {
+            kind: ExactCutFaceSourceEventKind::Original,
+            source_face: 0,
+        }]
+    );
+}
+
+#[test]
+fn exact_cut_mesh_preserves_collapsed_contour_segments_as_metadata() {
+    let vertices = vec![[0.0, 0.0, 0.0], [2.0, 0.0, 0.0], [0.0, 2.0, 0.0]];
+    let faces = vec![[0, 1, 2]];
+    let contours = vec![ExactOneMeshContour {
+        intersections: vec![
+            ExactOneMeshIntersection {
+                primitive: ExactOneMeshPrimitive::Edge([0, 1]),
+                coordinate: [1.0, 0.0, 0.0],
+            },
+            ExactOneMeshIntersection {
+                primitive: ExactOneMeshPrimitive::Edge([0, 1]),
+                coordinate: [1.0, 0.0, 0.0],
+            },
+        ],
+        closed: true,
+    }];
+
+    let result = exact_cut_mesh_by_contours(&vertices, &faces, &contours, 1e-9).unwrap();
+
+    assert!(result.cut_edges.is_empty());
+    assert_eq!(result.collapsed_cut_segment_paths, vec![vec![[3, 3]]]);
+    assert_eq!(
+        result.collapsed_cut_segment_path_source_faces,
+        vec![vec![Some(0)]]
+    );
+}
+
+#[test]
 fn exact_cut_mesh_splits_two_boundary_chords_on_one_face() {
     let vertices = vec![[0.0, 0.0, 0.0], [4.0, 0.0, 0.0], [0.0, 4.0, 0.0]];
     let faces = vec![[0, 1, 2]];
@@ -48,6 +94,10 @@ fn exact_cut_mesh_splits_two_boundary_chords_on_one_face() {
     assert_eq!(result.cut_edge_paths[1].len(), 1);
     assert_eq!(result.cut_edge_path_closed, vec![false, false]);
     assert_eq!(result.faces.len(), 5);
+    assert!(result
+        .cut_face_source_events
+        .iter()
+        .all(|event| event.kind == ExactCutFaceSourceEventKind::Split));
 }
 
 #[test]
@@ -96,6 +146,10 @@ fn exact_cut_mesh_splits_shared_edge_contour_on_adjacent_faces() {
             .count(),
         3
     );
+    assert!(result
+        .cut_face_source_events
+        .iter()
+        .all(|event| event.kind == ExactCutFaceSourceEventKind::Split));
 }
 
 #[test]
@@ -144,6 +198,7 @@ fn exact_cut_mesh_splits_single_segment_even_if_face_is_bad_candidate() {
             ExactCutPoint {
                 contour_index: 0,
                 intersection_index: 0,
+                original_primitive: ExactOneMeshPrimitive::Edge([0, 1]),
                 primitive: ExactCutPrimitive::Edge([0, 1]),
                 coordinate: [1.0, 0.0, 0.0],
                 vertex_index: 3,
@@ -152,6 +207,7 @@ fn exact_cut_mesh_splits_single_segment_even_if_face_is_bad_candidate() {
             ExactCutPoint {
                 contour_index: 0,
                 intersection_index: 1,
+                original_primitive: ExactOneMeshPrimitive::Edge([2, 0]),
                 primitive: ExactCutPrimitive::Edge([2, 0]),
                 coordinate: [0.0, 1.0, 0.0],
                 vertex_index: 4,
@@ -166,6 +222,7 @@ fn exact_cut_mesh_splits_single_segment_even_if_face_is_bad_candidate() {
             to_point: 1,
             source_faces: vec![0],
         }],
+        collapsed_segments: Vec::new(),
         edge_splits: Vec::new(),
         removed_face_candidates: vec![0],
         bad_face_candidates: vec![0],

@@ -6,16 +6,18 @@ use super::super::exact_meshlib_near_stitch::{
 use super::copied_edges::{
     finalize_meshlib_copied_edges, prepare_meshlib_copied_edges,
     ExactMeshlibCopiedEdgeTranslationInput, ExactMeshlibCopiedEdgeTranslationSummary,
-    ExactMeshlibCopiedSourceEdgeDiagnostic, ExactMeshlibCopiedSourceEdgeLookupDiagnostic,
-    ExactMeshlibCopiedSourceEdgeStatus, ExactMeshlibPreparedCopiedEdges,
+    ExactMeshlibCopiedSourceEdgeDiagnostic, ExactMeshlibPreparedCopiedEdges,
 };
 use super::source_records::ExactMeshlibPreparedSourceRecord;
 use std::collections::BTreeMap;
-
+mod copied_edge_tracking;
 mod export;
 mod near_stitch;
 mod near_stitch_diagnostics;
 mod rewrite_records;
+pub(crate) use copied_edge_tracking::{
+    ExactMeshlibCopiedFaceRecordCandidateDiagnostic, ExactMeshlibCopiedFaceRecordDiagnostic,
+};
 pub(crate) use export::ExactMeshlibFaceExportFailureDiagnostic;
 pub(crate) use near_stitch::{
     ExactMeshlibNearStitchCandidateDiagnostics, ExactMeshlibNearStitchLinkedEdgeDiagnostic,
@@ -31,6 +33,8 @@ pub(crate) struct OutputFaceTopology {
     pub(super) topology: ExactHalfEdgeTopology,
     directed_face_edges: BTreeMap<(usize, [usize; 2]), ExactHalfEdgeId>,
     face_operands: Vec<Option<ExactBooleanOperand>>,
+    face_cut_faces: Vec<Option<usize>>,
+    face_source_faces: Vec<Option<usize>>,
     filter_face_operands: bool,
     pub(super) face_edges: Vec<ExactHalfEdgeId>,
     synthetic_stitch_edges: Vec<ExactHalfEdgeId>,
@@ -71,6 +75,12 @@ pub(crate) struct OutputFaceTopology {
     pub(crate) meshlib_prepared_mapped_source_record_replays_on_near_stitch_targets: usize,
     pub(crate) meshlib_prepared_mapped_source_record_replay_details:
         Vec<ExactMeshlibPreparedSourceRecordReplayDiagnostic>,
+    pub(crate) meshlib_copied_prev_next_edge_update_attempts: usize,
+    pub(crate) meshlib_copied_prev_next_edge_updates_applied: usize,
+    pub(crate) meshlib_copied_prev_next_edge_updates_skipped: usize,
+    pub(crate) meshlib_copied_prev_next_edge_update_details:
+        Vec<ExactMeshlibCopiedPrevNextEdgeUpdateDiagnostic>,
+    pub(crate) meshlib_copied_face_record_details: Vec<ExactMeshlibCopiedFaceRecordDiagnostic>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -90,9 +100,41 @@ pub(crate) struct ExactMeshlibPreparedSourceRecordReplayDiagnostic {
     pub skipped_reason: Option<&'static str>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(in crate::spatial::exact_splice_apply) struct ExactMeshlibCopiedPrevNextEdgeUpdate {
+    pub previous: ExactHalfEdgeId,
+    pub next: ExactHalfEdgeId,
+    pub source_contour_edge: ExactHalfEdgeId,
+    pub target_contour_edge: ExactHalfEdgeId,
+    pub walked_source_edge: ExactHalfEdgeId,
+    pub update_kind: &'static str,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct ExactMeshlibCopiedPrevNextEdgeUpdateDiagnostic {
+    pub source_contour_edge_id: Option<usize>,
+    pub target_contour_edge_id: Option<usize>,
+    pub walked_source_edge_id: Option<usize>,
+    pub update_kind: Option<&'static str>,
+    pub previous_edge_id: usize,
+    pub next_edge_id: usize,
+    pub previous_origin: Option<usize>,
+    pub next_origin: Option<usize>,
+    pub previous_left: Option<usize>,
+    pub next_right: Option<usize>,
+    pub applied: bool,
+    pub skipped_reason: Option<&'static str>,
+}
+
 impl OutputFaceTopology {
     pub(crate) fn from_faces(faces: &[[i64; 3]]) -> Result<Self, &'static str> {
-        Self::from_faces_with_operands(faces, vec![None; faces.len()], false)
+        Self::from_faces_with_operands(
+            faces,
+            vec![None; faces.len()],
+            vec![None; faces.len()],
+            vec![None; faces.len()],
+            false,
+        )
     }
 
     pub(crate) fn from_faces_with_sources(
@@ -106,12 +148,28 @@ impl OutputFaceTopology {
             .iter()
             .map(|source| Some(source.operand))
             .collect();
-        Self::from_faces_with_operands(faces, face_operands, true)
+        let face_cut_faces = face_sources
+            .iter()
+            .map(|source| Some(source.cut_face))
+            .collect();
+        let face_source_faces = face_sources
+            .iter()
+            .map(|source| Some(source.source_face))
+            .collect();
+        Self::from_faces_with_operands(
+            faces,
+            face_operands,
+            face_cut_faces,
+            face_source_faces,
+            true,
+        )
     }
 
     fn from_faces_with_operands(
         faces: &[[i64; 3]],
         face_operands: Vec<Option<ExactBooleanOperand>>,
+        face_cut_faces: Vec<Option<usize>>,
+        face_source_faces: Vec<Option<usize>>,
         filter_face_operands: bool,
     ) -> Result<Self, &'static str> {
         let mut topology = ExactHalfEdgeTopology::new();
@@ -144,6 +202,8 @@ impl OutputFaceTopology {
             topology,
             directed_face_edges,
             face_operands,
+            face_cut_faces,
+            face_source_faces,
             filter_face_operands,
             face_edges,
             synthetic_stitch_edges: Vec::new(),
@@ -170,6 +230,11 @@ impl OutputFaceTopology {
             meshlib_prepared_mapped_source_record_replays: 0,
             meshlib_prepared_mapped_source_record_replays_on_near_stitch_targets: 0,
             meshlib_prepared_mapped_source_record_replay_details: Vec::new(),
+            meshlib_copied_prev_next_edge_update_attempts: 0,
+            meshlib_copied_prev_next_edge_updates_applied: 0,
+            meshlib_copied_prev_next_edge_updates_skipped: 0,
+            meshlib_copied_prev_next_edge_update_details: Vec::new(),
+            meshlib_copied_face_record_details: Vec::new(),
         })
     }
 
@@ -216,17 +281,27 @@ impl OutputFaceTopology {
         face_index: usize,
         edge: ExactHalfEdgeId,
         operand: ExactBooleanOperand,
+        cut_face: usize,
+        source_face: Option<usize>,
     ) -> Result<(), &'static str> {
         if face_index < self.face_edges.len() {
             self.face_edges[face_index] = edge;
             if let Some(face_operand) = self.face_operands.get_mut(face_index) {
                 *face_operand = Some(operand);
             }
+            if let Some(face_cut_face) = self.face_cut_faces.get_mut(face_index) {
+                *face_cut_face = Some(cut_face);
+            }
+            if let Some(face_source_face) = self.face_source_faces.get_mut(face_index) {
+                *face_source_face = source_face;
+            }
             return Ok(());
         }
         if face_index == self.face_edges.len() {
             self.face_edges.push(edge);
             self.face_operands.push(Some(operand));
+            self.face_cut_faces.push(Some(cut_face));
+            self.face_source_faces.push(source_face);
             return Ok(());
         }
         Err("MeshLib copied face records must append contiguously")
@@ -309,111 +384,6 @@ impl OutputFaceTopology {
             }
         }
         candidates
-    }
-
-    pub(super) fn register_meshlib_copied_edge(
-        &mut self,
-        operand: ExactBooleanOperand,
-        source_edge: [usize; 2],
-        edge: [usize; 2],
-        edge_id: ExactHalfEdgeId,
-    ) {
-        self.meshlib_copied_directed_edges
-            .entry(edge)
-            .or_default()
-            .push(edge_id);
-        self.meshlib_copied_directed_edges
-            .entry(reverse_edge(edge))
-            .or_default()
-            .push(ExactHalfEdgeTopology::sym(edge_id));
-        self.register_meshlib_source_edge(operand, source_edge, edge_id);
-    }
-
-    pub(super) fn record_meshlib_copied_source_edge_status(
-        &mut self,
-        operand: ExactBooleanOperand,
-        source_edge: [usize; 2],
-        diagnostic: ExactMeshlibCopiedSourceEdgeDiagnostic,
-        reverse_diagnostic: ExactMeshlibCopiedSourceEdgeDiagnostic,
-    ) {
-        self.push_meshlib_copied_source_edge_status(operand, source_edge, diagnostic);
-        self.push_meshlib_copied_source_edge_status(
-            operand,
-            reverse_edge(source_edge),
-            reverse_diagnostic,
-        );
-    }
-
-    fn push_meshlib_copied_source_edge_status(
-        &mut self,
-        operand: ExactBooleanOperand,
-        source_edge: [usize; 2],
-        diagnostic: ExactMeshlibCopiedSourceEdgeDiagnostic,
-    ) {
-        let diagnostics = self
-            .meshlib_copied_source_edge_statuses
-            .entry((operand, source_edge))
-            .or_default();
-        if !diagnostics.contains(&diagnostic) {
-            diagnostics.push(diagnostic);
-        }
-    }
-
-    pub(super) fn meshlib_copied_source_edge_lookup(
-        &self,
-        operand: Option<ExactBooleanOperand>,
-        source_edge: Option<[usize; 2]>,
-    ) -> Option<ExactMeshlibCopiedSourceEdgeLookupDiagnostic> {
-        let operand = operand?;
-        let source_edge = source_edge?;
-        let Some(statuses) = self
-            .meshlib_copied_source_edge_statuses
-            .get(&(operand, source_edge))
-        else {
-            return Some(ExactMeshlibCopiedSourceEdgeLookupDiagnostic {
-                status: ExactMeshlibCopiedSourceEdgeStatus::NotPreparedSourceEdge,
-                matched_source_edge: None,
-                source_halfedge: None,
-                source_origin: None,
-                source_left: None,
-                source_right: None,
-                source_left_mapped_face: None,
-                source_right_mapped_face: None,
-                source_next_halfedge: None,
-                source_prev_halfedge: None,
-                output_edge_id: None,
-                output_origin: None,
-                output_left: None,
-                output_right: None,
-                output_next_edge_id: None,
-                output_prev_edge_id: None,
-                matching_statuses: 0,
-            });
-        };
-        let selected = statuses
-            .iter()
-            .find(|diagnostic| diagnostic.status == ExactMeshlibCopiedSourceEdgeStatus::Copied)
-            .or_else(|| statuses.first())?;
-        let output_edge = selected.output_edge_id.map(ExactHalfEdgeId);
-        Some(ExactMeshlibCopiedSourceEdgeLookupDiagnostic {
-            status: selected.status,
-            matched_source_edge: Some(source_edge),
-            source_halfedge: selected.source_halfedge,
-            source_origin: selected.source_origin,
-            source_left: selected.source_left,
-            source_right: selected.source_right,
-            source_left_mapped_face: selected.source_left_mapped_face,
-            source_right_mapped_face: selected.source_right_mapped_face,
-            source_next_halfedge: selected.source_next_halfedge,
-            source_prev_halfedge: selected.source_prev_halfedge,
-            output_edge_id: selected.output_edge_id,
-            output_origin: output_edge.and_then(|edge| self.topology.origin(edge)),
-            output_left: output_edge.and_then(|edge| self.topology.left(edge)),
-            output_right: output_edge.and_then(|edge| self.topology.right(edge)),
-            output_next_edge_id: output_edge.map(|edge| self.topology.next(edge).0),
-            output_prev_edge_id: output_edge.map(|edge| self.topology.prev(edge).0),
-            matching_statuses: statuses.len(),
-        })
     }
 
     pub(super) fn register_meshlib_mapped_contour_edge_index(
@@ -586,6 +556,51 @@ impl OutputFaceTopology {
                     [a, b, c] => Ok([*a as i64, *b as i64, *c as i64]),
                     _ => Err("exported face is not triangular"),
                 }
+            })
+            .collect()
+    }
+
+    pub(crate) fn exported_face_operands_for_results(
+        &self,
+        export_results: &[Result<[i64; 3], &'static str>],
+    ) -> Vec<Option<ExactBooleanOperand>> {
+        export_results
+            .iter()
+            .enumerate()
+            .filter_map(|(face_index, result)| {
+                result
+                    .is_ok()
+                    .then(|| self.face_operands.get(face_index).copied().flatten())
+            })
+            .collect()
+    }
+
+    pub(crate) fn exported_face_cut_faces_for_results(
+        &self,
+        export_results: &[Result<[i64; 3], &'static str>],
+    ) -> Vec<Option<usize>> {
+        export_results
+            .iter()
+            .enumerate()
+            .filter_map(|(face_index, result)| {
+                result
+                    .is_ok()
+                    .then(|| self.face_cut_faces.get(face_index).copied().flatten())
+            })
+            .collect()
+    }
+
+    pub(crate) fn exported_face_source_faces_for_results(
+        &self,
+        export_results: &[Result<[i64; 3], &'static str>],
+    ) -> Vec<Option<usize>> {
+        export_results
+            .iter()
+            .enumerate()
+            .filter_map(|(face_index, result)| {
+                result
+                    .is_ok()
+                    .then(|| self.face_source_faces.get(face_index).copied().flatten())
             })
             .collect()
     }

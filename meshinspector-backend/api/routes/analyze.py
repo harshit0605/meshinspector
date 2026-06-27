@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session
 
 from core.config import settings
 from core.db import get_db
+from geometry_sdk import default_sdk
 from models.schemas import AnalysisResult, MaterialType
-from services.convert import load_mesh
 from storage.object_store import object_store
 from storage.repositories import get_artifact_by_type, get_latest_ready_version, get_snapshot
 
@@ -55,9 +55,9 @@ async def analyze_model(
         else:
             temp_path = settings.TEMP_DIR / "compat_artifacts" / latest.id / Path(normalized.storage_key).name
             mesh_path = object_store.download_to_path(normalized.storage_key, temp_path)
-        mesh = load_mesh(mesh_path)
-        vertex_count = int(mesh.vertices.shape[0])
-        face_count = int(mesh.faces.shape[0])
+        mesh = default_sdk.load_mesh(mesh_path)
+        vertex_count = mesh.vertex_count
+        face_count = mesh.face_count
     return AnalysisResult(
         volume_mm3=weight_entry["volume_mm3"],
         weight_g=weight_entry["weight_g"],

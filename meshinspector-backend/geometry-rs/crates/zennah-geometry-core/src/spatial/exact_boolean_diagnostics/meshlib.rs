@@ -8,7 +8,7 @@ use super::super::exact_boolean_topology::{
 use super::super::exact_cut_apply::ExactCutMeshResult;
 use super::super::exact_meshlib_near_stitch::{
     exact_meshlib_near_stitch_plan_with_prepared_parts, exact_meshlib_near_stitch_plan_with_source,
-    ExactMeshlibNearStitchPlan,
+    ExactMeshlibNearStitchPlan, ExactMeshlibNearStitchSourceInput,
 };
 use super::super::exact_meshlib_rewrite_apply::{
     exact_meshlib_prepared_base_record_rewrite_apply_plan,
@@ -16,30 +16,49 @@ use super::super::exact_meshlib_rewrite_apply::{
     ExactMeshlibPreparedBaseRecordRewriteApplyPlan, ExactMeshlibRecordRewriteApplyPlan,
 };
 use super::super::exact_splice_apply::{
-    output_topology_from_prepared_base, ExactMeshlibPreparedBaseTopologyInput,
-    ExactMeshlibPreparedSourceRecordReplayDiagnostic as ExactReplayDiagnostic,
-    ExactMeshlibRecordRewriteTargetDiagnostic as ExactRecordRewriteDiagnostic,
+    ExactMeshlibCopiedEdgeTranslationInput, ExactMeshlibPreparedBaseTopologyInput,
 };
+use super::super::exact_stitch::{ExactStitchEdgePair, ExactStitchPlan};
 use super::copied_edges::{
     exact_meshlib_copied_edge_plan, exact_meshlib_copied_edge_translation_input,
     exact_meshlib_near_stitch_source_input, ExactMeshlibCopiedEdgePlan,
 };
 use super::export::{mesh_export_health, mesh_export_stats, packed_mesh_export};
 use crate::{GeometryError, MeshHealth, MeshStats};
+mod copied_records;
 mod near_stitch;
+pub use copied_records::{
+    MeshlibCopiedFaceRecordCandidateDiagnostic, MeshlibCopiedFaceRecordDiagnostic,
+    MeshlibCopiedPrevNextEdgeUpdateDiagnostic,
+};
 pub(super) use near_stitch::near_stitch_failure_details;
 pub use near_stitch::{
     MeshlibNearStitchFailureDiagnostic, MeshlibNearStitchLinkedEdgeDiagnostic,
     MeshlibNearStitchRingDiagnostic, MeshlibNearStitchSourceLookupDiagnostic,
     MeshlibNearStitchTargetSnapshotDiagnostic,
 };
+mod prepared_base_export;
+pub(in crate::spatial) use prepared_base_export::meshlib_prepared_base_export;
+mod prepared_base_records;
+pub use prepared_base_records::{
+    MeshlibFaceExportFailureDiagnostic, MeshlibPreparedBaseRecordRewriteDiagnostics,
+    MeshlibPreparedSourceRecordReplayDiagnostic, MeshlibRecordRewriteFailedCommandDiagnostic,
+    MeshlibRecordRewriteTargetDiagnostic,
+};
+mod prepared_parts;
+use prepared_parts::{
+    meshlib_prepare_connect_parts, MeshlibPreparedConnectParts, MeshlibPreparedConnectPartsSummary,
+};
 
-pub(super) struct MeshlibRewriteDiagnosticsInput<'a> {
-    pub first_cut: &'a ExactCutMeshResult,
-    pub second_cut: &'a ExactCutMeshResult,
-    pub assembly: &'a ExactBooleanAssemblyResult,
-    pub operation: ExactBooleanOperation,
-    pub epsilon: f64,
+pub(in crate::spatial) struct MeshlibRewriteDiagnosticsInput<'a> {
+    pub(in crate::spatial) first_cut: &'a ExactCutMeshResult,
+    pub(in crate::spatial) second_cut: &'a ExactCutMeshResult,
+    pub(in crate::spatial) first_added_face_ranges: &'a [[usize; 2]],
+    pub(in crate::spatial) second_added_face_ranges: &'a [[usize; 2]],
+    pub(in crate::spatial) stitch_plan: Option<&'a ExactStitchPlan>,
+    pub(in crate::spatial) assembly: &'a ExactBooleanAssemblyResult,
+    pub(in crate::spatial) operation: ExactBooleanOperation,
+    pub(in crate::spatial) epsilon: f64,
 }
 
 pub(super) struct MeshlibRewriteDiagnostics {
@@ -47,6 +66,7 @@ pub(super) struct MeshlibRewriteDiagnostics {
     pub copied_edges: ExactMeshlibCopiedEdgePlan,
     pub near_stitch: ExactMeshlibNearStitchPlan,
     pub record_rewrite_apply: ExactMeshlibRecordRewriteApplyPlan,
+    pub prepared_connect_summary: MeshlibPreparedConnectSummaryDiagnostics,
     pub prepared_base_record_rewrite: MeshlibPreparedBaseRecordRewriteDiagnostics,
     pub record_rewrite_exported_mesh_stats: Option<MeshStats>,
     pub record_rewrite_exported_mesh_health: Option<MeshHealth>,
@@ -54,313 +74,59 @@ pub(super) struct MeshlibRewriteDiagnostics {
     pub record_rewrite_packed_mesh_health: Option<MeshHealth>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MeshlibPreparedBaseRecordRewriteDiagnostics {
-    pub prepared_faces: usize,
-    pub prepared_vertices: usize,
-    pub virtual_vertices: usize,
-    pub prepared_face_sources: usize,
-    pub applied_commands: usize,
-    pub failed_commands: usize,
-    pub record_failed_missing_targets: usize,
-    pub record_failed_closed_targets: usize,
-    pub record_failed_missing_sources: usize,
-    pub record_failed_other_commands: usize,
-    pub record_rewrite_target_details: Vec<MeshlibRecordRewriteTargetDiagnostic>,
-    pub record_rewrite_near_stitch_target_left_closures: usize,
-    pub record_rewrite_near_stitch_target_right_closures: usize,
-    pub translated_copied_edge_records: usize,
-    pub translated_copied_face_records: usize,
-    pub mapped_source_record_replays: usize,
-    pub mapped_source_record_replays_on_near_stitch_targets: usize,
-    pub mapped_source_record_replay_attempts: usize,
-    pub mapped_source_record_replay_attempts_on_near_stitch_targets: usize,
-    pub skipped_mapped_source_record_replays: usize,
-    pub mapped_source_record_replay_details: Vec<MeshlibPreparedSourceRecordReplayDiagnostic>,
-    pub failed_copied_edge_records: usize,
-    pub refreshed_face_records: usize,
-    pub near_stitch_updates_applied: usize,
-    pub near_stitch_updates_failed: usize,
-    pub near_stitch_failed_start: usize,
-    pub near_stitch_failed_end: usize,
-    pub near_stitch_skipped_previous_left_source_edges: usize,
-    pub near_stitch_skipped_next_right_source_edges: usize,
-    pub near_stitch_missing_previous_edges: usize,
-    pub near_stitch_missing_next_edges: usize,
-    pub near_stitch_origin_mismatches: usize,
-    pub near_stitch_previous_left_faces: usize,
-    pub near_stitch_previous_left_copied_source_edges: usize,
-    pub near_stitch_next_right_faces: usize,
-    pub near_stitch_next_right_copied_source_edges: usize,
-    pub near_stitch_failed_other: usize,
-    pub near_stitch_failed_details: Vec<MeshlibNearStitchFailureDiagnostic>,
-    pub exported_faces: usize,
-    pub export_failed_faces: usize,
-    pub export_failed_face_indices: Vec<usize>,
-    pub export_failed_face_details: Vec<MeshlibFaceExportFailureDiagnostic>,
-    pub export_non_triangular_faces: usize,
-    pub export_left_ring_not_closed_faces: usize,
-    pub export_missing_origin_faces: usize,
-    pub export_face_record_left_mismatch_faces: usize,
-    pub export_face_left_ring_mismatch_faces: usize,
-    pub export_other_failed_faces: usize,
-    pub ready_for_export: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MeshlibFaceExportFailureDiagnostic {
-    pub face_index: usize,
-    pub face_edge_id: usize,
-    pub face_operand: Option<&'static str>,
-    pub error: &'static str,
-    pub left_ring_edge_ids: Vec<usize>,
-    pub left_ring_record_next_edge_ids: Vec<usize>,
-    pub left_ring_record_prev_edge_ids: Vec<usize>,
-    pub left_ring_next_edge_ids: Vec<usize>,
-    pub left_ring_origins: Vec<Option<usize>>,
-    pub left_ring_left_faces: Vec<Option<usize>>,
-    pub left_ring_right_faces: Vec<Option<usize>>,
-    pub left_ring_repeated_edge_id: Option<usize>,
-    pub left_ring_returned_to_start: bool,
+struct MeshlibPreparedBaseRewritePlan {
+    apply: ExactMeshlibPreparedBaseRecordRewriteApplyPlan,
+    near_stitch: ExactMeshlibNearStitchPlan,
+    prepared_connect_summary: MeshlibPreparedConnectSummaryDiagnostics,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MeshlibRecordRewriteTargetDiagnostic {
-    pub stitch_pair_index: usize,
-    pub target_edge_id: usize,
-    pub target_was_near_stitch_target: bool,
-    pub target_origin_before: Option<usize>,
-    pub target_left_before: Option<usize>,
-    pub target_right_before: Option<usize>,
-    pub target_next_edge_id_before: usize,
-    pub target_prev_edge_id_before: usize,
-    pub target_origin_after: Option<usize>,
-    pub target_left_after: Option<usize>,
-    pub target_right_after: Option<usize>,
-    pub target_next_edge_id_after: usize,
-    pub target_prev_edge_id_after: usize,
-    pub record_next_edge_id: usize,
-    pub record_left: Option<usize>,
-    pub record_sym_prev_edge_id: usize,
+pub(super) struct MeshlibPreparedConnectSummaryDiagnostics {
+    pub(super) base_faces: usize,
+    pub(super) incoming_faces: usize,
+    pub(super) base_vertices: usize,
+    pub(super) incoming_vertices: usize,
+    pub(super) unstitched_vertices: usize,
+    pub(super) unstitched_faces: usize,
+    pub(super) path_pairs: usize,
+    pub(super) path_count_mismatch: bool,
+    pub(super) path_length_mismatches: usize,
+    pub(super) path_closed_mismatches: usize,
+    pub(super) path_coordinate_mismatches: usize,
+    pub(super) path_same_direction_edges: usize,
+    pub(super) path_reversed_edges: usize,
+    pub(super) base_mapped_cut_path_edges: usize,
+    pub(super) incoming_mapped_cut_path_edges: usize,
+    pub(super) base_missing_cut_path_edges: usize,
+    pub(super) incoming_missing_cut_path_edges: usize,
+    pub(super) base_cut_paths_complete: bool,
+    pub(super) incoming_cut_paths_complete: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct MeshlibPreparedSourceRecordReplayDiagnostic {
-    pub target_edge_id: usize,
-    pub target_was_near_stitch_target: bool,
-    pub target_origin_before: Option<usize>,
-    pub target_left_before: Option<usize>,
-    pub target_right_before: Option<usize>,
-    pub target_origin_after: Option<usize>,
-    pub target_left_after: Option<usize>,
-    pub target_right_after: Option<usize>,
-    pub record_next_edge_id: usize,
-    pub record_left: Option<usize>,
-    pub record_sym_prev_edge_id: usize,
-    pub applied: bool,
-    pub skipped_reason: Option<&'static str>,
-}
-
-impl MeshlibPreparedBaseRecordRewriteDiagnostics {
-    fn from_apply_plan(
-        plan: &ExactMeshlibPreparedBaseRecordRewriteApplyPlan,
-        near_stitch: &ExactMeshlibNearStitchPlan,
-    ) -> Self {
-        let record_rewrite_target_details = plan
-            .apply
-            .entries
-            .iter()
-            .filter_map(|entry| entry.target_diagnostic.as_ref())
-            .map(record_rewrite_target_detail)
-            .collect::<Vec<_>>();
-        let record_rewrite_near_stitch_target_left_closures = record_rewrite_target_details
-            .iter()
-            .filter(|detail| {
-                detail.target_was_near_stitch_target
-                    && detail.target_left_before.is_none()
-                    && detail.target_left_after.is_some()
-            })
-            .count();
-        let record_rewrite_near_stitch_target_right_closures = record_rewrite_target_details
-            .iter()
-            .filter(|detail| {
-                detail.target_was_near_stitch_target
-                    && detail.target_right_before.is_none()
-                    && detail.target_right_after.is_some()
-            })
-            .count();
-        let near_stitch_failed_details = near_stitch_failure_details(&plan.apply);
-        let near_stitch_previous_left_copied_source_edges =
-            near_stitch_previous_left_copied_source_edges(&near_stitch_failed_details);
-        let near_stitch_next_right_copied_source_edges =
-            near_stitch_next_right_copied_source_edges(&near_stitch_failed_details);
+impl From<MeshlibPreparedConnectPartsSummary> for MeshlibPreparedConnectSummaryDiagnostics {
+    fn from(summary: MeshlibPreparedConnectPartsSummary) -> Self {
         Self {
-            prepared_faces: plan.prepared_faces,
-            prepared_vertices: plan.prepared_vertices,
-            virtual_vertices: plan.virtual_vertices,
-            prepared_face_sources: plan.prepared_face_sources,
-            applied_commands: plan.apply.applied_commands,
-            failed_commands: plan.apply.failed_commands,
-            record_failed_missing_targets: plan.apply.failed_missing_target_edges,
-            record_failed_closed_targets: plan.apply.failed_closed_target_edges,
-            record_failed_missing_sources: plan.apply.failed_missing_source_edges,
-            record_failed_other_commands: plan.apply.failed_other_commands,
-            record_rewrite_target_details,
-            record_rewrite_near_stitch_target_left_closures,
-            record_rewrite_near_stitch_target_right_closures,
-            translated_copied_edge_records: plan.apply.translated_copied_edge_records,
-            translated_copied_face_records: plan.apply.translated_copied_face_records,
-            mapped_source_record_replays: plan.apply.mapped_source_record_replays,
-            mapped_source_record_replays_on_near_stitch_targets: plan
-                .apply
-                .mapped_source_record_replays_on_near_stitch_targets,
-            mapped_source_record_replay_attempts: plan.apply.mapped_source_record_replay_attempts,
-            mapped_source_record_replay_attempts_on_near_stitch_targets: plan
-                .apply
-                .mapped_source_record_replay_attempts_on_near_stitch_targets,
-            skipped_mapped_source_record_replays: plan.apply.skipped_mapped_source_record_replays,
-            mapped_source_record_replay_details: plan
-                .apply
-                .mapped_source_record_replay_details
-                .iter()
-                .map(mapped_source_record_replay_detail)
-                .collect(),
-            failed_copied_edge_records: plan.apply.failed_copied_edge_records,
-            refreshed_face_records: plan.apply.refreshed_face_records,
-            near_stitch_updates_applied: plan.apply.applied_near_stitch_updates,
-            near_stitch_updates_failed: plan.apply.failed_near_stitch_updates,
-            near_stitch_failed_start: plan.apply.failed_near_stitch_start_updates,
-            near_stitch_failed_end: plan.apply.failed_near_stitch_end_updates,
-            near_stitch_skipped_previous_left_source_edges: near_stitch
-                .skipped_previous_left_source_edges,
-            near_stitch_skipped_next_right_source_edges: near_stitch
-                .skipped_next_right_source_edges,
-            near_stitch_missing_previous_edges: plan
-                .apply
-                .failed_missing_near_stitch_previous_edges,
-            near_stitch_missing_next_edges: plan.apply.failed_missing_near_stitch_next_edges,
-            near_stitch_origin_mismatches: plan.apply.failed_near_stitch_origin_mismatches,
-            near_stitch_previous_left_faces: plan.apply.failed_near_stitch_previous_left_faces,
-            near_stitch_previous_left_copied_source_edges,
-            near_stitch_next_right_faces: plan.apply.failed_near_stitch_next_right_faces,
-            near_stitch_next_right_copied_source_edges,
-            near_stitch_failed_other: plan.apply.failed_other_near_stitch_updates,
-            near_stitch_failed_details,
-            exported_faces: plan.apply.exported_faces,
-            export_failed_faces: plan.apply.export_failed_faces,
-            export_failed_face_indices: plan.apply.export_failed_face_indices.clone(),
-            export_failed_face_details: face_export_failure_details(&plan.apply),
-            export_non_triangular_faces: plan.apply.export_non_triangular_faces,
-            export_left_ring_not_closed_faces: plan.apply.export_left_ring_not_closed_faces,
-            export_missing_origin_faces: plan.apply.export_missing_origin_faces,
-            export_face_record_left_mismatch_faces: plan
-                .apply
-                .export_face_record_left_mismatch_faces,
-            export_face_left_ring_mismatch_faces: plan.apply.export_face_left_ring_mismatch_faces,
-            export_other_failed_faces: plan.apply.export_other_failed_faces,
-            ready_for_export: plan.apply.ready_for_export,
+            base_faces: summary.base_faces,
+            incoming_faces: summary.incoming_faces,
+            base_vertices: summary.base_vertices,
+            incoming_vertices: summary.incoming_vertices,
+            unstitched_vertices: summary.unstitched_vertices,
+            unstitched_faces: summary.unstitched_faces,
+            path_pairs: summary.path_pairs,
+            path_count_mismatch: summary.path_count_mismatch,
+            path_length_mismatches: summary.path_length_mismatches,
+            path_closed_mismatches: summary.path_closed_mismatches,
+            path_coordinate_mismatches: summary.path_coordinate_mismatches,
+            path_same_direction_edges: summary.path_same_direction_edges,
+            path_reversed_edges: summary.path_reversed_edges,
+            base_mapped_cut_path_edges: summary.base_mapped_cut_path_edges,
+            incoming_mapped_cut_path_edges: summary.incoming_mapped_cut_path_edges,
+            base_missing_cut_path_edges: summary.base_missing_cut_path_edges,
+            incoming_missing_cut_path_edges: summary.incoming_missing_cut_path_edges,
+            base_cut_paths_complete: summary.base_cut_paths_complete,
+            incoming_cut_paths_complete: summary.incoming_cut_paths_complete,
         }
     }
-}
-
-fn near_stitch_previous_left_copied_source_edges(
-    details: &[MeshlibNearStitchFailureDiagnostic],
-) -> usize {
-    details
-        .iter()
-        .filter(|detail| detail.error == "previous near stitch edge must not have a left face")
-        .filter(|detail| {
-            detail
-                .candidate_diagnostics
-                .as_ref()
-                .and_then(|diagnostics| diagnostics.previous_source_lookup.as_ref())
-                .and_then(|lookup| lookup.copied_source_edge.as_ref())
-                .is_some_and(|copied| copied.output_left.is_some())
-        })
-        .count()
-}
-
-fn near_stitch_next_right_copied_source_edges(
-    details: &[MeshlibNearStitchFailureDiagnostic],
-) -> usize {
-    details
-        .iter()
-        .filter(|detail| detail.error == "next near stitch edge must not have a right face")
-        .filter(|detail| {
-            detail
-                .candidate_diagnostics
-                .as_ref()
-                .and_then(|diagnostics| diagnostics.next_source_lookup.as_ref())
-                .and_then(|lookup| lookup.copied_source_edge.as_ref())
-                .is_some_and(|copied| copied.output_right.is_some())
-        })
-        .count()
-}
-
-fn record_rewrite_target_detail(
-    detail: &ExactRecordRewriteDiagnostic,
-) -> MeshlibRecordRewriteTargetDiagnostic {
-    MeshlibRecordRewriteTargetDiagnostic {
-        stitch_pair_index: detail.stitch_pair_index,
-        target_edge_id: detail.target_edge_id,
-        target_was_near_stitch_target: detail.target_was_near_stitch_target,
-        target_origin_before: detail.target_origin_before,
-        target_left_before: detail.target_left_before,
-        target_right_before: detail.target_right_before,
-        target_next_edge_id_before: detail.target_next_edge_id_before,
-        target_prev_edge_id_before: detail.target_prev_edge_id_before,
-        target_origin_after: detail.target_origin_after,
-        target_left_after: detail.target_left_after,
-        target_right_after: detail.target_right_after,
-        target_next_edge_id_after: detail.target_next_edge_id_after,
-        target_prev_edge_id_after: detail.target_prev_edge_id_after,
-        record_next_edge_id: detail.record_next_edge_id,
-        record_left: detail.record_left,
-        record_sym_prev_edge_id: detail.record_sym_prev_edge_id,
-    }
-}
-
-fn mapped_source_record_replay_detail(
-    detail: &ExactReplayDiagnostic,
-) -> MeshlibPreparedSourceRecordReplayDiagnostic {
-    MeshlibPreparedSourceRecordReplayDiagnostic {
-        target_edge_id: detail.target_edge_id,
-        target_was_near_stitch_target: detail.target_was_near_stitch_target,
-        target_origin_before: detail.target_origin_before,
-        target_left_before: detail.target_left_before,
-        target_right_before: detail.target_right_before,
-        target_origin_after: detail.target_origin_after,
-        target_left_after: detail.target_left_after,
-        target_right_after: detail.target_right_after,
-        record_next_edge_id: detail.record_next_edge_id,
-        record_left: detail.record_left,
-        record_sym_prev_edge_id: detail.record_sym_prev_edge_id,
-        applied: detail.applied,
-        skipped_reason: detail.skipped_reason,
-    }
-}
-
-fn face_export_failure_details(
-    plan: &ExactMeshlibRecordRewriteApplyPlan,
-) -> Vec<MeshlibFaceExportFailureDiagnostic> {
-    plan.export_failed_face_details
-        .iter()
-        .map(|detail| MeshlibFaceExportFailureDiagnostic {
-            face_index: detail.face_index,
-            face_edge_id: detail.face_edge_id,
-            face_operand: detail.face_operand.map(operand_label),
-            error: detail.error,
-            left_ring_edge_ids: detail.left_ring_edge_ids.clone(),
-            left_ring_record_next_edge_ids: detail.left_ring_record_next_edge_ids.clone(),
-            left_ring_record_prev_edge_ids: detail.left_ring_record_prev_edge_ids.clone(),
-            left_ring_next_edge_ids: detail.left_ring_next_edge_ids.clone(),
-            left_ring_origins: detail.left_ring_origins.clone(),
-            left_ring_left_faces: detail.left_ring_left_faces.clone(),
-            left_ring_right_faces: detail.left_ring_right_faces.clone(),
-            left_ring_repeated_edge_id: detail.left_ring_repeated_edge_id,
-            left_ring_returned_to_start: detail.left_ring_returned_to_start,
-        })
-        .collect()
 }
 
 fn operand_label(operand: ExactBooleanOperand) -> &'static str {
@@ -407,58 +173,48 @@ pub(super) fn meshlib_rewrite_diagnostics(
             &topology_rewrite.record_rewrite_command_edges,
         ),
     );
-    let empty_face_sources: &[ExactBooleanOutputFaceSource] = &[];
-    let prepared_base_vertex_count = prepared_base_vertex_count(
-        input.first_cut,
-        input.second_cut,
-        input.assembly,
-        topology_rewrite.base_operand,
-    );
-    let mut prepared_base_copied_edges = exact_meshlib_copied_edge_translation_input(
-        input.first_cut,
-        input.second_cut,
-        input.assembly,
-        topology_rewrite.incoming_operand,
-        &topology_rewrite.record_rewrite_command_edges,
-    );
-    prepared_base_copied_edges.face_sources = empty_face_sources;
-    prepared_base_copied_edges.append_prepared_faces = true;
-    prepared_base_copied_edges.first_virtual_vertex = prepared_base_vertex_count;
-    let mut prepared_base_incoming_source = exact_meshlib_near_stitch_source_input(
-        input.first_cut,
-        input.second_cut,
-        input.assembly,
-        topology_rewrite.incoming_operand,
-        &topology_rewrite.record_rewrite_command_edges,
-    );
-    prepared_base_incoming_source.first_virtual_vertex = prepared_base_vertex_count;
-    let prepared_base_near_stitch = exact_meshlib_near_stitch_plan_with_prepared_parts(
-        input.assembly,
-        topology_rewrite.incoming_operand,
-        &topology_rewrite.record_rewrite_command_edges,
-        exact_meshlib_near_stitch_source_input(
-            input.first_cut,
-            input.second_cut,
-            input.assembly,
-            topology_rewrite.base_operand,
-            &topology_rewrite.record_rewrite_command_edges,
-        ),
-        prepared_base_incoming_source,
-    );
-    let prepared_base_record_rewrite_apply = exact_meshlib_prepared_base_record_rewrite_apply_plan(
-        prepared_base_topology_input(
-            input.first_cut,
-            input.second_cut,
-            input.assembly,
-            topology_rewrite.base_operand,
-        ),
-        &topology_rewrite.record_rewrite_command_edges,
-        &prepared_base_near_stitch.commands,
-        Some(prepared_base_copied_edges),
-    );
+    let prepared_base = meshlib_prepared_base_rewrite_plan(&input, &topology_rewrite);
+    let prepared_base_exported_mesh_stats = mesh_export_stats(
+        &prepared_base.apply.vertices,
+        &prepared_base.apply.apply.exported_face_indices,
+        prepared_base.apply.apply.export_failed_faces,
+    )?;
+    let prepared_base_exported_mesh_health = mesh_export_health(
+        &prepared_base.apply.vertices,
+        &prepared_base.apply.apply.exported_face_indices,
+        prepared_base.apply.apply.export_failed_faces,
+        input.epsilon,
+        super::EXACT_BOOLEAN_SELF_INTERSECTION_FACE_BUDGET,
+    )?;
+    let prepared_base_packed_export = packed_mesh_export(
+        &prepared_base.apply.vertices,
+        &prepared_base.apply.apply.exported_face_indices,
+        prepared_base.apply.apply.export_failed_faces,
+    )?;
+    let prepared_base_packed_mesh_stats = if let Some(export) = &prepared_base_packed_export {
+        crate::mesh::mesh_stats(&export.vertices, &export.faces).map(Some)?
+    } else {
+        None
+    };
+    let prepared_base_packed_mesh_health = if let Some(export) = &prepared_base_packed_export {
+        crate::mesh::mesh_health(
+            &export.vertices,
+            &export.faces,
+            true,
+            Some(super::EXACT_BOOLEAN_SELF_INTERSECTION_FACE_BUDGET),
+            input.epsilon,
+        )
+        .map(Some)?
+    } else {
+        None
+    };
     let prepared_base_record_rewrite = MeshlibPreparedBaseRecordRewriteDiagnostics::from_apply_plan(
-        &prepared_base_record_rewrite_apply,
-        &prepared_base_near_stitch,
+        &prepared_base.apply,
+        &prepared_base.near_stitch,
+        prepared_base_exported_mesh_stats,
+        prepared_base_exported_mesh_health,
+        prepared_base_packed_mesh_stats,
+        prepared_base_packed_mesh_health,
     );
     let record_rewrite_exported_mesh_stats = mesh_export_stats(
         &input.assembly.vertices,
@@ -500,6 +256,7 @@ pub(super) fn meshlib_rewrite_diagnostics(
         copied_edges,
         near_stitch,
         record_rewrite_apply,
+        prepared_connect_summary: prepared_base.prepared_connect_summary,
         prepared_base_record_rewrite,
         record_rewrite_exported_mesh_stats,
         record_rewrite_exported_mesh_health,
@@ -508,20 +265,110 @@ pub(super) fn meshlib_rewrite_diagnostics(
     })
 }
 
-fn prepared_base_vertex_count(
-    first_cut: &ExactCutMeshResult,
-    second_cut: &ExactCutMeshResult,
-    assembly: &ExactBooleanAssemblyResult,
-    base_operand: ExactBooleanOperand,
-) -> usize {
-    output_topology_from_prepared_base(prepared_base_topology_input(
-        first_cut,
-        second_cut,
-        assembly,
-        base_operand,
-    ))
-    .map(|prepared| prepared.vertices.len())
-    .unwrap_or(assembly.vertices.len())
+fn meshlib_prepared_base_rewrite_plan(
+    input: &MeshlibRewriteDiagnosticsInput<'_>,
+    topology_rewrite: &ExactMeshlibTopologyRewritePlan,
+) -> MeshlibPreparedBaseRewritePlan {
+    let empty_face_sources: &[ExactBooleanOutputFaceSource] = &[];
+    let base_prepared_faces = filtered_prepared_faces(input, topology_rewrite.base_operand);
+    let incoming_prepared_faces = filtered_prepared_faces(input, topology_rewrite.incoming_operand);
+    let prepared_connect_parts = meshlib_prepare_connect_parts(input, topology_rewrite);
+    let prepared_connect_summary = prepared_connect_parts.summary(input.epsilon, input.stitch_plan);
+    debug_assert_eq!(
+        prepared_connect_summary.base_faces,
+        base_prepared_faces.len(),
+        "MeshLib preparePart mirror must copy the same base face mask as the record rewrite path"
+    );
+    debug_assert_eq!(
+        prepared_connect_summary.incoming_faces,
+        incoming_prepared_faces.len(),
+        "MeshLib preparePart mirror must copy the same incoming face mask as the record rewrite path"
+    );
+    let base_contour_vertex_maps =
+        prepared_connect_base_contour_vertex_maps(input, topology_rewrite, &prepared_connect_parts);
+    let (incoming_contour_vertex_maps, incoming_contour_vertex_map_source_indices) =
+        prepared_connect_incoming_contour_vertex_maps(
+            input,
+            topology_rewrite,
+            &prepared_connect_parts,
+        );
+    let prepared_base_vertex_count = prepared_connect_parts.base.vertices.len();
+    let mut prepared_base_copied_edges = exact_meshlib_copied_edge_translation_input(
+        input.first_cut,
+        input.second_cut,
+        input.assembly,
+        topology_rewrite.incoming_operand,
+        &topology_rewrite.record_rewrite_command_edges,
+    );
+    prepared_base_copied_edges.vertex_map = &[];
+    prepared_base_copied_edges.contour_vertex_maps = incoming_contour_vertex_maps.clone();
+    prepared_base_copied_edges.contour_vertex_map_source_indices =
+        incoming_contour_vertex_map_source_indices.clone();
+    let prepared_base_copied_edges = ExactMeshlibCopiedEdgeTranslationInput {
+        prepared_faces: &incoming_prepared_faces,
+        face_sources: empty_face_sources,
+        append_prepared_faces: true,
+        first_virtual_vertex: prepared_base_vertex_count,
+        ..prepared_base_copied_edges
+    };
+    let prepared_base_incoming_source = exact_meshlib_near_stitch_source_input(
+        input.first_cut,
+        input.second_cut,
+        input.assembly,
+        topology_rewrite.incoming_operand,
+        &topology_rewrite.record_rewrite_command_edges,
+    );
+    let prepared_base_incoming_source = ExactMeshlibNearStitchSourceInput {
+        prepared_faces: &incoming_prepared_faces,
+        vertex_map: &[],
+        contour_vertex_maps: incoming_contour_vertex_maps,
+        contour_vertex_map_source_indices: incoming_contour_vertex_map_source_indices,
+        first_virtual_vertex: prepared_base_vertex_count,
+        ..prepared_base_incoming_source
+    };
+    let base_contour_vertex_map_source_indices =
+        prepared_connect_contour_source_indices(input, topology_rewrite.base_operand);
+    let prepared_base_source = exact_meshlib_near_stitch_source_input(
+        input.first_cut,
+        input.second_cut,
+        input.assembly,
+        topology_rewrite.base_operand,
+        &topology_rewrite.record_rewrite_command_edges,
+    );
+    let prepared_base_source = ExactMeshlibNearStitchSourceInput {
+        prepared_faces: &base_prepared_faces,
+        vertex_map: &prepared_connect_parts.base.cut_to_part_vertices,
+        contour_vertex_maps: base_contour_vertex_maps.clone(),
+        contour_vertex_map_source_indices: base_contour_vertex_map_source_indices,
+        first_virtual_vertex: prepared_base_vertex_count,
+        ..prepared_base_source
+    };
+    let near_stitch = exact_meshlib_near_stitch_plan_with_prepared_parts(
+        input.assembly,
+        topology_rewrite.incoming_operand,
+        &topology_rewrite.record_rewrite_command_edges,
+        prepared_base_source,
+        prepared_base_incoming_source,
+    );
+    let apply = exact_meshlib_prepared_base_record_rewrite_apply_plan(
+        prepared_base_topology_input(
+            input.first_cut,
+            input.second_cut,
+            input.assembly,
+            topology_rewrite.base_operand,
+            &base_prepared_faces,
+            Some(&prepared_connect_parts),
+            base_contour_vertex_maps,
+        ),
+        &topology_rewrite.record_rewrite_command_edges,
+        &near_stitch.commands,
+        Some(prepared_base_copied_edges),
+    );
+    MeshlibPreparedBaseRewritePlan {
+        apply,
+        near_stitch,
+        prepared_connect_summary: prepared_connect_summary.into(),
+    }
 }
 
 fn prepared_base_topology_input<'a>(
@@ -529,17 +376,37 @@ fn prepared_base_topology_input<'a>(
     second_cut: &'a ExactCutMeshResult,
     assembly: &'a ExactBooleanAssemblyResult,
     base_operand: ExactBooleanOperand,
+    prepared_faces: &'a [usize],
+    prepared_connect_parts: Option<&'a MeshlibPreparedConnectParts>,
+    contour_vertex_maps: Vec<([usize; 2], [usize; 2])>,
 ) -> ExactMeshlibPreparedBaseTopologyInput<'a> {
-    let (cut_mesh, prepared_faces, vertex_map, flip_orientation) = match base_operand {
+    if let Some(prepared_connect_parts) = prepared_connect_parts {
+        let cut_mesh = match base_operand {
+            ExactBooleanOperand::First => first_cut,
+            ExactBooleanOperand::Second => second_cut,
+        };
+        return ExactMeshlibPreparedBaseTopologyInput {
+            cut_mesh,
+            prepared_faces,
+            vertex_map: &prepared_connect_parts.base.cut_to_part_vertices,
+            contour_vertex_maps,
+            output_vertices: &prepared_connect_parts.base.vertices,
+            operand: base_operand,
+            first_virtual_vertex: prepared_connect_parts.base.vertices.len(),
+            flip_orientation: match base_operand {
+                ExactBooleanOperand::First => assembly.flipped_first,
+                ExactBooleanOperand::Second => assembly.flipped_second,
+            },
+        };
+    }
+    let (cut_mesh, vertex_map, flip_orientation) = match base_operand {
         ExactBooleanOperand::First => (
             first_cut,
-            assembly.prepare_first_faces.as_slice(),
             assembly.first_output_vertex_for_cut_vertex.as_slice(),
             assembly.flipped_first,
         ),
         ExactBooleanOperand::Second => (
             second_cut,
-            assembly.prepare_second_faces.as_slice(),
             assembly.second_output_vertex_for_cut_vertex.as_slice(),
             assembly.flipped_second,
         ),
@@ -548,9 +415,230 @@ fn prepared_base_topology_input<'a>(
         cut_mesh,
         prepared_faces,
         vertex_map,
+        contour_vertex_maps,
         output_vertices: &assembly.vertices,
         operand: base_operand,
         first_virtual_vertex: assembly.vertices.len(),
         flip_orientation,
     }
+}
+
+fn prepared_connect_base_contour_vertex_maps(
+    input: &MeshlibRewriteDiagnosticsInput<'_>,
+    topology_rewrite: &ExactMeshlibTopologyRewritePlan,
+    prepared_connect_parts: &MeshlibPreparedConnectParts,
+) -> Vec<([usize; 2], [usize; 2])> {
+    let cut_mesh = operand_cut_mesh(input, topology_rewrite.base_operand);
+    prepared_part_self_contour_vertex_maps(cut_mesh, &prepared_connect_parts.base)
+}
+
+fn prepared_connect_incoming_contour_vertex_maps(
+    input: &MeshlibRewriteDiagnosticsInput<'_>,
+    topology_rewrite: &ExactMeshlibTopologyRewritePlan,
+    prepared_connect_parts: &MeshlibPreparedConnectParts,
+) -> (Vec<([usize; 2], [usize; 2])>, Vec<Option<usize>>) {
+    let cut_mesh = operand_cut_mesh(input, topology_rewrite.incoming_operand);
+    if let Some(stitch_plan) = input.stitch_plan {
+        return prepared_part_connect_contour_vertex_maps_from_stitch(
+            stitch_plan,
+            topology_rewrite.base_operand,
+            topology_rewrite.incoming_operand,
+            &prepared_connect_parts.base,
+            &prepared_connect_parts.incoming,
+        );
+    }
+    (
+        prepared_part_connect_contour_vertex_maps(
+            cut_mesh,
+            &prepared_connect_parts.base,
+            &prepared_connect_parts.incoming,
+        ),
+        prepared_connect_contour_source_indices(input, topology_rewrite.incoming_operand),
+    )
+}
+
+fn prepared_part_self_contour_vertex_maps(
+    cut_mesh: &ExactCutMeshResult,
+    part: &prepared_parts::MeshlibPreparedPart,
+) -> Vec<([usize; 2], [usize; 2])> {
+    cut_mesh
+        .cut_edge_paths
+        .iter()
+        .zip(&part.remapped_cut_edge_paths)
+        .flat_map(|(source_path, mapped_path)| {
+            source_path.iter().copied().zip(mapped_path.iter().copied())
+        })
+        .collect()
+}
+
+fn prepared_part_connect_contour_vertex_maps(
+    incoming_cut_mesh: &ExactCutMeshResult,
+    base: &prepared_parts::MeshlibPreparedPart,
+    incoming: &prepared_parts::MeshlibPreparedPart,
+) -> Vec<([usize; 2], [usize; 2])> {
+    incoming_cut_mesh
+        .cut_edge_paths
+        .iter()
+        .zip(&base.remapped_cut_edge_paths)
+        .zip(&incoming.remapped_cut_edge_paths)
+        .flat_map(|((incoming_source_path, base_path), incoming_path)| {
+            incoming_source_path
+                .iter()
+                .copied()
+                .zip(base_path.iter().copied())
+                .take(incoming_path.len())
+        })
+        .collect()
+}
+
+fn prepared_part_connect_contour_vertex_maps_from_stitch(
+    stitch_plan: &ExactStitchPlan,
+    base_operand: ExactBooleanOperand,
+    incoming_operand: ExactBooleanOperand,
+    base: &prepared_parts::MeshlibPreparedPart,
+    incoming: &prepared_parts::MeshlibPreparedPart,
+) -> (Vec<([usize; 2], [usize; 2])>, Vec<Option<usize>>) {
+    let mut maps = Vec::new();
+    let mut source_indices = Vec::new();
+    for path in &stitch_plan.paths {
+        for pair_index in &path.pair_indices {
+            let Some(pair) = stitch_plan.pairs.get(*pair_index) else {
+                continue;
+            };
+            let base_edge = stitch_pair_edge_for_operand(pair, base_operand);
+            let incoming_edge = stitch_pair_edge_for_operand(pair, incoming_operand);
+            let Some(output_edge) = base.cut_to_part_directed_edges.get(&base_edge).copied() else {
+                continue;
+            };
+            if !incoming
+                .cut_to_part_directed_edges
+                .contains_key(&incoming_edge)
+            {
+                continue;
+            }
+            maps.push((incoming_edge, output_edge));
+            source_indices.push(Some(stitch_pair_edge_index_for_operand(
+                pair,
+                incoming_operand,
+            )));
+        }
+    }
+    (maps, source_indices)
+}
+
+fn prepared_connect_contour_source_indices(
+    input: &MeshlibRewriteDiagnosticsInput<'_>,
+    operand: ExactBooleanOperand,
+) -> Vec<Option<usize>> {
+    cut_path_edge_source_indices(operand_cut_mesh(input, operand))
+}
+
+fn stitch_pair_edge_for_operand(
+    pair: &ExactStitchEdgePair,
+    operand: ExactBooleanOperand,
+) -> [usize; 2] {
+    match operand {
+        ExactBooleanOperand::First => pair.first_edge,
+        ExactBooleanOperand::Second => pair.second_edge,
+    }
+}
+
+fn stitch_pair_edge_index_for_operand(
+    pair: &ExactStitchEdgePair,
+    operand: ExactBooleanOperand,
+) -> usize {
+    match operand {
+        ExactBooleanOperand::First => pair.first_edge_index,
+        ExactBooleanOperand::Second => pair.second_edge_index,
+    }
+}
+
+fn cut_path_edge_source_indices(cut_mesh: &ExactCutMeshResult) -> Vec<Option<usize>> {
+    let mut lookup = CutEdgeOccurrenceLookup::new(&cut_mesh.cut_edges);
+    let mut indices = Vec::new();
+    for path in &cut_mesh.cut_edge_paths {
+        for edge in path {
+            indices.push(lookup.take(*edge));
+        }
+    }
+    indices
+}
+
+fn operand_cut_mesh<'a>(
+    input: &'a MeshlibRewriteDiagnosticsInput<'_>,
+    operand: ExactBooleanOperand,
+) -> &'a ExactCutMeshResult {
+    match operand {
+        ExactBooleanOperand::First => input.first_cut,
+        ExactBooleanOperand::Second => input.second_cut,
+    }
+}
+
+struct CutEdgeOccurrenceLookup {
+    directed: std::collections::BTreeMap<[usize; 2], Vec<usize>>,
+    undirected: std::collections::BTreeMap<[usize; 2], Vec<usize>>,
+    used: std::collections::BTreeSet<usize>,
+}
+
+impl CutEdgeOccurrenceLookup {
+    fn new(cut_edges: &[[usize; 2]]) -> Self {
+        let mut lookup = Self {
+            directed: std::collections::BTreeMap::new(),
+            undirected: std::collections::BTreeMap::new(),
+            used: std::collections::BTreeSet::new(),
+        };
+        for (index, edge) in cut_edges.iter().copied().enumerate() {
+            lookup.directed.entry(edge).or_default().push(index);
+            lookup
+                .undirected
+                .entry(ordered_edge(edge))
+                .or_default()
+                .push(index);
+        }
+        lookup
+    }
+
+    fn take(&mut self, edge: [usize; 2]) -> Option<usize> {
+        self.take_from_indices(self.directed.get(&edge).cloned())
+            .or_else(|| self.take_from_indices(self.undirected.get(&ordered_edge(edge)).cloned()))
+    }
+
+    fn take_from_indices(&mut self, indices: Option<Vec<usize>>) -> Option<usize> {
+        indices?.into_iter().find(|index| self.used.insert(*index))
+    }
+}
+
+fn ordered_edge(edge: [usize; 2]) -> [usize; 2] {
+    if edge[0] <= edge[1] {
+        edge
+    } else {
+        [edge[1], edge[0]]
+    }
+}
+
+fn filtered_prepared_faces(
+    input: &MeshlibRewriteDiagnosticsInput<'_>,
+    operand: ExactBooleanOperand,
+) -> Vec<usize> {
+    let (prepared_faces, added_face_ranges) = match operand {
+        ExactBooleanOperand::First => (
+            input.assembly.prepare_first_faces.as_slice(),
+            input.first_added_face_ranges,
+        ),
+        ExactBooleanOperand::Second => (
+            input.assembly.prepare_second_faces.as_slice(),
+            input.second_added_face_ranges,
+        ),
+    };
+    prepared_faces
+        .iter()
+        .copied()
+        .filter(|face| !face_in_ranges(*face, added_face_ranges))
+        .collect()
+}
+
+fn face_in_ranges(face: usize, ranges: &[[usize; 2]]) -> bool {
+    ranges
+        .iter()
+        .any(|[start, end]| (*start..*end).contains(&face))
 }

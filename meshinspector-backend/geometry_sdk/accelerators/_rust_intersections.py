@@ -23,7 +23,32 @@ def triangles_intersect(triangle_a: Any, triangle_b: Any, *, epsilon: float = 1e
     return bool(kernel(a, b, float(epsilon)))
 
 
-def self_intersecting_faces(mesh: MeshDocument, *, epsilon: float = 1e-8) -> set[int]:
+def self_intersecting_faces(
+    mesh: MeshDocument, *, epsilon: float = 1e-8, touch_is_intersection: bool = True
+) -> set[int]:
     kernel = _require_rust_kernel("self_intersecting_faces")
-    face_ids = kernel(mesh.vertices, mesh.faces, float(epsilon))
+    face_ids = kernel(mesh.vertices, mesh.faces, float(epsilon), bool(touch_is_intersection))
     return {int(face_id) for face_id in face_ids}
+
+
+def exact_mesh_intersections(
+    first: MeshDocument,
+    second: MeshDocument,
+    *,
+    leaf_size: int = 16,
+    epsilon: float = 1e-8,
+) -> dict[str, np.ndarray]:
+    kernel = _require_rust_kernel("exact_mesh_intersections")
+    payload = kernel(
+        first.vertices,
+        first.faces,
+        second.vertices,
+        second.faces,
+        int(max(1, leaf_size)),
+        float(epsilon),
+    )
+    return {
+        "first_face_indices": np.asarray(payload["first_face_indices"], dtype=np.int64),
+        "second_face_indices": np.asarray(payload["second_face_indices"], dtype=np.int64),
+        "intersection_counts": np.asarray(payload["intersection_counts"], dtype=np.int64),
+    }

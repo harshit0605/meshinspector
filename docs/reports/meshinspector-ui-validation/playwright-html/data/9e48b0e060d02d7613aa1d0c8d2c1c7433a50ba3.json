@@ -1,0 +1,47 @@
+{
+  "apiBase": "http://127.0.0.1:48100",
+  "modelId": "mdl_c338e296726e",
+  "versionId": "ver_8e152d6d83d9",
+  "otherVersionId": "ver_27079ecd0d98",
+  "customerRunnableCount": 87,
+  "sdkOnlyGapCount": 0,
+  "commandFilter": "job-activity,runtime-select-mark-region,runtime-selection-to-object,runtime-thicken-brush,runtime-scoop-brush,runtime-smooth-brush,runtime-measure-inspect",
+  "results": [
+    {
+      "commandId": "job-activity",
+      "kind": "job-activity",
+      "status": "passed"
+    },
+    {
+      "commandId": "runtime-select-mark-region",
+      "kind": "runtime-direct",
+      "status": "passed"
+    },
+    {
+      "commandId": "runtime-selection-to-object",
+      "kind": "runtime-direct",
+      "status": "passed"
+    },
+    {
+      "commandId": "runtime-thicken-brush",
+      "kind": "runtime-job",
+      "status": "passed"
+    },
+    {
+      "commandId": "runtime-scoop-brush",
+      "kind": "runtime-job",
+      "status": "passed"
+    },
+    {
+      "commandId": "runtime-smooth-brush",
+      "kind": "runtime-job",
+      "status": "passed"
+    },
+    {
+      "commandId": "runtime-measure-inspect",
+      "kind": "runtime-direct",
+      "status": "passed"
+    }
+  ],
+  "failures": []
+}

@@ -1,0 +1,11 @@
+{
+  "voxel_to_mesh_simple": {
+    "resp": "{'version_id': 'ver_0d0cab97a2ad', 'vertex_count': 18290, 'face_count': 36576, 'bounds_min': [2.756952464580536, 2.756952464580536, 2.756952464580536], 'bounds_max': [20.743047535419464, 20.7430475354"
+  },
+  "voxel_to_mesh_dual": {
+    "error": "<urlopen error [Errno 32] Broken pipe>"
+  },
+  "voxel_mask_to_mesh": {
+    "resp": "{'version_id': 'ver_0d0cab97a2ad', 'vertex_count': 18482, 'face_count': 36960, 'bounds_min': [2.6967563033103943, 2.6967563033103943, 2.6967563033103943], 'bounds_max': [20.803243696689606, 20.8032436"
+  }
+}

@@ -1,3 +1,5 @@
+mod offset;
+
 use crate::math::{add, distance_sq, dot, scale, sub};
 use crate::mesh::{
     safe_normalize_vector, validate_faces, vertex_neighbor_list, vertex_normals_from_faces,
@@ -48,6 +50,8 @@ pub fn falloff_weights(
     let seeds = validate_seed_indices(seed_indices, vertices.len())?;
     let scale = falloff_mm.max(1e-3);
     let cutoff = falloff_mm * cutoff_multiplier;
+    let cutoff_sq = cutoff * cutoff;
+    let inv_scale_sq = 1.0 / (scale * scale);
     let output = vertices
         .par_iter()
         .map(|vertex| {
@@ -55,11 +59,10 @@ pub fn falloff_weights(
                 .iter()
                 .map(|seed| distance_sq(*vertex, vertices[*seed]))
                 .fold(f64::INFINITY, f64::min);
-            let distance = best_distance_sq.sqrt();
-            if distance > cutoff {
+            if best_distance_sq > cutoff_sq {
                 0.0
             } else {
-                (-0.5 * (distance / scale).powi(2)).exp() as f32
+                (-0.5 * best_distance_sq * inv_scale_sq).exp() as f32
             }
         })
         .collect();
@@ -318,13 +321,13 @@ pub fn apply_brush_strokes(
             stroke_protected,
         );
         output = match operations[stroke_index] {
-            0 => local_offset_vertices_with_weights(
+            0 => offset::local_offset_vertices_with_weights(
                 &output,
                 faces_i64,
                 &weights,
                 amounts_mm[stroke_index],
             )?,
-            1 => local_offset_vertices_with_weights(
+            1 => offset::local_offset_vertices_with_weights(
                 &output,
                 faces_i64,
                 &weights,
@@ -342,35 +345,6 @@ pub fn apply_brush_strokes(
         };
     }
     Ok(output)
-}
-
-fn local_offset_vertices_with_weights(
-    vertices: &[[f64; 3]],
-    faces_i64: &[[i64; 3]],
-    weights: &[f32],
-    amount_mm: f64,
-) -> Result<Vec<[f64; 3]>, GeometryError> {
-    if weights.len() != vertices.len() {
-        return Err(GeometryError::WeightCountDoesNotMatchVertices {
-            weights: weights.len(),
-            vertices: vertices.len(),
-        });
-    }
-    let directions = outward_directions(vertices, faces_i64)?;
-    let displaced = vertices
-        .par_iter()
-        .enumerate()
-        .map(|(vertex_index, vertex)| {
-            add(
-                *vertex,
-                scale(
-                    directions[vertex_index],
-                    amount_mm * weights[vertex_index] as f64,
-                ),
-            )
-        })
-        .collect();
-    Ok(displaced)
 }
 
 fn validate_brush_strokes(
@@ -583,19 +557,59 @@ fn smooth_vertices_with_weights(
     let clamped_strength = strength.clamp(0.0, 1.0);
     let mut smoothed = vertices.to_vec();
 
+    if let Some(weight_values) = weights {
+        let active_vertices: Vec<usize> = weight_values
+            .iter()
+            .enumerate()
+            .filter_map(|(vertex_index, weight)| {
+                if weight.clamp(0.0, 1.0) > active_threshold && !neighbors[vertex_index].is_empty()
+                {
+                    Some(vertex_index)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for _ in 0..step_count {
+            let previous = smoothed.clone();
+            let updates: Vec<(usize, [f64; 3])> = active_vertices
+                .par_iter()
+                .map(|vertex_index| {
+                    let neighbor_ids = &neighbors[*vertex_index];
+                    let mut target = [0.0_f64; 3];
+                    for neighbor_id in neighbor_ids {
+                        target = add(target, previous[*neighbor_id]);
+                    }
+                    let scale_factor = 1.0 / neighbor_ids.len() as f64;
+                    target = scale(target, scale_factor);
+                    let weight = weight_values[*vertex_index].clamp(0.0, 1.0) as f64;
+                    (
+                        *vertex_index,
+                        add(
+                            previous[*vertex_index],
+                            scale(
+                                sub(target, previous[*vertex_index]),
+                                clamped_strength * weight,
+                            ),
+                        ),
+                    )
+                })
+                .collect();
+            for (vertex_index, vertex) in updates {
+                smoothed[vertex_index] = vertex;
+            }
+        }
+
+        return Ok(smoothed);
+    }
+
     for _ in 0..step_count {
         let previous = smoothed.clone();
         smoothed
             .par_iter_mut()
             .enumerate()
             .for_each(|(vertex_index, vertex)| {
-                let weight = weights
-                    .map(|values| values[vertex_index])
-                    .unwrap_or(1.0)
-                    .clamp(0.0, 1.0);
-                if weight <= active_threshold {
-                    return;
-                }
                 let neighbor_ids = &neighbors[vertex_index];
                 if neighbor_ids.is_empty() {
                     return;
@@ -608,10 +622,7 @@ fn smooth_vertices_with_weights(
                 target = scale(target, scale_factor);
                 *vertex = add(
                     previous[vertex_index],
-                    scale(
-                        sub(target, previous[vertex_index]),
-                        clamped_strength * weight as f64,
-                    ),
+                    scale(sub(target, previous[vertex_index]), clamped_strength),
                 );
             });
     }

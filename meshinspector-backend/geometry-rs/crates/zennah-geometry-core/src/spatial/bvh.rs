@@ -33,7 +33,7 @@ impl FlatBvhNode {
 }
 
 #[derive(Debug, Clone)]
-pub(super) struct FlatBvh {
+pub(crate) struct FlatBvh {
     pub(super) nodes: Vec<FlatBvhNode>,
     pub(super) face_indices: Vec<usize>,
 }
@@ -499,7 +499,7 @@ fn ray_aabb_interval(
     Some((tmin, tmax))
 }
 
-pub(super) fn build_flat_bvh(triangles: &[[[f64; 3]; 3]], leaf_size: usize) -> FlatBvh {
+pub(crate) fn build_flat_bvh(triangles: &[[[f64; 3]; 3]], leaf_size: usize) -> FlatBvh {
     let face_indices: Vec<usize> = (0..triangles.len()).collect();
     let root = build_aabb_node(triangles, &face_indices, leaf_size);
     flatten_aabb_tree(&root)

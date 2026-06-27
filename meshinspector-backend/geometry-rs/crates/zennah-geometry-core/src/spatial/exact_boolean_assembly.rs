@@ -7,11 +7,17 @@ use super::exact_classify::{
     exact_classify_components_with_cut_paths, ExactCutPathClassificationInput,
     ExactMeshPartClassification,
 };
-use super::exact_coplanar::same_oriented_coplanar_overlap_faces;
 use super::exact_cut_apply::ExactCutMeshResult;
 use super::exact_stitch::{exact_stitch_vertex_map, ExactStitchPlan};
 use crate::{GeometryError, MeshArrays};
 use std::collections::BTreeSet;
+
+mod coplanar;
+pub(super) use coplanar::{
+    exact_assemble_difference_with_coplanar_sampling,
+    exact_assemble_intersection_with_coplanar_sampling,
+    exact_assemble_union_with_coplanar_first_wins,
+};
 
 pub fn exact_assemble_boolean_from_cut_meshes(
     first: &ExactCutMeshResult,
@@ -112,7 +118,7 @@ pub(super) fn assemble_classified_boolean_with_stitch(
     )
 }
 
-fn assemble_classified_boolean_with_stitch_at_tolerance(
+pub(super) fn assemble_classified_boolean_with_stitch_at_tolerance(
     first: &ExactCutMeshResult,
     second: &ExactCutMeshResult,
     first_classification: Option<&ExactMeshPartClassification>,
@@ -127,8 +133,8 @@ fn assemble_classified_boolean_with_stitch_at_tolerance(
     let selected_second = second_classification
         .map(|classification| classification.selected_faces.clone())
         .unwrap_or_default();
-    let prepare_first_faces = selected_first.clone();
-    let prepare_second_faces = selected_second.clone();
+    let prepare_first_faces = prepare_part_faces(first_classification, &selected_first);
+    let prepare_second_faces = prepare_part_faces(second_classification, &selected_second);
     let flipped_first = operation == ExactBooleanOperation::DifferenceBA;
     let flipped_second = operation == ExactBooleanOperation::DifferenceAB;
 
@@ -221,208 +227,14 @@ fn assemble_classified_boolean_with_stitch_at_tolerance(
     }
 }
 
-pub(super) fn exact_assemble_union_with_coplanar_first_wins(
-    first: &ExactCutMeshResult,
-    second: &ExactCutMeshResult,
-    stitch_plan: Option<&ExactStitchPlan>,
-    epsilon: f64,
-) -> Result<ExactBooleanAssemblyResult, GeometryError> {
-    let first_classification =
-        exact_classify_components_with_cut_paths(ExactCutPathClassificationInput {
-            vertices: &first.vertices,
-            faces_i64: &first.faces,
-            other_vertices: &second.vertices,
-            other_faces_i64: &second.faces,
-            cut_edges: &first.cut_edges,
-            cut_edge_paths: &first.cut_edge_paths,
-            need_inside: false,
-            origin_is_first: true,
-            epsilon,
-        })?;
-    let second_classification =
-        exact_classify_components_with_cut_paths(ExactCutPathClassificationInput {
-            vertices: &second.vertices,
-            faces_i64: &second.faces,
-            other_vertices: &first.vertices,
-            other_faces_i64: &first.faces,
-            cut_edges: &second.cut_edges,
-            cut_edge_paths: &second.cut_edge_paths,
-            need_inside: false,
-            origin_is_first: false,
-            epsilon,
-        })?;
-    let first_overlap_faces = same_oriented_coplanar_overlap_faces(
-        &first.vertices,
-        &first.faces,
-        &second.vertices,
-        &second.faces,
-        epsilon,
-    )?;
-    let prepare_first_faces = first_classification.selected_faces.clone();
-    let prepare_second_faces = second_classification.selected_faces.clone();
-    let first_classification =
-        coplanar_union_first_wins_classification(first_classification, &first_overlap_faces, true);
-    let second_classification =
-        coplanar_union_first_wins_classification(second_classification, &BTreeSet::new(), false);
-    let mut assembly = assemble_classified_boolean_with_stitch_at_tolerance(
-        first,
-        second,
-        Some(&first_classification),
-        Some(&second_classification),
-        stitch_plan,
-        ExactBooleanOperation::Union,
-        epsilon,
-    );
-    assembly.prepare_first_faces = prepare_first_faces;
-    assembly.prepare_second_faces = prepare_second_faces;
-    Ok(assembly)
-}
-
-pub(super) fn exact_assemble_intersection_with_coplanar_sampling(
-    first: &ExactCutMeshResult,
-    second: &ExactCutMeshResult,
-    stitch_plan: Option<&ExactStitchPlan>,
-    epsilon: f64,
-) -> Result<ExactBooleanAssemblyResult, GeometryError> {
-    let first_classification =
-        exact_classify_components_with_cut_paths(ExactCutPathClassificationInput {
-            vertices: &first.vertices,
-            faces_i64: &first.faces,
-            other_vertices: &second.vertices,
-            other_faces_i64: &second.faces,
-            cut_edges: &first.cut_edges,
-            cut_edge_paths: &first.cut_edge_paths,
-            need_inside: true,
-            origin_is_first: true,
-            epsilon,
-        })?;
-    let second_classification =
-        exact_classify_components_with_cut_paths(ExactCutPathClassificationInput {
-            vertices: &second.vertices,
-            faces_i64: &second.faces,
-            other_vertices: &first.vertices,
-            other_faces_i64: &first.faces,
-            cut_edges: &second.cut_edges,
-            cut_edge_paths: &second.cut_edge_paths,
-            need_inside: true,
-            origin_is_first: false,
-            epsilon,
-        })?;
-    let second_overlap_faces = same_oriented_coplanar_overlap_faces(
-        &second.vertices,
-        &second.faces,
-        &first.vertices,
-        &first.faces,
-        epsilon,
-    )?;
-    let prepare_first_faces = first_classification.selected_faces.clone();
-    let prepare_second_faces = second_classification.selected_faces.clone();
-    let first_classification = coplanar_intersection_first_wins_classification(
-        first_classification,
-        &BTreeSet::new(),
-        true,
-    );
-    let second_classification = coplanar_intersection_first_wins_classification(
-        second_classification,
-        &second_overlap_faces,
-        false,
-    );
-    let mut assembly = assemble_classified_boolean_with_stitch_at_tolerance(
-        first,
-        second,
-        Some(&first_classification),
-        Some(&second_classification),
-        stitch_plan,
-        ExactBooleanOperation::Intersection,
-        epsilon,
-    );
-    assembly.prepare_first_faces = prepare_first_faces;
-    assembly.prepare_second_faces = prepare_second_faces;
-    Ok(assembly)
-}
-
-pub(super) fn exact_assemble_difference_with_coplanar_sampling(
-    first: &ExactCutMeshResult,
-    second: &ExactCutMeshResult,
-    stitch_plan: Option<&ExactStitchPlan>,
-    operation: ExactBooleanOperation,
-    epsilon: f64,
-) -> Result<ExactBooleanAssemblyResult, GeometryError> {
-    let first_classification =
-        exact_classify_components_with_cut_paths(ExactCutPathClassificationInput {
-            vertices: &first.vertices,
-            faces_i64: &first.faces,
-            other_vertices: &second.vertices,
-            other_faces_i64: &second.faces,
-            cut_edges: &first.cut_edges,
-            cut_edge_paths: &first.cut_edge_paths,
-            need_inside: operation == ExactBooleanOperation::DifferenceBA,
-            origin_is_first: true,
-            epsilon,
-        })?;
-    let second_classification =
-        exact_classify_components_with_cut_paths(ExactCutPathClassificationInput {
-            vertices: &second.vertices,
-            faces_i64: &second.faces,
-            other_vertices: &first.vertices,
-            other_faces_i64: &first.faces,
-            cut_edges: &second.cut_edges,
-            cut_edge_paths: &second.cut_edge_paths,
-            need_inside: operation == ExactBooleanOperation::DifferenceAB,
-            origin_is_first: false,
-            epsilon,
-        })?;
-
-    let prepare_first_faces = first_classification.selected_faces.clone();
-    let prepare_second_faces = second_classification.selected_faces.clone();
-    let (first_classification, second_classification) = match operation {
-        ExactBooleanOperation::DifferenceAB => {
-            let second_overlap_faces = same_oriented_coplanar_overlap_faces(
-                &second.vertices,
-                &second.faces,
-                &first.vertices,
-                &first.faces,
-                epsilon,
-            )?;
-            (
-                coplanar_difference_minuend_classification(first_classification),
-                coplanar_difference_subtrahend_classification(
-                    second_classification,
-                    &second_overlap_faces,
-                ),
-            )
-        }
-        ExactBooleanOperation::DifferenceBA => {
-            let first_overlap_faces = same_oriented_coplanar_overlap_faces(
-                &first.vertices,
-                &first.faces,
-                &second.vertices,
-                &second.faces,
-                epsilon,
-            )?;
-            (
-                coplanar_difference_subtrahend_classification(
-                    first_classification,
-                    &first_overlap_faces,
-                ),
-                coplanar_difference_minuend_classification(second_classification),
-            )
-        }
-        _ => unreachable!("coplanar difference assembly only accepts difference operations"),
-    };
-
-    let mut assembly = assemble_classified_boolean_with_stitch_at_tolerance(
-        first,
-        second,
-        Some(&first_classification),
-        Some(&second_classification),
-        stitch_plan,
-        operation,
-        epsilon,
-    );
-    assembly.prepare_first_faces = prepare_first_faces;
-    assembly.prepare_second_faces = prepare_second_faces;
-    Ok(assembly)
+fn prepare_part_faces(
+    classification: Option<&ExactMeshPartClassification>,
+    selected_faces: &[usize],
+) -> Vec<usize> {
+    classification
+        .filter(|classification| classification.cut_paths_consistent)
+        .map(|_| selected_faces.to_vec())
+        .unwrap_or_default()
 }
 
 fn cut_path_side_components(classification: Option<&ExactMeshPartClassification>) -> [usize; 2] {
@@ -440,81 +252,6 @@ fn cut_path_overlap_components(classification: Option<&ExactMeshPartClassificati
     classification
         .map(|classification| classification.cut_path_overlap_components)
         .unwrap_or_default()
-}
-
-fn coplanar_union_first_wins_classification(
-    mut classification: ExactMeshPartClassification,
-    first_overlap_faces: &BTreeSet<usize>,
-    keep_same_oriented_overlap: bool,
-) -> ExactMeshPartClassification {
-    let mut selected_faces = BTreeSet::new();
-    for component in &mut classification.components {
-        let has_same_oriented_overlap = component
-            .face_indices
-            .iter()
-            .any(|face| first_overlap_faces.contains(face));
-        component.selected =
-            !component.inside_other || (keep_same_oriented_overlap && has_same_oriented_overlap);
-        if component.selected {
-            selected_faces.extend(component.face_indices.iter().copied());
-        }
-    }
-    classification.selected_faces = selected_faces.into_iter().collect();
-    classification
-}
-
-fn coplanar_intersection_first_wins_classification(
-    mut classification: ExactMeshPartClassification,
-    same_oriented_overlap_faces: &BTreeSet<usize>,
-    keep_same_oriented_overlap: bool,
-) -> ExactMeshPartClassification {
-    let mut selected_faces = BTreeSet::new();
-    for component in &mut classification.components {
-        let has_same_oriented_overlap = component
-            .face_indices
-            .iter()
-            .any(|face| same_oriented_overlap_faces.contains(face));
-        component.selected =
-            component.inside_other && (keep_same_oriented_overlap || !has_same_oriented_overlap);
-        if component.selected {
-            selected_faces.extend(component.face_indices.iter().copied());
-        }
-    }
-    classification.selected_faces = selected_faces.into_iter().collect();
-    classification
-}
-
-fn coplanar_difference_minuend_classification(
-    mut classification: ExactMeshPartClassification,
-) -> ExactMeshPartClassification {
-    let mut selected_faces = BTreeSet::new();
-    for component in &mut classification.components {
-        component.selected = !component.inside_other;
-        if component.selected {
-            selected_faces.extend(component.face_indices.iter().copied());
-        }
-    }
-    classification.selected_faces = selected_faces.into_iter().collect();
-    classification
-}
-
-fn coplanar_difference_subtrahend_classification(
-    mut classification: ExactMeshPartClassification,
-    same_oriented_overlap_faces: &BTreeSet<usize>,
-) -> ExactMeshPartClassification {
-    let mut selected_faces = BTreeSet::new();
-    for component in &mut classification.components {
-        let has_same_oriented_overlap = component
-            .face_indices
-            .iter()
-            .any(|face| same_oriented_overlap_faces.contains(face));
-        component.selected = component.inside_other && !has_same_oriented_overlap;
-        if component.selected {
-            selected_faces.extend(component.face_indices.iter().copied());
-        }
-    }
-    classification.selected_faces = selected_faces.into_iter().collect();
-    classification
 }
 
 fn second_preassigned_vertices(

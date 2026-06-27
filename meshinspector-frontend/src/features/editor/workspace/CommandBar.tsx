@@ -131,7 +131,13 @@ export default function CommandBar({
                 ref={(node) => {
                   buttonRefs.current[group] = node;
                 }}
+                type="button"
+                aria-expanded={openPopoverGroup === group}
                 onFocus={() => onGroupOpen(group)}
+                onClick={() => {
+                  clearCloseTimer();
+                  onGroupOpen(group);
+                }}
                 className={`rounded-lg px-3 py-2 text-sm transition-colors ${
                   openPopoverGroup === group || hasActiveTool
                     ? 'bg-zinc-100 text-zinc-950'

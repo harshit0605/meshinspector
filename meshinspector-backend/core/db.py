@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from core.config import settings
@@ -17,7 +17,7 @@ class Base(DeclarativeBase):
 database_url = settings.effective_database_url
 is_sqlite = database_url.startswith("sqlite")
 connect_args = (
-    {"check_same_thread": False}
+    {"check_same_thread": False, "timeout": 30}
     if is_sqlite
     else {
         # Disable server-side prepared statements for psycopg connections.
@@ -36,6 +36,18 @@ engine = create_engine(
     pool_recycle=300 if not is_sqlite else -1,
 )
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, expire_on_commit=False)
+
+
+if is_sqlite:
+    @event.listens_for(engine, "connect")
+    def _configure_sqlite_connection(dbapi_connection, _connection_record) -> None:  # noqa: ANN001
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA busy_timeout=30000")
+            cursor.execute("PRAGMA foreign_keys=ON")
+        finally:
+            cursor.close()
 
 
 def get_db() -> Generator[Session, None, None]:

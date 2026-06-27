@@ -6,6 +6,8 @@ use crate::mesh::{edge_face_map, validate_faces};
 use crate::GeometryError;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
+const CUT_SNAP_EPSILON_FLOOR: f64 = 1e-8;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ExactCutPrimitive {
     Vertex(usize),
@@ -17,6 +19,7 @@ pub enum ExactCutPrimitive {
 pub struct ExactCutPoint {
     pub contour_index: usize,
     pub intersection_index: usize,
+    pub original_primitive: ExactOneMeshPrimitive,
     pub primitive: ExactCutPrimitive,
     pub coordinate: [f64; 3],
     pub vertex_index: usize,
@@ -39,6 +42,14 @@ pub struct ExactCutPathSegment {
     pub source_faces: Vec<usize>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExactCollapsedCutSegment {
+    pub contour_index: usize,
+    pub from_point: usize,
+    pub to_point: usize,
+    pub source_faces: Vec<usize>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExactCutPreplan {
     pub vertices_after_preplan: Vec<[f64; 3]>,
@@ -46,6 +57,7 @@ pub struct ExactCutPreplan {
     pub contour_points: Vec<Vec<usize>>,
     pub contour_closed: Vec<bool>,
     pub path_segments: Vec<ExactCutPathSegment>,
+    pub collapsed_segments: Vec<ExactCollapsedCutSegment>,
     pub edge_splits: Vec<ExactEdgeSplitEvent>,
     pub removed_face_candidates: Vec<usize>,
     pub bad_face_candidates: Vec<usize>,
@@ -154,6 +166,7 @@ pub fn exact_cut_preplan(
             cut_points.push(ExactCutPoint {
                 contour_index,
                 intersection_index,
+                original_primitive: intersection.primitive.clone(),
                 primitive,
                 coordinate: intersection.coordinate,
                 vertex_index,
@@ -165,23 +178,30 @@ pub fn exact_cut_preplan(
     }
 
     let mut path_segments = Vec::new();
+    let mut collapsed_segments = Vec::new();
     let mut removed_faces = BTreeSet::new();
     let mut face_segment_counts = HashMap::<usize, usize>::new();
     for (contour_index, contour) in contours.iter().enumerate() {
         let point_ids = &contour_points[contour_index];
         for (from_point, to_point) in contour_segment_pairs(point_ids, contour.closed) {
-            if distance_sq(
-                cut_points[from_point].coordinate,
-                cut_points[to_point].coordinate,
-            ) <= tolerance_sq
-            {
-                continue;
-            }
             let source_faces = shared_source_faces(
                 &cut_points[from_point].primitive,
                 &cut_points[to_point].primitive,
                 &topology,
             );
+            if distance_sq(
+                cut_points[from_point].coordinate,
+                cut_points[to_point].coordinate,
+            ) <= tolerance_sq
+            {
+                collapsed_segments.push(ExactCollapsedCutSegment {
+                    contour_index,
+                    from_point,
+                    to_point,
+                    source_faces,
+                });
+                continue;
+            }
             for face in &source_faces {
                 removed_faces.insert(*face);
                 *face_segment_counts.entry(*face).or_insert(0) += 1;
@@ -218,6 +238,7 @@ pub fn exact_cut_preplan(
         contour_points,
         contour_closed,
         path_segments,
+        collapsed_segments,
         edge_splits,
         removed_face_candidates: removed_faces.into_iter().collect(),
         bad_face_candidates,
@@ -249,7 +270,9 @@ impl CutTopology {
             }
         }
         Self {
-            edge_faces: edge_face_map(faces),
+            // edge_face_map now returns an FxHashMap; keep this struct's field
+            // type unchanged by collecting back into the std HashMap it expects.
+            edge_faces: edge_face_map(faces).into_iter().collect(),
             vertex_faces: vertex_face_sets
                 .into_iter()
                 .map(|faces| faces.into_iter().collect())
@@ -472,11 +495,12 @@ fn distance_sq(first: [f64; 3], second: [f64; 3]) -> f64 {
 }
 
 fn effective_epsilon(epsilon: f64) -> f64 {
-    if epsilon.is_finite() && epsilon > 0.0 {
+    let requested = if epsilon.is_finite() && epsilon > 0.0 {
         epsilon
     } else {
         1e-9
-    }
+    };
+    requested.max(CUT_SNAP_EPSILON_FLOOR)
 }
 
 #[cfg(test)]
@@ -644,6 +668,8 @@ mod tests {
         let plan = exact_cut_preplan(&vertices, &faces, &contours, 1e-9).unwrap();
 
         assert_eq!(plan.path_segments.len(), 0);
+        assert_eq!(plan.collapsed_segments.len(), 1);
+        assert_eq!(plan.collapsed_segments[0].source_faces, vec![0]);
         assert!(plan.removed_face_candidates.is_empty());
         assert!(plan.bad_face_candidates.is_empty());
     }

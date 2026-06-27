@@ -1,0 +1,70 @@
+{
+  "boolean_exact_union": {
+    "pre_fix_ver": "ver_6dd08a1a3253",
+    "rust_regression": "exact_boolean_reported_thin_cube_overlap_outputs_closed_meshes",
+    "faces": 44,
+    "verts": 24,
+    "vol": 3240.0,
+    "bnd": 0,
+    "nonman": 0,
+    "parity_ready": true,
+    "edge_ratio": 1.4
+  },
+  "boolean_exact_difference": {
+    "pre_fix_ver": "ver_4bd6f5fc8240",
+    "rust_regression": "exact_boolean_reported_thin_cube_overlap_outputs_closed_meshes",
+    "faces": 26,
+    "verts": 15,
+    "vol": 1512.0,
+    "bnd": 0,
+    "nonman": 0,
+    "parity_ready": true,
+    "edge_ratio": 2.0
+  },
+  "boolean_exact_intersection": {
+    "pre_fix_ver": "ver_bdbbe2752fcb",
+    "rust_regression": "exact_boolean_reported_thin_cube_overlap_outputs_closed_meshes",
+    "faces": 28,
+    "verts": 16,
+    "vol": 216.0,
+    "bnd": 0,
+    "nonman": 0,
+    "parity_ready": true,
+    "edge_ratio": 1.4
+  },
+  "boolean_voxel_union": {
+    "ver": "ver_dad9f97ee806",
+    "faces": 132000,
+    "verts": 66002,
+    "vol": 3236.41,
+    "bnd": 0,
+    "edge_ratio": 1.4
+  },
+  "offset_mesh_voxel": {
+    "error": "HTTP Error 400: Bad Request"
+  },
+  "shell_mesh_voxel": {
+    "ver": "ver_3d82871275d5",
+    "faces": 122060,
+    "verts": 61030,
+    "vol": 496.6,
+    "bnd": 0,
+    "edge_ratio": 3.0
+  },
+  "thicken_mesh_voxel": {
+    "ver": "ver_5c9f7d4923ac",
+    "faces": 122860,
+    "verts": 61430,
+    "vol": 433.7,
+    "bnd": 0,
+    "edge_ratio": 2.6
+  },
+  "shrink_expand": {
+    "ver": "ver_1b2cf7ad90e9",
+    "faces": 75880,
+    "verts": 37940,
+    "vol": 768.92,
+    "bnd": 0,
+    "edge_ratio": 2.9
+  }
+}

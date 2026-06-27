@@ -60,8 +60,44 @@ fn resize_ring_vertices(
     Ok(output.into_pyarray(py).unbind())
 }
 
+#[pyfunction(signature = (vertices, measured_diameter_mm, target_diameter_mm, ring_axis = None, preserve_indices = None, max_preserve_scale_ratio = 1.5))]
+fn fit_ring_to_diameter_vertices(
+    py: Python<'_>,
+    vertices: PyReadonlyArray2<'_, f64>,
+    measured_diameter_mm: f64,
+    target_diameter_mm: f64,
+    ring_axis: Option<PyReadonlyArray1<'_, f64>>,
+    preserve_indices: Option<PyReadonlyArray1<'_, i64>>,
+    max_preserve_scale_ratio: f64,
+) -> PyResult<(Py<PyArray1<f64>>, bool, f64)> {
+    let rust_vertices = read_vertices(vertices)?;
+    let rust_ring_axis = ring_axis
+        .map(|axis| read_vec3("ring_axis", axis))
+        .transpose()?;
+    let rust_preserve_indices = preserve_indices.map(read_i64_values).unwrap_or_default();
+    let result = py
+        .detach(|| {
+            zennah_geometry_core::fit_ring_to_diameter_vertices(
+                &rust_vertices,
+                measured_diameter_mm,
+                target_diameter_mm,
+                rust_ring_axis,
+                &rust_preserve_indices,
+                max_preserve_scale_ratio,
+            )
+        })
+        .map_err(|error| PyValueError::new_err(error.to_string()))?;
+    let output: Vec<f64> = result.vertices.into_iter().flatten().collect();
+    Ok((
+        output.into_pyarray(py).unbind(),
+        result.applied_uniform_fallback,
+        result.scale_factor,
+    ))
+}
+
 pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(radial_scale_vertices, module)?)?;
     module.add_function(wrap_pyfunction!(resize_ring_vertices, module)?)?;
+    module.add_function(wrap_pyfunction!(fit_ring_to_diameter_vertices, module)?)?;
     Ok(())
 }

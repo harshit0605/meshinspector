@@ -9,6 +9,13 @@ pub(super) fn trial_usize(
     trial.map(value).unwrap_or_default()
 }
 
+pub(super) fn trial_vec_vec_usize(
+    trial: Option<&ExactCoplanarContourCutTrial>,
+    value: impl FnOnce(&ExactCoplanarContourCutTrial) -> &Vec<Vec<usize>>,
+) -> Vec<Vec<usize>> {
+    trial.map(value).cloned().unwrap_or_default()
+}
+
 pub(super) fn vertices_have_mixed_inside_state(
     vertices: &[[f64; 3]],
     other_vertices: &[[f64; 3]],

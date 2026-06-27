@@ -6,12 +6,13 @@ import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api.serializers import serialize_job, serialize_job_event
 from core.db import get_db
 from core.db import SessionLocal
-from domain.models import JobRecord
+from domain.models import JobRecord, ModelVersionRecord
 from domain.schemas import JobResponse
 from storage.repositories import get_job_events
 
@@ -24,6 +25,19 @@ async def get_job(job_id: str, db: Session = Depends(get_db)):
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return serialize_job(job)
+
+
+@router.get("/versions/{version_id}/jobs", response_model=list[JobResponse])
+async def list_version_jobs(version_id: str, db: Session = Depends(get_db)) -> list[JobResponse]:
+    version = db.get(ModelVersionRecord, version_id)
+    if version is None:
+        raise HTTPException(status_code=404, detail="Version not found")
+    jobs = db.scalars(
+        select(JobRecord)
+        .where(JobRecord.version_id == version_id)
+        .order_by(JobRecord.created_at.desc())
+    ).all()
+    return [serialize_job(job) for job in jobs]
 
 
 @router.get("/jobs/{job_id}/events")

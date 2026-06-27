@@ -1,10 +1,14 @@
 use super::exact_cut_apply::ExactCutMeshResult;
-use super::exact_fill_plan::{
-    exact_planar_hole_fill_plan, execute_exact_planar_hole_fill_plan, ExactPlanarHoleFillPlan,
-};
+use super::exact_fill_plan::{exact_planar_hole_fill_plan, ExactPlanarHoleFillPlan};
 use crate::mesh::validate_faces;
 use crate::GeometryError;
 use std::collections::{BTreeMap, BTreeSet};
+
+mod open_restoration;
+mod replacement;
+
+use self::open_restoration::open_cut_path_restoration_fill_plans;
+use self::replacement::closed_cut_path_fill_plans;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExactCutHoleFillPlan {
@@ -12,6 +16,7 @@ pub struct ExactCutHoleFillPlan {
     pub boundary_loop: Vec<usize>,
     pub boundary_edges: Vec<[usize; 2]>,
     pub source_face: usize,
+    pub source_face_for_faces: Vec<usize>,
     pub fill_plan: ExactPlanarHoleFillPlan,
 }
 
@@ -26,6 +31,21 @@ pub fn exact_cut_hole_fill_plans(
     cut_mesh: &ExactCutMeshResult,
     epsilon: f64,
 ) -> Result<Vec<ExactCutHoleFillPlan>, GeometryError> {
+    exact_cut_hole_fill_plans_impl(cut_mesh, epsilon, false)
+}
+
+pub fn exact_cut_hole_fill_plans_with_replacements(
+    cut_mesh: &ExactCutMeshResult,
+    epsilon: f64,
+) -> Result<Vec<ExactCutHoleFillPlan>, GeometryError> {
+    exact_cut_hole_fill_plans_impl(cut_mesh, epsilon, true)
+}
+
+fn exact_cut_hole_fill_plans_impl(
+    cut_mesh: &ExactCutMeshResult,
+    epsilon: f64,
+    include_closed_replacements: bool,
+) -> Result<Vec<ExactCutHoleFillPlan>, GeometryError> {
     let faces = validate_faces(&cut_mesh.faces, cut_mesh.vertices.len())?;
     let cut_edges = cut_mesh
         .cut_edges
@@ -38,7 +58,7 @@ pub fn exact_cut_hole_fill_plans(
 
     let boundary_edges = cut_boundary_edges(&faces, &cut_edges);
     let loops = directed_boundary_loops(&boundary_edges);
-    Ok(loops
+    let mut plans = loops
         .into_iter()
         .filter_map(|boundary| {
             let fill_plan =
@@ -50,22 +70,60 @@ pub fn exact_cut_hole_fill_plans(
                 boundary_loop: boundary.vertices,
                 boundary_edges: boundary.boundary_edges,
                 source_face,
+                source_face_for_faces: vec![source_face; fill_plan.num_tris],
                 fill_plan,
             })
         })
-        .collect())
+        .collect::<Vec<_>>();
+    let boundary_edge_sets = plans
+        .iter()
+        .map(|plan| ordered_edge_set(&plan.boundary_edges))
+        .collect::<BTreeSet<_>>();
+    if include_closed_replacements {
+        plans.extend(open_cut_path_restoration_fill_plans(cut_mesh, epsilon));
+        plans.extend(closed_cut_path_fill_plans(
+            cut_mesh,
+            epsilon,
+            &boundary_edge_sets,
+        ));
+    }
+    Ok(plans)
 }
 
 pub fn exact_fill_cut_holes(
     cut_mesh: &ExactCutMeshResult,
     epsilon: f64,
 ) -> Result<ExactCutHoleFillResult, GeometryError> {
-    let fill_plans = exact_cut_hole_fill_plans(cut_mesh, epsilon)?;
+    exact_fill_cut_holes_impl(cut_mesh, epsilon, false)
+}
+
+pub fn exact_fill_cut_holes_with_replacements(
+    cut_mesh: &ExactCutMeshResult,
+    epsilon: f64,
+) -> Result<ExactCutHoleFillResult, GeometryError> {
+    exact_fill_cut_holes_impl(cut_mesh, epsilon, true)
+}
+
+fn exact_fill_cut_holes_impl(
+    cut_mesh: &ExactCutMeshResult,
+    epsilon: f64,
+    include_closed_replacements: bool,
+) -> Result<ExactCutHoleFillResult, GeometryError> {
+    let fill_plans =
+        exact_cut_hole_fill_plans_impl(cut_mesh, epsilon, include_closed_replacements)?;
     let mut mesh = cut_mesh.clone();
     let mut added_face_ranges = Vec::with_capacity(fill_plans.len());
     for fill_plan in &fill_plans {
-        let execution =
-            execute_exact_planar_hole_fill_plan(&fill_plan.fill_plan, fill_plan.source_face);
+        let source_face_for_faces =
+            if fill_plan.source_face_for_faces.len() == fill_plan.fill_plan.triangles.len() {
+                fill_plan.source_face_for_faces.clone()
+            } else {
+                vec![fill_plan.source_face; fill_plan.fill_plan.triangles.len()]
+            };
+        let execution = execute_exact_planar_hole_fill_plan_with_sources(
+            &fill_plan.fill_plan,
+            source_face_for_faces,
+        );
         let start = mesh.faces.len();
         mesh.faces.extend(execution.faces);
         mesh.source_face_for_faces
@@ -77,6 +135,20 @@ pub fn exact_fill_cut_holes(
         fill_plans,
         added_face_ranges,
     })
+}
+
+fn execute_exact_planar_hole_fill_plan_with_sources(
+    plan: &ExactPlanarHoleFillPlan,
+    source_face_for_faces: Vec<usize>,
+) -> super::exact_fill_plan::ExactPlanarHoleFillExecution {
+    super::exact_fill_plan::ExactPlanarHoleFillExecution {
+        faces: plan
+            .triangles
+            .iter()
+            .map(|face| [face[0] as i64, face[1] as i64, face[2] as i64])
+            .collect(),
+        source_face_for_faces,
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -206,4 +278,8 @@ fn ordered_edge(edge: [usize; 2]) -> [usize; 2] {
     } else {
         [edge[1], edge[0]]
     }
+}
+
+fn ordered_edge_set(edges: &[[usize; 2]]) -> BTreeSet<[usize; 2]> {
+    edges.iter().copied().map(ordered_edge).collect()
 }

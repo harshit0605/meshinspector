@@ -36,6 +36,40 @@ def cube(size: float = 1.0) -> MeshDocument:
     return MeshDocument(vertices=vertices, faces=faces, metadata={"fixture": "cube"})
 
 
+def closed_cube_with_flipped_top_triangle() -> MeshDocument:
+    vertices = np.array(
+        [
+            [-1.0, -1.0, -1.0],
+            [1.0, -1.0, -1.0],
+            [1.0, 1.0, -1.0],
+            [-1.0, 1.0, -1.0],
+            [-1.0, -1.0, 1.0],
+            [1.0, -1.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [-1.0, 1.0, 1.0],
+        ],
+        dtype=np.float64,
+    )
+    faces = np.array(
+        [
+            [0, 3, 2],
+            [0, 2, 1],
+            [4, 6, 5],
+            [4, 6, 7],
+            [0, 1, 5],
+            [0, 5, 4],
+            [1, 2, 6],
+            [1, 6, 5],
+            [2, 3, 7],
+            [2, 7, 6],
+            [3, 0, 4],
+            [3, 4, 7],
+        ],
+        dtype=np.int64,
+    )
+    return MeshDocument(vertices=vertices, faces=faces, metadata={"fixture": "closed_cube_with_flipped_top_triangle"})
+
+
 def box(size_x: float, size_y: float, size_z: float, center: tuple[float, float, float] = (0.0, 0.0, 0.0)) -> MeshDocument:
     base = cube(1.0)
     scale = np.array([size_x, size_y, size_z], dtype=np.float64)
@@ -181,3 +215,47 @@ def crossing_triangles() -> MeshDocument:
     )
     faces = np.array([[0, 1, 2], [3, 4, 5]], dtype=np.int64)
     return MeshDocument(vertices, faces, metadata={"fixture": "crossing_triangles"})
+
+
+def meshlib_self_intersecting_torus(
+    primary_radius: float = 1.0,
+    secondary_radius: float = 0.2,
+    primary_resolution: int = 32,
+    secondary_resolution: int = 16,
+) -> MeshDocument:
+    vertices: list[list[float]] = []
+    for i in range(secondary_resolution):
+        a = 2.0 * np.pi * i / secondary_resolution
+        for j in range(primary_resolution):
+            b = 2.0 * np.pi * j / primary_resolution
+            vertices.append(
+                [
+                    (primary_radius - secondary_radius * np.cos(a)) * np.cos(b),
+                    (primary_radius - secondary_radius * np.cos(a)) * np.sin(b),
+                    secondary_radius * np.sin(2.0 * a),
+                ]
+            )
+
+    faces: list[list[int]] = []
+    for i in range(secondary_resolution):
+        for j in range(primary_resolution):
+            faces.append(
+                [
+                    i * primary_resolution + j,
+                    ((i + 1) % secondary_resolution) * primary_resolution + j,
+                    i * primary_resolution + (j + 1) % primary_resolution,
+                ]
+            )
+            faces.append(
+                [
+                    i * primary_resolution + (j + 1) % primary_resolution,
+                    ((i + 1) % secondary_resolution) * primary_resolution + j,
+                    ((i + 1) % secondary_resolution) * primary_resolution + (j + 1) % primary_resolution,
+                ]
+            )
+
+    return MeshDocument(
+        np.asarray(vertices, dtype=np.float64),
+        np.asarray(faces, dtype=np.int64),
+        metadata={"fixture": "meshlib_self_intersecting_torus"},
+    )

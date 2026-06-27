@@ -1,0 +1,37 @@
+{
+  "boolean_intersection": {
+    "ver": "ver_55e3e052c652",
+    "bnd": 226,
+    "faces": 6694,
+    "verts": 3460,
+    "vol": 16.16
+  },
+  "boolean_difference": {
+    "ver": "ver_4f947dd985bf",
+    "bnd": 226,
+    "faces": 13758,
+    "verts": 6988,
+    "vol": 31.83
+  },
+  "boolean_union_voxel": {
+    "ver": "ver_1b6332eb32f8",
+    "bnd": 0,
+    "faces": 295720,
+    "verts": 147856,
+    "vol": 551.3
+  },
+  "voxel_to_mesh": {
+    "status": "exc",
+    "detail": "'GeometrySDK' object has no attribute 'signed_point_mesh_distances'"
+  },
+  "triangulate": {
+    "in_points": 4000,
+    "faces": 7439,
+    "verts": 4000,
+    "bnd": 759
+  },
+  "multiway_icp": {
+    "objects": 3,
+    "mean_square_distance": 1.1068057235110159e-10
+  }
+}

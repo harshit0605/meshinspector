@@ -7,18 +7,24 @@ use crate::convert::{
     read_faces, read_i64_values, read_points, read_shape3, read_vec3, read_vertices,
 };
 
-#[pyfunction(signature = (vertices, faces, epsilon = 1e-8))]
+#[pyfunction(signature = (vertices, faces, epsilon = 1e-8, touch_is_intersection = true))]
 fn self_intersecting_faces(
     py: Python<'_>,
     vertices: PyReadonlyArray2<'_, f64>,
     faces: PyReadonlyArray2<'_, i64>,
     epsilon: f64,
+    touch_is_intersection: bool,
 ) -> PyResult<Py<PyArray1<i64>>> {
     let rust_vertices = read_vertices(vertices)?;
     let rust_faces = read_faces(faces)?;
     let face_ids = py
         .detach(|| {
-            zennah_geometry_core::self_intersecting_faces(&rust_vertices, &rust_faces, epsilon)
+            zennah_geometry_core::self_intersecting_faces_with_touch(
+                &rust_vertices,
+                &rust_faces,
+                epsilon,
+                touch_is_intersection,
+            )
         })
         .map_err(|error| PyValueError::new_err(error.to_string()))?;
     let output: Vec<i64> = face_ids.into_iter().map(|face_id| face_id as i64).collect();

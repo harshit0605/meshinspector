@@ -1,16 +1,7 @@
-# Services module
-from .convert import to_stl, to_glb, load_mesh
-from .analyze import analyze_mesh
-from .hollow import hollow_mesh
-from .resize import resize_ring
-from .repair import repair_mesh
+"""Service package.
 
-__all__ = [
-    "to_stl",
-    "to_glb", 
-    "load_mesh",
-    "analyze_mesh",
-    "hollow_mesh",
-    "resize_ring",
-    "repair_mesh",
-]
+Submodules are imported explicitly by route and worker code to avoid loading
+legacy geometry engines on unrelated versioned SDK paths.
+"""
+
+__all__: list[str] = []

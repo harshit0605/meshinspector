@@ -8,11 +8,15 @@ use super::*;
 fn cut_mesh(vertices: Vec<[f64; 3]>, faces: Vec<[i64; 3]>) -> ExactCutMeshResult {
     ExactCutMeshResult {
         source_face_for_faces: (0..faces.len()).collect(),
+        cut_face_source_events: Vec::new(),
         vertices,
         faces,
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         skipped_source_faces: Vec::new(),
     }
 }
@@ -25,11 +29,15 @@ fn cut_fill_with_paths(
     ExactCutHoleFillResult {
         mesh: ExactCutMeshResult {
             source_face_for_faces: Vec::new(),
+            cut_face_source_events: Vec::new(),
             vertices: Vec::new(),
             faces: Vec::new(),
             cut_edges,
             cut_edge_paths,
             cut_edge_path_closed,
+            cut_edge_path_source_faces: Vec::new(),
+            collapsed_cut_segment_paths: Vec::new(),
+            collapsed_cut_segment_path_source_faces: Vec::new(),
             skipped_source_faces: Vec::new(),
         },
         fill_plans: Vec::new(),
@@ -421,7 +429,11 @@ fn meshlib_result_cut_mapping_uses_stitch_counterpart_for_excluded_source_edge()
         cut_edges: vec![[0, 1]],
         cut_edge_paths: vec![vec![[0, 1]]],
         cut_edge_path_closed: vec![false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let second = ExactCutMeshResult {
@@ -430,7 +442,11 @@ fn meshlib_result_cut_mapping_uses_stitch_counterpart_for_excluded_source_edge()
         cut_edges: vec![[0, 1]],
         cut_edge_paths: vec![vec![[1, 0]]],
         cut_edge_path_closed: vec![false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let first_classification = ExactMeshPartClassification {
@@ -499,7 +515,11 @@ fn meshlib_result_cut_mapping_retains_segments_around_missing_source_edge() {
         cut_edges: vec![[0, 1], [1, 6], [3, 4]],
         cut_edge_paths: vec![vec![[0, 1], [1, 6], [3, 4]]],
         cut_edge_path_closed: vec![true],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let second = ExactCutMeshResult {
@@ -508,7 +528,11 @@ fn meshlib_result_cut_mapping_retains_segments_around_missing_source_edge() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: Vec::new(),
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let first_classification = ExactMeshPartClassification {
@@ -548,7 +572,11 @@ fn meshlib_result_cut_mapping_uses_coincident_selected_vertex_fallback() {
         cut_edges: vec![[0, 1]],
         cut_edge_paths: vec![vec![[0, 1]]],
         cut_edge_path_closed: vec![false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let second = ExactCutMeshResult {
@@ -557,7 +585,11 @@ fn meshlib_result_cut_mapping_uses_coincident_selected_vertex_fallback() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let first_classification = ExactMeshPartClassification {
@@ -601,7 +633,11 @@ fn assembly_retains_complete_stitch_paths_from_incompatible_partial_plan() {
         cut_edges: vec![[0, 1], [1, 2]],
         cut_edge_paths: vec![vec![[0, 1]], vec![[1, 2]]],
         cut_edge_path_closed: vec![false, false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let second = ExactCutMeshResult {
@@ -610,7 +646,11 @@ fn assembly_retains_complete_stitch_paths_from_incompatible_partial_plan() {
         cut_edges: first.cut_edges.clone(),
         cut_edge_paths: first.cut_edge_paths.clone(),
         cut_edge_path_closed: first.cut_edge_path_closed.clone(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let first_classification = ExactMeshPartClassification {
@@ -675,7 +715,11 @@ fn assembly_reuses_contour_vertices_from_incompatible_nonconflicting_stitch_pair
         cut_edges: vec![[0, 1], [1, 2]],
         cut_edge_paths: vec![vec![[0, 1]], vec![[1, 2]]],
         cut_edge_path_closed: vec![false, false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let second = ExactCutMeshResult {
@@ -684,7 +728,11 @@ fn assembly_reuses_contour_vertices_from_incompatible_nonconflicting_stitch_pair
         cut_edges: vec![[1, 0], [0, 2]],
         cut_edge_paths: vec![vec![[1, 0]], vec![[0, 2]]],
         cut_edge_path_closed: vec![false, false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let first_classification = ExactMeshPartClassification {
@@ -758,7 +806,11 @@ fn assembly_splits_stitch_paths_around_unmapped_partial_pairs() {
         cut_edges: vec![[0, 1], [3, 4], [1, 2]],
         cut_edge_paths: vec![vec![[0, 1], [3, 4], [1, 2]]],
         cut_edge_path_closed: vec![false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let second = ExactCutMeshResult {
@@ -767,7 +819,11 @@ fn assembly_splits_stitch_paths_around_unmapped_partial_pairs() {
         cut_edges: first.cut_edges.clone(),
         cut_edge_paths: first.cut_edge_paths.clone(),
         cut_edge_path_closed: first.cut_edge_path_closed.clone(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let first_classification = ExactMeshPartClassification {

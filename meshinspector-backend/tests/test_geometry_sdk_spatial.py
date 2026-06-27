@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from geometry_sdk.accelerators import _rust_common, rust
-from geometry_sdk import GeometrySDK
+from geometry_sdk import GeometrySDK, default_sdk
 from geometry_sdk.analysis.compare import (
     compare_summary,
     nearest_surface_distances,
@@ -18,7 +18,7 @@ from geometry_sdk.analysis.compare import (
 )
 from geometry_sdk.spatial.aabb_tree import build_aabb_tree, closest_candidate_faces, overlapping_face_pairs, ray_candidate_faces
 from geometry_sdk.spatial.closest_point import closest_point_on_triangle, closest_points_on_mesh, point_mesh_distances
-from geometry_sdk.spatial.intersections import self_intersecting_faces, triangles_intersect
+from geometry_sdk.spatial.intersections import exact_mesh_intersections, self_intersecting_faces, triangles_intersect
 from geometry_sdk.spatial.raycast import RayHit, first_ray_hit, first_ray_hits, ray_triangle_hits
 from geometry_sdk.spatial.signed_distance import (
     point_inside_mesh,
@@ -27,7 +27,7 @@ from geometry_sdk.spatial.signed_distance import (
     supports_winding_sign,
     winding_numbers,
 )
-from geometry_sdk.testing.fixtures import crossing_triangles, cube, open_cube, ring_with_head
+from geometry_sdk.testing.fixtures import crossing_triangles, cube, meshlib_self_intersecting_torus, open_cube, ring_with_head
 from geometry_sdk.types import MeshDocument
 
 
@@ -62,6 +62,34 @@ def _inside_tetrahedron() -> MeshDocument:
             dtype=np.int64,
         ),
     )
+
+
+def _crossing_triangle_pair() -> tuple[MeshDocument, MeshDocument]:
+    first = MeshDocument(
+        vertices=np.array([[2.0, 1.0, 0.0], [-2.0, 1.0, 0.0], [0.0, -2.0, 0.0]], dtype=np.float64),
+        faces=np.array([[0, 1, 2]], dtype=np.int64),
+        metadata={"fixture": "collision_first_triangle"},
+    )
+    second = MeshDocument(
+        vertices=np.array([[0.0, 0.0, -1.0], [0.0, 0.0, 1.0], [3.0, 0.0, 0.0]], dtype=np.float64),
+        faces=np.array([[0, 1, 2]], dtype=np.int64),
+        metadata={"fixture": "collision_second_triangle"},
+    )
+    return first, second
+
+
+def test_exact_mesh_intersections_exposes_meshlib_style_collision_face_pairs() -> None:
+    first, second = _crossing_triangle_pair()
+
+    result = exact_mesh_intersections(first, second)
+
+    assert result.colliding is True
+    assert result.pair_count == 1
+    assert result.first_face_indices == [0]
+    assert result.second_face_indices == [0]
+    assert result.pairs[0].first_face == 0
+    assert result.pairs[0].second_face == 0
+    assert result.pairs[0].intersection_count > 0
 
 
 def _python_nearest_vertex_distances(source: MeshDocument, target: MeshDocument, *, chunk_size: int = 4096) -> np.ndarray:
@@ -675,6 +703,18 @@ def test_triangle_intersection_detects_crossing_faces() -> None:
     assert triangles_intersect(triangles[0], triangles[1])
     assert triangles_intersect(triangles[0], triangles[1]) == _python_triangles_intersect(triangles[0], triangles[1])
     assert self_intersecting_faces(mesh) == {0, 1}
+    assert default_sdk.self_intersecting_faces(mesh) == {0, 1}
+
+
+def test_self_intersections_support_meshlib_no_touch_mode() -> None:
+    if not rust.available():
+        pytest.skip("Rust geometry accelerator is not installed")
+
+    mesh = meshlib_self_intersecting_torus()
+
+    assert mesh.face_count == 1024
+    assert len(self_intersecting_faces(mesh)) == 256
+    assert len(self_intersecting_faces(mesh, touch_is_intersection=False)) == 128
 
 
 @pytest.mark.parametrize("mesh_factory", [cube, crossing_triangles, ring_with_head])

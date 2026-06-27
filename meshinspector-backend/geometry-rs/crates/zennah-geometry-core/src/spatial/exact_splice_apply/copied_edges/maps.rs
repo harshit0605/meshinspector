@@ -127,7 +127,11 @@ mod tests {
             cut_edges: Vec::new(),
             cut_edge_paths: Vec::new(),
             cut_edge_path_closed: Vec::new(),
+            cut_edge_path_source_faces: Vec::new(),
+            collapsed_cut_segment_paths: Vec::new(),
+            collapsed_cut_segment_path_source_faces: Vec::new(),
             source_face_for_faces: vec![0],
+            cut_face_source_events: Vec::new(),
             skipped_source_faces: Vec::new(),
         };
 

@@ -17,7 +17,32 @@ zennah-geometry-core = { path = "crates/zennah-geometry-core" }
 pyo3 = { version = "0.28.3", features = ["extension-module", "abi3-py311"] }
 numpy = "0.28.0"
 criterion = "0.5"
+base64 = "0.22"
+blosc-src = { version = "0.3.8", features = ["lz4"] }
 nalgebra = "0.33"
 num-bigint = "0.4"
 num-traits = "0.2"
 rayon = "1.12"
+roxmltree = "0.20"
+rustc-hash = "2"
+serde_json = "1"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "tiff"] }
+tiff = "0.10.3"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+flate2 = "1"
+
+# Keep backtraces (file/line info) but drop the heavy variable/type DWARF
+# symbols that dominated target/ size. Local builds only.
+# (profile.test inherits these settings from profile.dev.)
+[profile.dev]
+debug = "line-tables-only"
+
+# Release / maturin-wheel builds: fat LTO + a single codegen unit so the hot
+# numeric kernels (BVH traversal, [f64;3] math helpers, the decimate inner
+# loop) inline across crate boundaries. ~2-4x slower to compile for ~10-25%
+# faster runtime. panic stays "unwind" (the cargo default) for PyO3 FFI safety —
+# "abort" would hard-kill the host Python interpreter on a Rust panic.
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1

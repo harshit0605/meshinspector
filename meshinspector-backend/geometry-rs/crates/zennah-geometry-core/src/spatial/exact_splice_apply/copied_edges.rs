@@ -1,7 +1,7 @@
 use super::super::exact_boolean::{ExactBooleanOperand, ExactBooleanOutputFaceSource};
 use super::super::exact_cut_apply::ExactCutMeshResult;
 use super::super::exact_halfedge::{ExactHalfEdgeId, ExactHalfEdgeTopology};
-use super::output_topology::OutputFaceTopology;
+use super::output_topology::{ExactMeshlibCopiedPrevNextEdgeUpdate, OutputFaceTopology};
 use super::source_records::ExactMeshlibPreparedSourceRecord;
 use std::collections::BTreeMap;
 
@@ -46,6 +46,7 @@ pub(crate) struct ExactMeshlibPreparedCopiedEdges {
     face_map: Vec<Option<usize>>,
     edge_map: BTreeMap<ExactHalfEdgeId, ExactHalfEdgeId>,
     copied_pairs: Vec<(ExactHalfEdgeId, ExactHalfEdgeId)>,
+    mapped_contour_prev_next_edges: Vec<ExactMeshlibCopiedPrevNextEdgeUpdate>,
     prepared_faces: Vec<usize>,
     incoming_operand: ExactBooleanOperand,
     append_prepared_faces: bool,
@@ -64,38 +65,9 @@ pub(super) fn prepare_meshlib_copied_edges(
     output: &mut OutputFaceTopology,
     input: ExactMeshlibCopiedEdgeTranslationInput<'_>,
 ) -> Result<ExactMeshlibPreparedCopiedEdges, &'static str> {
-    let source_preflipped = input.append_prepared_faces && input.flip_orientation;
-    let effective_flip_orientation = input.flip_orientation && !source_preflipped;
-    let source = if source_preflipped {
-        SourcePreparedTopology::from_cut_mesh_with_orientation(
-            input.cut_mesh,
-            input.prepared_faces,
-            true,
-        )?
-    } else {
-        SourcePreparedTopology::from_cut_mesh(input.cut_mesh, input.prepared_faces)?
-    };
-    let contour_vertex_maps = source.oriented_contour_vertex_maps(
-        &input.contour_vertex_maps,
-        &input.contour_vertex_map_source_indices,
-        effective_flip_orientation,
-    );
-    let vertex_map = if input.append_prepared_faces {
-        connect_prepared_parts_vertex_map(
-            input.cut_mesh,
-            input.prepared_faces,
-            input.first_virtual_vertex,
-            &contour_vertex_maps,
-        )
-    } else {
-        copied_vertex_map(
-            input.vertex_map,
-            input.cut_mesh,
-            input.prepared_faces,
-            input.first_virtual_vertex,
-            &contour_vertex_maps,
-        )
-    };
+    let effective_flip_orientation = input.flip_orientation;
+    let source = SourcePreparedTopology::from_cut_mesh(input.cut_mesh, input.prepared_faces)?;
+    let vertex_map = meshlib_copied_vertex_map_for_input_with_source(&input, &source);
     let face_map = copied_face_map(
         input.cut_mesh.faces.len(),
         input.prepared_faces,
@@ -205,6 +177,17 @@ pub(super) fn prepare_meshlib_copied_edges(
         &face_map,
         effective_flip_orientation,
     )?;
+    let mapped_contour_prev_next_edges = if input.append_prepared_faces {
+        source.mapped_contour_prev_next_edges(
+            output,
+            input.incoming_operand,
+            &edge_map,
+            &face_map,
+            effective_flip_orientation,
+        )
+    } else {
+        Vec::new()
+    };
 
     let copied_edge_count = copied_pairs.len();
     Ok(ExactMeshlibPreparedCopiedEdges {
@@ -213,6 +196,7 @@ pub(super) fn prepare_meshlib_copied_edges(
         face_map,
         edge_map,
         copied_pairs,
+        mapped_contour_prev_next_edges,
         prepared_faces: input.prepared_faces.to_vec(),
         incoming_operand: input.incoming_operand,
         append_prepared_faces: input.append_prepared_faces,
@@ -222,6 +206,42 @@ pub(super) fn prepare_meshlib_copied_edges(
             ..ExactMeshlibCopiedEdgeTranslationSummary::default()
         },
     })
+}
+
+pub(crate) fn meshlib_copied_vertex_map_for_input(
+    input: &ExactMeshlibCopiedEdgeTranslationInput<'_>,
+) -> Result<Vec<Option<usize>>, &'static str> {
+    let source = SourcePreparedTopology::from_cut_mesh(input.cut_mesh, input.prepared_faces)?;
+    Ok(meshlib_copied_vertex_map_for_input_with_source(
+        input, &source,
+    ))
+}
+
+fn meshlib_copied_vertex_map_for_input_with_source(
+    input: &ExactMeshlibCopiedEdgeTranslationInput<'_>,
+    source: &SourcePreparedTopology,
+) -> Vec<Option<usize>> {
+    let contour_vertex_maps = source.oriented_contour_vertex_maps(
+        &input.contour_vertex_maps,
+        &input.contour_vertex_map_source_indices,
+        input.flip_orientation,
+    );
+    if input.append_prepared_faces {
+        connect_prepared_parts_vertex_map(
+            input.cut_mesh,
+            input.prepared_faces,
+            input.first_virtual_vertex,
+            &contour_vertex_maps,
+        )
+    } else {
+        copied_vertex_map(
+            input.vertex_map,
+            input.cut_mesh,
+            input.prepared_faces,
+            input.first_virtual_vertex,
+            &contour_vertex_maps,
+        )
+    }
 }
 
 pub(super) fn finalize_meshlib_copied_edges(
@@ -234,6 +254,7 @@ pub(super) fn finalize_meshlib_copied_edges(
         face_map,
         edge_map,
         copied_pairs,
+        mapped_contour_prev_next_edges,
         prepared_faces,
         incoming_operand,
         append_prepared_faces,
@@ -244,6 +265,17 @@ pub(super) fn finalize_meshlib_copied_edges(
         copied_edges: copied_pairs.len(),
         ..summary
     };
+    if append_prepared_faces {
+        let mapped_source_record_replays = source.mapped_contour_source_record_replays(
+            output,
+            incoming_operand,
+            &edge_map,
+            &face_map,
+            flip_orientation,
+        )?;
+        output.apply_meshlib_prepared_mapped_source_records(mapped_source_record_replays)?;
+    }
+
     for (source_edge, output_edge) in copied_pairs {
         let source_sym = ExactHalfEdgeTopology::sym(source_edge);
         let output_sym = ExactHalfEdgeTopology::sym(output_edge);
@@ -277,14 +309,6 @@ pub(super) fn finalize_meshlib_copied_edges(
         }
     }
     if append_prepared_faces {
-        let mapped_source_record_replays = source.mapped_contour_source_record_replays(
-            output,
-            incoming_operand,
-            &edge_map,
-            &face_map,
-            flip_orientation,
-        )?;
-        output.apply_meshlib_prepared_mapped_source_records(mapped_source_record_replays)?;
         summary.translated_face_records = append_prepared_face_records(
             output,
             &source,
@@ -294,6 +318,7 @@ pub(super) fn finalize_meshlib_copied_edges(
             incoming_operand,
             flip_orientation,
         )?;
+        output.apply_meshlib_copied_prev_next_edges(mapped_contour_prev_next_edges);
     }
 
     Ok(summary)
@@ -313,12 +338,23 @@ fn append_prepared_face_records(
         let Some(output_face) = face_map.get(*face).copied().flatten() else {
             continue;
         };
-        let Some(face_edge) =
-            source.mapped_face_edge(output, *face, output_face, edge_map, flip_orientation)
-        else {
+        let Some((face_edge, detail)) = source.mapped_face_edge_with_diagnostic(
+            output,
+            *face,
+            output_face,
+            edge_map,
+            flip_orientation,
+        ) else {
             return Err("missing MeshLib copied face record edge");
         };
-        output.set_meshlib_copied_face_record(output_face, face_edge, incoming_operand)?;
+        output.set_meshlib_copied_face_record(
+            output_face,
+            face_edge,
+            incoming_operand,
+            *face,
+            source.source_face_for_face(*face),
+        )?;
+        output.record_meshlib_copied_face_record_detail(detail);
         translated += 1;
     }
     Ok(translated)

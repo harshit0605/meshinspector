@@ -2,6 +2,8 @@ use super::exact_cut_apply::ExactCutMeshResult;
 use crate::math::{dot, sub};
 use std::collections::{BTreeMap, BTreeSet};
 
+const STITCH_EPSILON_FLOOR: f64 = 1e-8;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExactStitchEdgePair {
     pub first_edge_index: usize,
@@ -487,7 +489,7 @@ fn effective_epsilon(epsilon: f64) -> f64 {
     } else {
         1e-9
     };
-    base * 4.0
+    (base * 4.0).max(STITCH_EPSILON_FLOOR)
 }
 
 #[cfg(test)]

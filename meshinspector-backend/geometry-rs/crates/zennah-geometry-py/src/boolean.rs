@@ -3,10 +3,12 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
+mod copied_face;
 mod diagnostics;
 mod near_stitch;
 mod paired_coplanar;
 mod prepared_base;
+mod prepared_base_details;
 mod replay;
 mod rewrite;
 
@@ -60,22 +62,45 @@ fn exact_boolean_mesh(
     let rust_second_vertices = read_vertices(second_vertices)?;
     let rust_second_faces = read_faces(second_faces)?;
     let rust_operation = parse_exact_boolean_operation(operation)?;
+    let (
+        call_first_vertices,
+        call_first_faces,
+        call_second_vertices,
+        call_second_faces,
+        call_operation,
+    ) = if rust_operation == zennah_geometry_core::ExactBooleanOperation::DifferenceBA {
+        (
+            &rust_second_vertices,
+            &rust_second_faces,
+            &rust_first_vertices,
+            &rust_first_faces,
+            zennah_geometry_core::ExactBooleanOperation::DifferenceAB,
+        )
+    } else {
+        (
+            &rust_first_vertices,
+            &rust_first_faces,
+            &rust_second_vertices,
+            &rust_second_faces,
+            rust_operation,
+        )
+    };
     let result = py
         .detach(|| {
             zennah_geometry_core::exact_boolean_from_meshes(
-                &rust_first_vertices,
-                &rust_first_faces,
-                &rust_second_vertices,
-                &rust_second_faces,
-                rust_operation,
+                call_first_vertices,
+                call_first_faces,
+                call_second_vertices,
+                call_second_faces,
+                call_operation,
                 leaf_size,
                 epsilon,
             )
         })
         .map_err(|error| PyValueError::new_err(error.to_string()))?;
 
-    let vertices: Vec<f64> = result.assembly.vertices.iter().flatten().copied().collect();
-    let faces: Vec<i64> = result.assembly.faces.iter().flatten().copied().collect();
+    let vertices: Vec<f64> = result.output.vertices.iter().flatten().copied().collect();
+    let faces: Vec<i64> = result.output.faces.iter().flatten().copied().collect();
     let diagnostics = exact_boolean_diagnostics_dict(py, &result)?;
     let output = PyDict::new(py);
     output.set_item("vertices", vertices.into_pyarray(py))?;

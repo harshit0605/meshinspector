@@ -277,7 +277,11 @@ fn prepared_near_stitch_source_path_carries_meshlib_source_halfedge_ids() {
         cut_edges: vec![[0, 1], [1, 2]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let incoming_cut = ExactCutMeshResult {
@@ -286,7 +290,11 @@ fn prepared_near_stitch_source_path_carries_meshlib_source_halfedge_ids() {
         cut_edges: vec![[1, 0], [2, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
 
@@ -353,7 +361,11 @@ fn near_stitch_source_topology_uses_prepared_part_faces_only() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
 
@@ -382,7 +394,11 @@ fn near_stitch_source_lookup_selects_meshlib_contour_side_for_flip() {
         cut_edges: vec![[0, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let topology = OperandTopology::from_cut_mesh(
@@ -430,7 +446,11 @@ fn near_stitch_source_identity_exclusion_uses_cut_edge_occurrence() {
         cut_edges: vec![[0, 1], [0, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let topology = OperandTopology::from_cut_mesh_with_fresh_vertex_map(
@@ -489,7 +509,11 @@ fn near_stitch_prepared_incoming_uses_meshlib_fresh_vmap() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let topology = OperandTopology::from_cut_mesh_with_fresh_vertex_map(
@@ -520,7 +544,11 @@ fn near_stitch_fresh_vmap_uses_indexed_meshlib_contour_side_when_flipped() {
         cut_edges: vec![[0, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let topology = OperandTopology::from_cut_mesh_with_fresh_vertex_map(
@@ -555,7 +583,11 @@ fn near_stitch_preflipped_source_uses_connect_open_side() {
         cut_edges: vec![[0, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let topology = OperandTopology::from_cut_mesh_with_fresh_vertex_map_and_orientation(
@@ -588,7 +620,11 @@ fn near_stitch_source_walk_stops_at_first_mapped_face_like_meshlib() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1, 2],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let topology = OperandTopology::from_cut_mesh(

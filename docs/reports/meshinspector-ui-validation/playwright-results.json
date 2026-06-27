@@ -1,0 +1,222 @@
+{
+  "config": {
+    "configFile": "/Users/harshit/Code/Zennah/meshinspector/meshinspector-frontend/playwright.config.ts",
+    "rootDir": "/Users/harshit/Code/Zennah/meshinspector/meshinspector-frontend/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/harshit/Code/Zennah/meshinspector/meshinspector-frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium-desktop",
+        "name": "chromium-desktop",
+        "testDir": "/Users/harshit/Code/Zennah/meshinspector/meshinspector-frontend/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "html",
+        {
+          "outputFolder": "../docs/reports/meshinspector-ui-validation/playwright-html",
+          "open": "never"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../docs/reports/meshinspector-ui-validation/playwright-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 9,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "meshinspector-workbench-algorithms.spec.ts",
+      "file": "meshinspector-workbench-algorithms.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "official MeshLib workbench UI backed by Rust algorithms",
+          "file": "meshinspector-workbench-algorithms.spec.ts",
+          "line": 351,
+          "column": 6,
+          "specs": [
+            {
+              "title": "boots the hosted official workbench and exposes the current manifest inventory",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 180000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4846,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-06-12T14:54:32.981Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6139d8484e7ab9e87579-74bcf5ce4d630ab45950",
+              "file": "meshinspector-workbench-algorithms.spec.ts",
+              "line": 352,
+              "column": 7
+            },
+            {
+              "title": "covers every current workbench command as executable UI or explicit SDK-only gap",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 900000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "chromium-desktop",
+                  "projectName": "chromium-desktop",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 6308,
+                      "errors": [],
+                      "stdout": [
+                        {
+                          "text": "[workbench-e2e] job-activity: job-activity\n"
+                        },
+                        {
+                          "text": "[workbench-e2e] runtime-direct: runtime-select-mark-region\n"
+                        },
+                        {
+                          "text": "[workbench-e2e] runtime-direct: runtime-selection-to-object\n"
+                        },
+                        {
+                          "text": "[workbench-e2e] runtime-job: runtime-thicken-brush\n"
+                        },
+                        {
+                          "text": "[workbench-e2e] runtime-job: runtime-scoop-brush\n"
+                        },
+                        {
+                          "text": "[workbench-e2e] runtime-job: runtime-smooth-brush\n"
+                        },
+                        {
+                          "text": "[workbench-e2e] runtime-direct: runtime-measure-inspect\n"
+                        }
+                      ],
+                      "stderr": [],
+                      "retry": 0,
+                      "steps": [
+                        {
+                          "title": "job-activity: job-activity",
+                          "duration": 543
+                        },
+                        {
+                          "title": "runtime-direct: runtime-select-mark-region",
+                          "duration": 418
+                        },
+                        {
+                          "title": "runtime-direct: runtime-selection-to-object",
+                          "duration": 425
+                        },
+                        {
+                          "title": "runtime-job: runtime-thicken-brush",
+                          "duration": 1143
+                        },
+                        {
+                          "title": "runtime-job: runtime-scoop-brush",
+                          "duration": 1185
+                        },
+                        {
+                          "title": "runtime-job: runtime-smooth-brush",
+                          "duration": 1233
+                        },
+                        {
+                          "title": "runtime-direct: runtime-measure-inspect",
+                          "duration": 467
+                        }
+                      ],
+                      "startTime": "2026-06-12T14:54:38.195Z",
+                      "annotations": [],
+                      "attachments": [
+                        {
+                          "name": "workbench-command-matrix-results",
+                          "contentType": "application/json",
+                          "path": "/Users/harshit/Code/Zennah/meshinspector/meshinspector-frontend/test-results/meshinspector-workbench-al-f19a0-UI-or-explicit-SDK-only-gap-chromium-desktop/attachments/workbench-command-matrix-results-312e176ba3d70ef5069c3003dc17b25e09d7ea51.json"
+                        }
+                      ]
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "6139d8484e7ab9e87579-23e0e45e113ff11a747a",
+              "file": "meshinspector-workbench-algorithms.spec.ts",
+              "line": 373,
+              "column": 7
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-06-12T14:54:32.550Z",
+    "duration": 11997.696,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

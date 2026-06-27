@@ -50,8 +50,9 @@ class FakeRustModule:
         }
 
     @staticmethod
-    def self_intersecting_faces(vertices, faces, epsilon=1e-8):
+    def self_intersecting_faces(vertices, faces, epsilon=1e-8, touch_is_intersection=True):
         assert epsilon == 1e-8
+        assert touch_is_intersection is True
         if vertices.shape == (8, 3):
             assert faces.shape == (12, 3)
             return []
@@ -138,6 +139,38 @@ class FakeRustModule:
         values = np.ones(int(np.prod(shape)), dtype=np.float32)
         values[(2 * 25) + (2 * 5) + 2] = -1.0
         return values
+
+    @staticmethod
+    def sample_sdf_grid_in_bounds(
+        vertices,
+        faces,
+        bbox_min,
+        bbox_max,
+        voxel_size_mm,
+        padding_mm,
+        origin_phase,
+        winding_threshold,
+    ):
+        assert vertices.shape == (8, 3)
+        assert faces.shape == (12, 3)
+        assert bbox_min.shape == (3,)
+        assert bbox_max.shape == (3,)
+        assert origin_phase.shape == (3,)
+        assert voxel_size_mm == 1.0
+        assert padding_mm == 1.0
+        assert winding_threshold == 0.5
+        origin = bbox_min - padding_mm + origin_phase * voxel_size_mm
+        maximum = bbox_max + padding_mm + origin_phase * voxel_size_mm
+        shape = np.maximum(np.ceil((maximum - origin) / voxel_size_mm).astype(np.int64) + 1, 2)
+        values = np.ones(int(np.prod(shape)), dtype=np.float32)
+        values[(2 * 25) + (2 * 5) + 2] = -1.0
+        return {"origin": origin, "shape": shape, "values": values}
+
+    @staticmethod
+    def combine_bounding_boxes(bbox_mins, bbox_maxs):
+        assert bbox_mins.ndim == 2 and bbox_mins.shape[1] == 3
+        assert bbox_maxs.ndim == 2 and bbox_maxs.shape[1] == 3
+        return {"min": np.min(bbox_mins, axis=0), "max": np.max(bbox_maxs, axis=0)}
 
     @staticmethod
     def sdf_boolean_values(left, right, operation):
@@ -470,127 +503,23 @@ class FakeRustModule:
         }
 
 
-def test_accelerator_auto_mode_falls_back_to_python_when_rust_is_absent(monkeypatch) -> None:
+def test_accelerator_auto_mode_requires_rust_extension(monkeypatch) -> None:
     monkeypatch.setenv("GEOMETRY_SDK_ACCELERATOR", "auto")
     monkeypatch.setattr(_rust_common, "_rs", None)
 
-    assert rust.backend_name() == "python"
-    assert rust.point_mesh_distances(np.array([[2.0, 0.0, 0.0]], dtype=np.float64), cube(size=2.0)) is None
+    with pytest.raises(RuntimeError, match="_zennah_geometry_rs"):
+        rust.backend_name()
+
+    with pytest.raises(RuntimeError, match="_zennah_geometry_rs"):
+        rust.point_mesh_distances(np.array([[2.0, 0.0, 0.0]], dtype=np.float64), cube(size=2.0))
 
 
-def test_accelerator_python_mode_ignores_available_rust(monkeypatch) -> None:
+def test_accelerator_python_mode_is_rejected(monkeypatch) -> None:
     monkeypatch.setenv("GEOMETRY_SDK_ACCELERATOR", "python")
     monkeypatch.setattr(_rust_common, "_rs", FakeRustModule)
 
-    assert rust.mesh_stats(cube(size=2.0)) is None
-    assert rust.self_intersecting_faces(crossing_triangles()) is None
-    assert rust.point_mesh_distances(np.array([[2.0, 0.0, 0.0]], dtype=np.float64), cube(size=2.0)) is None
-    assert rust.closest_points_on_mesh(np.array([[2.0, 0.0, 0.0]], dtype=np.float64), cube(size=2.0)) is None
-    assert rust.winding_numbers(np.array([[0.0, 0.0, 0.0]], dtype=np.float64), cube(size=2.0)) is None
-    assert rust.signed_point_mesh_distances(np.array([[0.0, 0.0, 0.0]], dtype=np.float64), cube(size=2.0)) is None
-    assert rust.ray_thickness_at_vertices(cube(size=2.0)) is None
-    assert (
-        rust.sdf_grid_values(
-            cube(size=2.0),
-            origin=(0.0, 0.0, 0.0),
-            shape=(5, 5, 5),
-            voxel_size_mm=1.0,
-        )
-        is None
-    )
-    assert (
-        rust.sdf_boolean_values(
-            np.zeros((2, 2, 2), dtype=np.float32),
-            np.ones((2, 2, 2), dtype=np.float32),
-            operation="union",
-        )
-        is None
-    )
-    assert (
-        rust.sdf_boolean_marching_tetrahedra(
-            np.zeros((2, 2, 2), dtype=np.float32),
-            np.ones((2, 2, 2), dtype=np.float32),
-            operation="union",
-            origin=(0.0, 0.0, 0.0),
-            shape=(2, 2, 2),
-            voxel_size_mm=1.0,
-        )
-        is None
-    )
-    assert (
-        rust.sdf_offset_marching_tetrahedra(
-            np.zeros((2, 2, 2), dtype=np.float32),
-            origin=(0.0, 0.0, 0.0),
-            shape=(2, 2, 2),
-            voxel_size_mm=1.0,
-            offset_mm=0.5,
-        )
-        is None
-    )
-    assert (
-        rust.sdf_shell_marching_tetrahedra(
-            np.zeros((2, 2, 2), dtype=np.float32),
-            origin=(0.0, 0.0, 0.0),
-            shape=(2, 2, 2),
-            voxel_size_mm=1.0,
-            wall_thickness_mm=0.5,
-        )
-        is None
-    )
-    assert (
-        rust.marching_tetrahedra(
-            np.zeros((2, 2, 2), dtype=np.float32),
-            origin=(0.0, 0.0, 0.0),
-            shape=(2, 2, 2),
-            voxel_size_mm=1.0,
-        )
-        is None
-    )
-    assert (
-        rust.project_vertices_to_sdf(
-            cube(size=2.0).vertices,
-            np.zeros((2, 2, 2), dtype=np.float32),
-            origin=(0.0, 0.0, 0.0),
-            shape=(2, 2, 2),
-            voxel_size_mm=1.0,
-        )
-        is None
-    )
-    assert (
-        rust.refine_vertices_with_sdf(
-            cube(size=2.0),
-            np.zeros((2, 2, 2), dtype=np.float32),
-            origin=(0.0, 0.0, 0.0),
-            shape=(2, 2, 2),
-            voxel_size_mm=1.0,
-        )
-        is None
-    )
-    assert rust.laplacian_smooth_vertices(cube(size=2.0)) is None
-    assert rust.taubin_smooth_vertices(cube(size=2.0)) is None
-    assert rust.weighted_laplacian_smooth_vertices(cube(size=2.0), np.ones(8, dtype=np.float32)) is None
-    assert rust.falloff_weights(cube(size=2.0), np.arange(8, dtype=np.int32), falloff_mm=1.8) is None
-    assert rust.smooth_vertices_with_falloff(cube(size=2.0), np.arange(8, dtype=np.int32), falloff_mm=1.8) is None
-    assert rust.outward_directions(cube(size=2.0)) is None
-    assert rust.local_offset_vertices(cube(size=2.0), np.arange(8, dtype=np.int32), falloff_mm=1.8, amount_mm=0.2) is None
-    assert (
-        rust.apply_brush_strokes(
-            cube(size=2.0),
-            [BrushStroke("thicken", np.arange(8, dtype=np.int32), amount_mm=0.2, falloff_mm=1.8)],
-        )
-        is None
-    )
-    assert rust.orient_faces_consistently(np.array([[0, 1, 2]], dtype=np.int64)) is None
-    assert rust.first_ray_hit(cube(size=2.0), (0.0, 0.0, 3.0), (0.0, 0.0, -1.0)) is None
-    assert (
-        rust.first_ray_hits(
-            cube(size=2.0),
-            np.array([[0.0, 0.0, 3.0]], dtype=np.float64),
-            np.array([[0.0, 0.0, -1.0]], dtype=np.float64),
-        )
-        is None
-    )
-    assert rust.backend_name() == "python"
+    with pytest.raises(ValueError, match="GEOMETRY_SDK_ACCELERATOR"):
+        rust.backend_name()
 
 
 def test_accelerator_rust_mode_uses_native_stats(monkeypatch) -> None:

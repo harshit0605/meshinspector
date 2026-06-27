@@ -9,10 +9,10 @@ from geometry_sdk.accelerators import rust
 from geometry_sdk.core.mesh import safe_normalize, vertex_neighbors, vertex_normals
 from geometry_sdk.deform._distance import nearest_distances
 from geometry_sdk.deform.local import falloff_weights, local_scoop, local_thicken, local_thicken_to_minimum, outward_directions, smooth, taubin_smooth
-from geometry_sdk.deform.resize import radial_scale, resize_ring
+from geometry_sdk.deform.resize import fit_ring_to_diameter, radial_scale, resize_ring
 from geometry_sdk.jewelry.regions import detect_ring_regions
 from geometry_sdk.jewelry.ring_measurement import closest_ring_size, measure_ring, ring_diameter_for_size
-from geometry_sdk.testing.fixtures import ring
+from geometry_sdk.testing.fixtures import ring, ring_with_head
 from geometry_sdk.types import MeshDocument
 
 
@@ -130,7 +130,7 @@ def test_ring_measurement_module_is_rust_owned(monkeypatch) -> None:
     regions = detect_ring_regions(mesh, measurement)
     assert measurement.ring_axis_confidence == 1.0
     assert np.isclose(measurement.inner_diameter_mm, 15.6, atol=1e-3)
-    assert {region.region_id for region in regions} == {"inner_band", "outer_band", "head", "ornament_relief", "unknown"}
+    assert {region.region_id for region in regions} == {"inner_band", "outer_band", "head", "gem_seat", "ornament_relief", "unknown"}
     assert ring_diameter_for_size(5.0) == 15.67
     assert closest_ring_size(15.6) == 5.0
 
@@ -151,7 +151,31 @@ def test_regions_cover_every_vertex_once() -> None:
     covered = np.concatenate([region.vertex_indices for region in regions])
     assert len(covered) == mesh.vertex_count
     assert len(np.unique(covered)) == mesh.vertex_count
-    assert {region.region_id for region in regions} == {"inner_band", "outer_band", "head", "ornament_relief", "unknown"}
+    assert {region.region_id for region in regions} == {"inner_band", "outer_band", "head", "gem_seat", "ornament_relief", "unknown"}
+
+
+def test_region_manifest_advertises_ui_backed_local_edit_operations() -> None:
+    mesh = ring(major_radius=9.0, minor_radius=1.2)
+    measurement = measure_ring(mesh)
+    region_ops = {region.region_id: set(region.allowed_operations) for region in detect_ring_regions(mesh, measurement)}
+
+    for region_id in ("inner_band", "outer_band", "head", "gem_seat", "ornament_relief"):
+        assert "thicken" in region_ops[region_id]
+        assert "smooth" in region_ops[region_id]
+
+    assert "scoop" in region_ops["inner_band"]
+    assert region_ops["unknown"] == set()
+
+
+def test_region_manifest_includes_ui_protected_gem_seat_region() -> None:
+    mesh = ring_with_head()
+    measurement = measure_ring(mesh)
+    regions = {region.region_id: region for region in detect_ring_regions(mesh, measurement)}
+
+    assert "gem_seat" in regions
+    assert regions["gem_seat"].protected_by_default
+    assert regions["gem_seat"].vertex_indices.size > 0
+    assert {"thicken", "smooth"}.issubset(set(regions["gem_seat"].allowed_operations))
 
 
 def test_nearest_distances_are_rust_owned_and_match_reference(monkeypatch) -> None:
@@ -214,6 +238,46 @@ def test_radial_scale_preserves_requested_vertices() -> None:
 
     assert protected.vertices.shape == mesh.vertices.shape
     assert np.all(protected_motion < unprotected_motion)
+
+
+def test_fit_ring_extreme_ratio_uniformly_scales_to_preserve_head() -> None:
+    """Regression for the snake-head deformation.
+
+    Fitting an unscaled miniature up to a real ring size is an extreme ratio that
+    leaves the safe preserve band. The fit must then scale the whole piece
+    *isotropically* (a similarity transform about the centroid) so a protruding
+    head keeps its shape, instead of the old radial-only scale that stretched the
+    head across the ring plane (~scale_factor) while leaving its axial extent
+    unchanged (~1x).
+    """
+    mesh = ring_with_head(major_radius=2.5, minor_radius=0.6, head_radius=1.4)
+    measurement = measure_ring(mesh)
+    measured = measurement.inner_diameter_mm
+    target = measured * 3.5  # well outside the [1/1.5, 1.5] safe band
+    head = np.arange(len(mesh.vertices) - 6, len(mesh.vertices), dtype=np.int64)
+
+    result = fit_ring_to_diameter(
+        mesh,
+        measured_diameter_mm=measured,
+        target_diameter_mm=target,
+        ring_axis=measurement.ring_axis,
+        preserve_indices=head,
+    )
+
+    assert result.applied_uniform_fallback
+    # Every vertex must be the exact isotropic similarity image about the centroid;
+    # this proves the head is scaled by the same factor on all three axes (shape
+    # preserved), not stretched anisotropically.
+    s = result.scale_factor
+    center = mesh.vertices.mean(axis=0)
+    expected = center + s * (mesh.vertices - center)
+    assert np.allclose(result.mesh.vertices, expected, atol=1e-6)
+
+    # The head's internal pairwise distances scale by ~s on every axis.
+    head_before = mesh.vertices[head] - mesh.vertices[head].mean(axis=0)
+    head_after = result.mesh.vertices[head] - result.mesh.vertices[head].mean(axis=0)
+    extent_ratio = np.ptp(head_after, axis=0) / np.ptp(head_before, axis=0)
+    assert np.allclose(extent_ratio, s, rtol=1e-5)
 
 
 def test_local_deformations_keep_topology_and_move_vertices() -> None:
