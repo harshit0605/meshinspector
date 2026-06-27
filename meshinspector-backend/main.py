@@ -92,3 +92,28 @@ async def readiness_check():
         "object_store_driver": settings.OBJECT_STORE_DRIVER,
         "queue_backend": settings.QUEUE_BACKEND,
     }
+
+
+@app.post("/internal/drain")
+async def drain_queue():
+    """Drain the database job queue until empty, then return.
+
+    The API POSTs here (on the worker service) after enqueueing a job, so the worker
+    can scale to zero between jobs instead of polling 24/7. Gated by WORKER_DRAIN_ENABLED
+    (only the worker sets it) and, in production, by Cloud Run IAM (run.invoker). Jobs run
+    off the event loop; the loop is bounded so a flood can't hold the request open forever
+    (the scheduler backstop and subsequent wakes pick up any remainder).
+    """
+    if not settings.WORKER_DRAIN_ENABLED:
+        return JSONResponse(status_code=403, content={"detail": "drain disabled on this service"})
+    from starlette.concurrency import run_in_threadpool
+
+    from workers.dev_queue import run_database_queue_once
+
+    processed = 0
+    while processed < 500:
+        did_work = await run_in_threadpool(run_database_queue_once)
+        if not did_work:
+            break
+        processed += 1
+    return {"processed": processed}

@@ -16,7 +16,10 @@ from core.db import Base
 from domain import models  # noqa: F401
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.migration_database_url)
+# Escape '%' as '%%' so configparser interpolation does not choke on URL-encoded
+# characters (e.g. a Cloud SQL unix-socket host '?host=%2Fcloudsql%2F...'). alembic
+# un-escapes on read and SQLAlchemy then decodes the URL normally.
+config.set_main_option("sqlalchemy.url", settings.migration_database_url.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

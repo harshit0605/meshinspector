@@ -1,0 +1,46 @@
+# NOTE: storage/ and models/ are PYTHON SOURCE PACKAGES (storage/object_store.py,
+# storage/repositories.py, models/schemas.py) that also happen to share names with
+# runtime data dirs. Never exclude them by name — exclude only the data subpaths.
+
+# Local virtualenv (WRONG architecture — must never enter the image)
+.venv/
+**/__pycache__/
+*.pyc
+
+# Prebuilt Rust artifacts (rebuilt in-image; local ones are macOS/arm64)
+geometry-rs/target/
+geometry_sdk/_zennah_geometry_rs*.so
+geometry_sdk/_zennah_geometry_rs*.pyd
+
+# Runtime data (no source code lives in these)
+/data/
+/temp/
+/uploads/
+storage/uploads/
+storage/ver_*
+*.db
+*.db-shm
+*.db-wal
+
+# Large demo/sample + test-golden assets (not needed at runtime; ~76MB)
+models/*.glb
+models/*.gltf
+geometry_sdk/testing/golden_data/
+
+# Vendored reference / heavy non-runtime trees
+MeshLib/
+docs/
+decks/
+
+# Dev tooling / tests / local env
+.git/
+.gitignore
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+tests/
+e2e/
+.env
+.env.*
+.codex/
+.playwright-mcp/

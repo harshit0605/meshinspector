@@ -59,12 +59,17 @@ def create_version(
     parent_version_id: str | None = None,
     status: str = "ready",
 ) -> ModelVersionRecord:
+    # operation_label is VARCHAR(255); Postgres enforces it (SQLite does not). Truncate
+    # defensively so a verbose/computed label can never abort the insert.
+    label = operation_label or ""
+    if len(label) > 255:
+        label = label[:252] + "..."
     version = ModelVersionRecord(
         id=generate_id("ver"),
         model_id=model_id,
         parent_version_id=parent_version_id,
         operation_type=operation_type,
-        operation_label=operation_label,
+        operation_label=label,
         status=status,
     )
     db.add(version)

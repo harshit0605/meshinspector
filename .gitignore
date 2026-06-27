@@ -112,3 +112,6 @@ venv/
 /MeshLib/source/Debug/
 /MeshLib/source/Release/
 /MeshLib/thirdparty/boost-libs/
+
+# GCP deploy config (project-specific)
+deploy/config.sh

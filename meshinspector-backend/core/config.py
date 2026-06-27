@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     DEV_DB_QUEUE_BATCH_SIZE: int = 1
     DEV_DB_QUEUE_STALE_LOCK_MS: int = 120000
 
+    # Scale-to-zero worker: instead of polling continuously, the API "wakes" the worker
+    # by POSTing to its /internal/drain endpoint after enqueueing a DB job. The worker
+    # drains the queue within that request, then Cloud Run scales it back to zero.
+    WORKER_WAKE_URL: str | None = None   # set on the API service to the worker's base URL
+    WORKER_DRAIN_ENABLED: bool = False   # set true only on the worker service (gates /internal/drain)
+
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str | None = None
     CELERY_RESULT_BACKEND: str | None = None
@@ -58,8 +64,23 @@ class Settings(BaseSettings):
     DEFAULT_MATERIAL: str = "gold_18k"
     DEFAULT_WALL_THICKNESS_MM: float = 0.8
     DEFAULT_MIN_THICKNESS_MM: float = 0.6
+    MANUFACTURABILITY_THICKNESS_MAX_VERTICES: int = 25_000
+    # Decimation runs as an async job on the fast Rust QEM kernel, which produces
+    # clean, watertight, volume-preserving output on dense curved meshes (verified
+    # on a 994k-face organic snake: 994k->20k, watertight, no spurious geometry).
+    # The ceiling guards worker memory/time for absurdly large inputs, not quality.
+    MESH_EDIT_DECIMATE_MAX_INTERACTIVE_FACES: int = 1_500_000
+    MESH_EDIT_SUBDIVIDE_MAX_FACES: int = 100_000
+    MESH_EDIT_EXACT_BOOLEAN_MAX_INTERACTIVE_FACES: int = 100_000
+    MESH_EDIT_LOCAL_DEFORM_MAX_SEED_VERTICES: int = 512
+    MESH_EDIT_HOLLOW_MAX_FACES: int = 100_000
+    MESH_EDIT_HOLLOW_FULL_RESOLUTION_MAX_FACES: int = 100_000
 
-    CORS_ORIGINS: list[str] = [
+    # Annotated[..., NoDecode] disables pydantic-settings' JSON pre-parsing so the
+    # validator below can accept a plain comma-separated string from the environment
+    # (e.g. CORS_ORIGINS=https://app.example.com), which is friendlier for Cloud Run
+    # `--set-env-vars` than JSON. A JSON array is still accepted.
+    CORS_ORIGINS: Annotated[list[str], NoDecode] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
@@ -67,6 +88,20 @@ class Settings(BaseSettings):
         "http://localhost:3002",
         "http://127.0.0.1:3002",
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def _parse_cors_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return []
+            if text.startswith("["):
+                import json
+
+                return json.loads(text)
+            return [origin.strip() for origin in text.split(",") if origin.strip()]
+        return value
 
     @property
     def effective_broker_url(self) -> str:

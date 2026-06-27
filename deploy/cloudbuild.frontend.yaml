@@ -1,0 +1,21 @@
+# Build + push the frontend image on Cloud Build.
+# NEXT_PUBLIC_API_URL is baked in at build time (Next.js public env).
+# Invoked by deploy.sh:
+#   gcloud builds submit meshinspector-frontend \
+#     --config deploy/cloudbuild.frontend.yaml \
+#     --substitutions _IMAGE=<image>,_API_URL=<backend url>
+steps:
+  - name: gcr.io/cloud-builders/docker
+    env: ["DOCKER_BUILDKIT=1"]   # Dockerfile uses RUN --mount=type=cache (BuildKit)
+    args:
+      - "build"
+      - "--build-arg"
+      - "NEXT_PUBLIC_API_URL=${_API_URL}"
+      - "-t"
+      - "${_IMAGE}"
+      - "."
+images:
+  - "${_IMAGE}"
+options:
+  machineType: E2_HIGHCPU_8
+timeout: 1800s
