@@ -1,0 +1,55 @@
+{
+  "subdivide": {
+    "status": "failed",
+    "error": "timeout"
+  },
+  "make_delone": {
+    "status": "ok",
+    "ver": "ver_3869f1b973f2",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 47.87,
+    "bnd": 0,
+    "edge_ratio": 4.3
+  },
+  "smooth": {
+    "status": "ok",
+    "ver": "ver_10c4470138ce",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 45.76,
+    "bnd": 0,
+    "edge_ratio": 4.2
+  },
+  "thicken": {
+    "status": "ok",
+    "ver": "ver_a60e12ab2061",
+    "faces": 125141,
+    "verts": 62570,
+    "vol": 100.23,
+    "bnd": 5,
+    "edge_ratio": 3.0
+  },
+  "offset_verts": {
+    "status": "error",
+    "error": "HTTP Error 404: Not Found"
+  },
+  "hollow": {
+    "status": "ok",
+    "ver": "ver_ae45b4c01fb1",
+    "faces": 75348,
+    "verts": 37652,
+    "vol": 43.32,
+    "bnd": 0,
+    "edge_ratio": 3.0
+  },
+  "repair": {
+    "status": "ok",
+    "ver": "ver_4e42e58a4468",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 47.99,
+    "bnd": 0,
+    "edge_ratio": 4.6
+  }
+}

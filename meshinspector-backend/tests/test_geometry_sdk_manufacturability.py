@@ -8,7 +8,7 @@ from geometry_sdk.accelerators import _rust_common
 from geometry_sdk.analysis.health import compute_mesh_health
 from geometry_sdk.analysis.manufacturability import build_recommendations, compute_manufacturability_report
 from geometry_sdk.analysis.stats import compute_mesh_stats
-from geometry_sdk.analysis.thickness import summarize_thickness
+from geometry_sdk.analysis.thickness import ray_thickness_at_vertices, summarize_thickness
 from geometry_sdk.core.mesh import bounds, normalize_axis, safe_normalize, vertex_normals
 from geometry_sdk.jewelry.hollow import (
     adaptive_hollow_to_weight,
@@ -44,7 +44,7 @@ def _python_region_map(regions):
     return {region.region_id: np.asarray(region.vertex_indices, dtype=np.int32) for region in regions}
 
 
-def _python_protected_hollow_scale_field(mesh, regions, protect_region_ids, base_thickness_mm):
+def _python_protected_hollow_scale_field(mesh, regions, protect_region_ids, base_thickness_mm, falloff_mm=None):
     scales = np.ones(mesh.vertex_count, dtype=np.float32)
     if mesh.vertex_count == 0 or not regions or not protect_region_ids:
         return scales
@@ -62,7 +62,8 @@ def _python_protected_hollow_scale_field(mesh, regions, protect_region_ids, base
     min_hollow_mm = max(base_thickness_mm * 0.18, 0.08)
     min_scale = float(np.clip(min_hollow_mm / max(base_thickness_mm, 1e-6), 0.08, 0.45))
     distances = _python_nearest_distances(mesh.vertices, protected)
-    falloff_mm = max(base_thickness_mm * 3.5, 1.5)
+    if falloff_mm is None:
+        falloff_mm = max(base_thickness_mm * 3.5, 1.5)
     protection = np.exp(-0.5 * np.square(distances / falloff_mm))
     protection[distances > falloff_mm * 2.75] = 0.0
     scales = np.clip(1.0 - 0.92 * protection, min_scale, 1.0).astype(np.float32)
@@ -78,6 +79,76 @@ def _python_inward_directions_for_hollow(mesh):
     toward_center = safe_normalize(center - mesh.vertices)
     outward = np.where((np.einsum("ij,ij->i", normals, toward_center) >= 0.0)[:, None], -normals, normals)
     return -outward
+
+
+def _python_weighted_inner_offset_vertices(mesh, regions, protect_region_ids, wall_thickness_mm):
+    # The Python-exposed offset binding is the *preview* variant: it uses a
+    # tighter falloff around protected detail and then remaps the scale field so
+    # protected vertices freeze (scale 0) and far vertices reach full offset.
+    scales = _python_protected_hollow_scale_field(
+        mesh,
+        regions,
+        protect_region_ids,
+        wall_thickness_mm,
+        falloff_mm=max(wall_thickness_mm, 0.6),
+    )
+    min_hollow_mm = max(wall_thickness_mm * 0.18, 0.08)
+    floor_scale = np.float32(np.clip(min_hollow_mm / max(wall_thickness_mm, 1e-6), 0.08, 0.45))
+    denominator = np.float32(max(1.0 - float(floor_scale), 1e-6))
+    scales = np.clip((scales - floor_scale) / denominator, 0.0, 1.0).astype(np.float32)
+    directions = _python_inward_directions_for_hollow(mesh).copy()
+    bbox_min, bbox_max = bounds(mesh)
+    diagonal = float(np.linalg.norm(bbox_max - bbox_min))
+    epsilon = float(np.clip(diagonal * 1e-5, 1e-7, 1e-3))
+    thickness = np.asarray(ray_thickness_at_vertices(mesh, epsilon=epsilon), dtype=np.float64)
+    requested = wall_thickness_mm * scales.astype(np.float64)
+    limits = np.where(np.isfinite(thickness), np.minimum(requested, 0.35 * thickness), requested)
+
+    neighbors = [set() for _ in range(mesh.vertex_count)]
+    for face in np.asarray(mesh.faces, dtype=np.int64):
+        for first, second in ((face[0], face[1]), (face[1], face[2]), (face[2], face[0])):
+            neighbors[int(first)].add(int(second))
+            neighbors[int(second)].add(int(first))
+
+    for _ in range(30):
+        snapshot = directions.copy()
+        for index, neighbor_set in enumerate(neighbors):
+            if not neighbor_set:
+                continue
+            neighbor_sum = np.sum(snapshot[list(neighbor_set)], axis=0)
+            blended = 0.5 * snapshot[index] + 0.5 * neighbor_sum / len(neighbor_set)
+            length = float(np.linalg.norm(blended))
+            if length > 1e-12:
+                directions[index] = blended / length
+
+    offsets = limits.copy()
+    for _ in range(8):
+        snapshot = offsets.copy()
+        for index, neighbor_set in enumerate(neighbors):
+            if not neighbor_set:
+                continue
+            neighbor_mean = float(np.mean(snapshot[list(neighbor_set)]))
+            offsets[index] = min(0.5 * snapshot[index] + 0.5 * neighbor_mean, limits[index])
+
+    def displace(current_offsets):
+        return mesh.vertices + directions * current_offsets[:, None]
+
+    def face_area_normal(points, face):
+        return np.cross(points[face[1]] - points[face[0]], points[face[2]] - points[face[0]])
+
+    displaced = displace(offsets)
+    for _ in range(6):
+        any_fold = False
+        for face in np.asarray(mesh.faces, dtype=np.int64):
+            original_normal = face_area_normal(mesh.vertices, face)
+            displaced_normal = face_area_normal(displaced, face)
+            if float(np.dot(original_normal, displaced_normal)) <= 0.0:
+                any_fold = True
+                offsets[face] *= 0.5
+        if not any_fold:
+            break
+        displaced = displace(offsets)
+    return displaced
 
 
 def _python_plan_drain_holes(mesh, regions, ring_axis, *, wall_thickness_mm, hole_diameter_mm=0.8):
@@ -234,8 +305,7 @@ def test_hollow_planning_module_is_rust_owned_and_matches_reference(monkeypatch)
     regions = sdk.detect_ring_regions(mesh, sdk.measure_ring(mesh))
     expected_scales = _python_protected_hollow_scale_field(mesh, regions, ["head", "ornament_relief"], 1.0)
     expected_directions = _python_inward_directions_for_hollow(mesh)
-    expected_preview_scales = _python_protected_hollow_scale_field(mesh, regions, ["head", "ornament_relief"], 0.8)
-    expected_preview_vertices = mesh.vertices + expected_directions * (0.8 * expected_preview_scales)[:, None]
+    expected_preview_vertices = _python_weighted_inner_offset_vertices(mesh, regions, ["head", "ornament_relief"], 0.8)
 
     monkeypatch.setenv("GEOMETRY_SDK_ACCELERATOR", "python")
     assert np.allclose(

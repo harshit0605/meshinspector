@@ -47,6 +47,175 @@ pub(super) fn closest_point_with_bvh(
     hit
 }
 
+/// Closest point on the mesh to `point`, excluding a small set of faces (the
+/// faces incident to a query vertex). BVH-accelerated — O(log faces) vs the
+/// brute O(faces) scan it replaces — and zero-allocation (fixed traversal stack)
+/// since the insphere march calls it for every vertex × direction × iteration.
+/// Returns `None` only when every candidate face is excluded.
+pub(crate) fn closest_point_excluding_incident(
+    point: [f64; 3],
+    bvh: &FlatBvh,
+    triangles: &[[[f64; 3]; 3]],
+    excluded_faces: &[i64],
+) -> Option<[f64; 3]> {
+    if bvh.nodes.is_empty() {
+        return None;
+    }
+    let mut best_point = [0.0; 3];
+    let mut best_distance_sq = f64::INFINITY;
+    let mut stack = [0usize; 128];
+    let mut top = 1usize;
+    stack[0] = 0;
+
+    while top > 0 {
+        top -= 1;
+        let node_index = stack[top];
+        let node = &bvh.nodes[node_index];
+        if point_aabb_distance_sq(point, node.bbox_min, node.bbox_max) > best_distance_sq {
+            continue;
+        }
+
+        if node.is_leaf() {
+            let face_end = node.face_start + node.face_count;
+            for face_index in &bvh.face_indices[node.face_start..face_end] {
+                if excluded_faces.contains(&(*face_index as i64)) {
+                    continue;
+                }
+                let candidate = closest_point_on_triangle(point, triangles[*face_index]);
+                let candidate_distance_sq = distance_sq(point, candidate);
+                if candidate_distance_sq < best_distance_sq {
+                    best_distance_sq = candidate_distance_sq;
+                    best_point = candidate;
+                }
+            }
+            continue;
+        }
+
+        // Descend nearer child last so it is popped (and pruned against) first.
+        match (node.first_child, node.second_child) {
+            (Some(first), Some(second)) => {
+                let first_distance = point_aabb_distance_sq(
+                    point,
+                    bvh.nodes[first].bbox_min,
+                    bvh.nodes[first].bbox_max,
+                );
+                let second_distance = point_aabb_distance_sq(
+                    point,
+                    bvh.nodes[second].bbox_min,
+                    bvh.nodes[second].bbox_max,
+                );
+                let (near, near_d, far, far_d) = if first_distance <= second_distance {
+                    (first, first_distance, second, second_distance)
+                } else {
+                    (second, second_distance, first, first_distance)
+                };
+                if far_d <= best_distance_sq && top < stack.len() {
+                    stack[top] = far;
+                    top += 1;
+                }
+                if near_d <= best_distance_sq && top < stack.len() {
+                    stack[top] = near;
+                    top += 1;
+                }
+            }
+            (Some(child), None) | (None, Some(child)) => {
+                let distance =
+                    point_aabb_distance_sq(point, bvh.nodes[child].bbox_min, bvh.nodes[child].bbox_max);
+                if distance <= best_distance_sq && top < stack.len() {
+                    stack[top] = child;
+                    top += 1;
+                }
+            }
+            (None, None) => {}
+        }
+    }
+
+    best_distance_sq.is_finite().then_some(best_point)
+}
+
+/// Index of the nearest point in a cloud to `query`, BVH-accelerated (O(log n)
+/// vs the O(n) brute scan it replaces). Exact-distance ties break to the lowest
+/// index, matching the brute-force `distance < best` scan bit-for-bit so ICP
+/// correspondences (and goldens) are unchanged. The BVH is built over the cloud
+/// as degenerate triangles; `points` is the original cloud, indexed by the BVH
+/// face index. Zero-allocation fixed traversal stack (called per ICP point).
+pub(crate) fn nearest_point_in_cloud(
+    query: [f64; 3],
+    bvh: &FlatBvh,
+    points: &[[f64; 3]],
+) -> Option<usize> {
+    if bvh.nodes.is_empty() {
+        return None;
+    }
+    let mut best_index = usize::MAX;
+    let mut best_distance_sq = f64::INFINITY;
+    let mut stack = [0usize; 128];
+    let mut top = 1usize;
+    stack[0] = 0;
+
+    while top > 0 {
+        top -= 1;
+        let node = &bvh.nodes[stack[top]];
+        if point_aabb_distance_sq(query, node.bbox_min, node.bbox_max) > best_distance_sq {
+            continue;
+        }
+
+        if node.is_leaf() {
+            for face_index in &bvh.face_indices[node.face_start..node.face_start + node.face_count] {
+                let candidate_distance_sq = distance_sq(query, points[*face_index]);
+                if candidate_distance_sq < best_distance_sq
+                    || (candidate_distance_sq == best_distance_sq && *face_index < best_index)
+                {
+                    best_distance_sq = candidate_distance_sq;
+                    best_index = *face_index;
+                }
+            }
+            continue;
+        }
+
+        match (node.first_child, node.second_child) {
+            (Some(first), Some(second)) => {
+                let first_distance = point_aabb_distance_sq(
+                    query,
+                    bvh.nodes[first].bbox_min,
+                    bvh.nodes[first].bbox_max,
+                );
+                let second_distance = point_aabb_distance_sq(
+                    query,
+                    bvh.nodes[second].bbox_min,
+                    bvh.nodes[second].bbox_max,
+                );
+                let (near, near_d, far, far_d) = if first_distance <= second_distance {
+                    (first, first_distance, second, second_distance)
+                } else {
+                    (second, second_distance, first, first_distance)
+                };
+                // `<=` (not `<`) so nodes that could hold an equidistant,
+                // lower-index point are still visited — required for the tie-break.
+                if far_d <= best_distance_sq && top < stack.len() {
+                    stack[top] = far;
+                    top += 1;
+                }
+                if near_d <= best_distance_sq && top < stack.len() {
+                    stack[top] = near;
+                    top += 1;
+                }
+            }
+            (Some(child), None) | (None, Some(child)) => {
+                let distance =
+                    point_aabb_distance_sq(query, bvh.nodes[child].bbox_min, bvh.nodes[child].bbox_max);
+                if distance <= best_distance_sq && top < stack.len() {
+                    stack[top] = child;
+                    top += 1;
+                }
+            }
+            (None, None) => {}
+        }
+    }
+
+    (best_index != usize::MAX).then_some(best_index)
+}
+
 fn push_closest_children(
     point: [f64; 3],
     bvh: &FlatBvh,

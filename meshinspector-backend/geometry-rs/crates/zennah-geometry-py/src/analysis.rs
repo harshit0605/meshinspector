@@ -1,7 +1,7 @@
 use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyList};
 
 use crate::convert::{read_f32_values, read_faces, read_vertices};
 
@@ -213,6 +213,78 @@ fn signed_compare_summary(
 }
 
 #[pyfunction(signature = (
+    vertices,
+    faces,
+    section_constant,
+    plane_axis,
+    selected_vertex_indices = None,
+    epsilon = 1e-5
+))]
+fn section_contour(
+    py: Python<'_>,
+    vertices: PyReadonlyArray2<'_, f64>,
+    faces: PyReadonlyArray2<'_, i64>,
+    section_constant: f64,
+    plane_axis: (f64, f64, f64),
+    selected_vertex_indices: Option<PyReadonlyArray1<'_, i64>>,
+    epsilon: f64,
+) -> PyResult<Py<PyDict>> {
+    let rust_vertices = read_vertices(vertices)?;
+    let rust_faces = read_faces(faces)?;
+    let selected_indices = selected_vertex_indices
+        .as_ref()
+        .map(read_i64_values)
+        .unwrap_or_default();
+    let contour = py
+        .detach(|| {
+            zennah_geometry_core::section_contour(
+                &rust_vertices,
+                &rust_faces,
+                section_constant,
+                [plane_axis.0, plane_axis.1, plane_axis.2],
+                &selected_indices,
+                epsilon,
+            )
+        })
+        .map_err(|error| PyValueError::new_err(error.to_string()))?;
+
+    let output = PyDict::new(py);
+    output.set_item("section_constant", contour.section_constant)?;
+    output.set_item("plane_axis", contour.plane_axis)?;
+    output.set_item("plane_u_axis", contour.plane_u_axis)?;
+    output.set_item("plane_v_axis", contour.plane_v_axis)?;
+    output.set_item("plane_origin", contour.plane_origin)?;
+    output.set_item("contour_count", contour.contour_count)?;
+    output.set_item("segment_count", contour.segment_count)?;
+    output.set_item(
+        "selected_region_segment_count",
+        contour.selected_region_segment_count,
+    )?;
+    output.set_item("perimeter_mm", contour.perimeter_mm)?;
+    output.set_item("width_mm", contour.width_mm)?;
+    output.set_item("depth_mm", contour.depth_mm)?;
+    output.set_item("projected_bounds_min", contour.projected_bounds_min)?;
+    output.set_item("projected_bounds_max", contour.projected_bounds_max)?;
+    output.set_item("bounds_min", contour.bounds_min)?;
+    output.set_item("bounds_max", contour.bounds_max)?;
+
+    let segments = PyList::empty(py);
+    for segment in contour.segments {
+        let item = PyDict::new(py);
+        item.set_item("start", segment.start)?;
+        item.set_item("end", segment.end)?;
+        item.set_item("selected_region_hit", segment.selected_region_hit)?;
+        segments.append(item)?;
+    }
+    output.set_item("segments", segments)?;
+    Ok(output.unbind())
+}
+
+fn read_i64_values(values: &PyReadonlyArray1<'_, i64>) -> Vec<i64> {
+    values.as_array().iter().copied().collect()
+}
+
+#[pyfunction(signature = (
     source_vertices,
     source_faces,
     target_vertices,
@@ -271,6 +343,7 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(version_compare_distances, module)?)?;
     module.add_function(wrap_pyfunction!(compare_summary, module)?)?;
     module.add_function(wrap_pyfunction!(signed_compare_summary, module)?)?;
+    module.add_function(wrap_pyfunction!(section_contour, module)?)?;
     module.add_function(wrap_pyfunction!(version_compare_summary, module)?)?;
     Ok(())
 }

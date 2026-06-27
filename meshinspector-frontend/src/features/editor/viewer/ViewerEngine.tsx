@@ -6,7 +6,7 @@ import { Bounds, Environment, GizmoHelper, GizmoViewport, Html, OrbitControls, u
 import * as THREE from 'three';
 import { PLYLoader } from 'three/examples/jsm/loaders/PLYLoader.js';
 import { acceleratedRaycast, computeBoundsTree, disposeBoundsTree } from 'three-mesh-bvh';
-import type { ScalarOverlayResponse, SectionContourPayload } from '@/lib/api/types';
+import type { ScalarOverlayResponse, SectionContourPayload, TextureArtifactManifest } from '@/lib/api/types';
 
 type RegionPayload = {
   regions: Array<{
@@ -20,6 +20,7 @@ const REGION_COLORS: Record<string, string> = {
   inner_band: '#38bdf8',
   outer_band: '#22c55e',
   head: '#f59e0b',
+  gem_seat: '#a78bfa',
   ornament_relief: '#f43f5e',
   unknown: '#71717a',
 };
@@ -136,169 +137,6 @@ function useVertexToRegion(payload: RegionPayload | null) {
   }, [payload]);
 }
 
-function computeSliceStats(
-  geometry: THREE.BufferGeometry,
-  regionPayload: RegionPayload | null,
-  selectedRegionIds: string[],
-  sectionConstant: number,
-  sectionAxis?: [number, number, number] | null,
-): SectionContourPayload {
-  const { normal, uAxis, vAxis } = createPlaneFrame(sectionAxis);
-  const planeOrigin = normal.clone().multiplyScalar(sectionConstant);
-  const vertexToRegion = new Map<number, string>();
-  for (const region of regionPayload?.regions ?? []) {
-    for (const vertexIndex of region.vertex_indices) {
-      if (!vertexToRegion.has(vertexIndex)) {
-        vertexToRegion.set(vertexIndex, region.region_id);
-      }
-    }
-  }
-
-  const position = geometry.getAttribute('position');
-  const index = geometry.getIndex();
-  const selectedRegionSet = new Set(selectedRegionIds);
-  const epsilon = 1e-5;
-  const segmentKeys = new Set<string>();
-  const endpointKeys = new Set<string>();
-  const adjacency = new Map<string, Set<string>>();
-  const segments: Array<{ start: [number, number, number]; end: [number, number, number]; selected_region_hit: boolean }> = [];
-  let segmentCount = 0;
-  let selectedRegionSegmentCount = 0;
-  let perimeterMm = 0;
-  let minX = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let minZ = Number.POSITIVE_INFINITY;
-  let maxZ = Number.NEGATIVE_INFINITY;
-
-  const quantizePoint = (point: THREE.Vector3) =>
-    [point.x, point.y, point.z].map((value) => Math.round(value / epsilon)).join(':');
-
-  const addAdjacency = (a: string, b: string) => {
-    if (!adjacency.has(a)) adjacency.set(a, new Set());
-    if (!adjacency.has(b)) adjacency.set(b, new Set());
-    adjacency.get(a)?.add(b);
-    adjacency.get(b)?.add(a);
-  };
-
-  const edgeIntersections = (aIndex: number, bIndex: number): THREE.Vector3[] => {
-    const a = new THREE.Vector3(position.getX(aIndex), position.getY(aIndex), position.getZ(aIndex));
-    const b = new THREE.Vector3(position.getX(bIndex), position.getY(bIndex), position.getZ(bIndex));
-    const da = normal.dot(a) - sectionConstant;
-    const db = normal.dot(b) - sectionConstant;
-
-    if (Math.abs(da) <= epsilon && Math.abs(db) <= epsilon) {
-      return [];
-    }
-    if (Math.abs(da) <= epsilon) {
-      return [a];
-    }
-    if (Math.abs(db) <= epsilon) {
-      return [b];
-    }
-    if (da * db > 0) {
-      return [];
-    }
-    const t = da / (da - db);
-    return [a.lerp(b, t)];
-  };
-
-  const triangleCount = index ? index.count / 3 : position.count / 3;
-  for (let triangleIndex = 0; triangleIndex < triangleCount; triangleIndex += 1) {
-    const aIndex = index ? index.getX(triangleIndex * 3) : triangleIndex * 3;
-    const bIndex = index ? index.getX(triangleIndex * 3 + 1) : triangleIndex * 3 + 1;
-    const cIndex = index ? index.getX(triangleIndex * 3 + 2) : triangleIndex * 3 + 2;
-
-    const intersections = [
-      ...edgeIntersections(aIndex, bIndex),
-      ...edgeIntersections(bIndex, cIndex),
-      ...edgeIntersections(cIndex, aIndex),
-    ];
-    const uniquePoints = new Map<string, THREE.Vector3>();
-    for (const point of intersections) {
-      uniquePoints.set(quantizePoint(point), point);
-    }
-    const points = Array.from(uniquePoints.values());
-    if (points.length !== 2) {
-      continue;
-    }
-
-    const [p0, p1] = points;
-    const key0 = quantizePoint(p0);
-    const key1 = quantizePoint(p1);
-    const segmentKey = [key0, key1].sort().join('|');
-    if (segmentKeys.has(segmentKey)) {
-      continue;
-    }
-    segmentKeys.add(segmentKey);
-    endpointKeys.add(key0);
-    endpointKeys.add(key1);
-    addAdjacency(key0, key1);
-    segmentCount += 1;
-    perimeterMm += p0.distanceTo(p1);
-    const p0u = uAxis.dot(p0);
-    const p1u = uAxis.dot(p1);
-    const p0v = vAxis.dot(p0);
-    const p1v = vAxis.dot(p1);
-    minX = Math.min(minX, p0u, p1u);
-    maxX = Math.max(maxX, p0u, p1u);
-    minZ = Math.min(minZ, p0v, p1v);
-    maxZ = Math.max(maxZ, p0v, p1v);
-
-    const triangleRegions = [aIndex, bIndex, cIndex]
-      .map((vertexIndex) => vertexToRegion.get(vertexIndex))
-      .filter((value): value is string => !!value);
-    if (triangleRegions.some((regionId) => selectedRegionSet.has(regionId))) {
-      selectedRegionSegmentCount += 1;
-    }
-    segments.push({
-      start: [p0.x, p0.y, p0.z],
-      end: [p1.x, p1.y, p1.z],
-      selected_region_hit: triangleRegions.some((regionId) => selectedRegionSet.has(regionId)),
-    });
-  }
-
-  let contourCount = 0;
-  const visited = new Set<string>();
-  for (const endpoint of endpointKeys) {
-    if (visited.has(endpoint)) {
-      continue;
-    }
-    contourCount += 1;
-    const stack = [endpoint];
-    while (stack.length) {
-      const current = stack.pop()!;
-      if (visited.has(current)) {
-        continue;
-      }
-      visited.add(current);
-      for (const next of adjacency.get(current) ?? []) {
-        if (!visited.has(next)) {
-          stack.push(next);
-        }
-      }
-    }
-  }
-
-  return {
-    section_constant: sectionConstant,
-    plane_axis: [normal.x, normal.y, normal.z],
-    plane_u_axis: [uAxis.x, uAxis.y, uAxis.z],
-    plane_v_axis: [vAxis.x, vAxis.y, vAxis.z],
-    plane_origin: [planeOrigin.x, planeOrigin.y, planeOrigin.z],
-    contour_count: contourCount,
-    segment_count: segmentCount,
-    selected_region_segment_count: selectedRegionSegmentCount,
-    perimeter_mm: segmentCount > 0 ? perimeterMm : null,
-    width_mm: segmentCount > 0 ? maxX - minX : null,
-    depth_mm: segmentCount > 0 ? maxZ - minZ : null,
-    projected_bounds_min: segmentCount > 0 ? [minX, minZ] : null,
-    projected_bounds_max: segmentCount > 0 ? [maxX, maxZ] : null,
-    bounds_min: segmentCount > 0 ? [planeOrigin.x, planeOrigin.y, planeOrigin.z] : null,
-    bounds_max: segmentCount > 0 ? [planeOrigin.x, planeOrigin.y, planeOrigin.z] : null,
-    segments,
-  };
-}
-
 function RegionPickMesh({
   geometry,
   regionPayload,
@@ -333,6 +171,359 @@ function RegionPickMesh({
       <meshBasicMaterial transparent opacity={0.001} depthWrite={false} />
     </mesh>
   );
+}
+
+function cloneTexturedMaterial(source: THREE.Material, texture: THREE.Texture) {
+  const material =
+    source instanceof THREE.MeshStandardMaterial ||
+    source instanceof THREE.MeshPhysicalMaterial ||
+    source instanceof THREE.MeshBasicMaterial
+      ? source.clone()
+      : new THREE.MeshStandardMaterial();
+  if (
+    material instanceof THREE.MeshStandardMaterial ||
+    material instanceof THREE.MeshPhysicalMaterial ||
+    material instanceof THREE.MeshBasicMaterial
+  ) {
+    material.map = texture;
+    material.color.set(0xffffff);
+    material.needsUpdate = true;
+  }
+  return material;
+}
+
+function textureImageSize(texture: THREE.Texture) {
+  const image = texture.image as TexImageSource | undefined;
+  const width = Number(
+    image && 'width' in image ? image.width : image && 'videoWidth' in image ? image.videoWidth : 0,
+  );
+  const height = Number(
+    image && 'height' in image ? image.height : image && 'videoHeight' in image ? image.videoHeight : 0,
+  );
+  return Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0
+    ? { width, height }
+    : null;
+}
+
+function createMeshLibTextureArray(textures: THREE.Texture[]) {
+  const firstSize = textureImageSize(textures[0]);
+  if (!firstSize || textures.length === 0 || typeof document === 'undefined') {
+    return null;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = firstSize.width;
+  canvas.height = firstSize.height;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) {
+    return null;
+  }
+
+  const layerSize = firstSize.width * firstSize.height * 4;
+  const data = new Uint8Array(layerSize * textures.length);
+  textures.forEach((texture, layerIndex) => {
+    const image = texture.image as CanvasImageSource | undefined;
+    if (!image) {
+      return;
+    }
+    context.clearRect(0, 0, firstSize.width, firstSize.height);
+    context.drawImage(image, 0, 0, firstSize.width, firstSize.height);
+    data.set(context.getImageData(0, 0, firstSize.width, firstSize.height).data, layerIndex * layerSize);
+  });
+
+  const textureArray = new THREE.DataArrayTexture(data, firstSize.width, firstSize.height, textures.length);
+  textureArray.format = THREE.RGBAFormat;
+  textureArray.type = THREE.UnsignedByteType;
+  textureArray.minFilter = THREE.LinearFilter;
+  textureArray.magFilter = THREE.LinearFilter;
+  textureArray.wrapS = THREE.ClampToEdgeWrapping;
+  textureArray.wrapT = THREE.ClampToEdgeWrapping;
+  textureArray.needsUpdate = true;
+  return textureArray;
+}
+
+function texturePerFaceResolution(faceCount: number) {
+  const width = Math.max(1, Math.ceil(Math.sqrt(faceCount)));
+  return { width, height: Math.max(1, Math.ceil(faceCount / width)) };
+}
+
+function createMeshLibTexturePerFaceTexture({
+  textureEntries,
+  texturePerFace,
+  faceCount,
+}: {
+  textureEntries: TextureArtifactManifest[];
+  texturePerFace: number[];
+  faceCount: number;
+}) {
+  const { width, height } = texturePerFaceResolution(faceCount);
+  const data = new Uint8Array(width * height);
+  const layerByTextureId = new Map(textureEntries.map((entry, layerIndex) => [entry.texture_index, layerIndex]));
+  for (let faceIndex = 0; faceIndex < faceCount; faceIndex += 1) {
+    const textureId = texturePerFace[faceIndex] ?? 0;
+    const layerIndex = layerByTextureId.get(textureId) ?? 0;
+    data[faceIndex] = Math.max(0, Math.min(255, layerIndex));
+  }
+
+  const texture = new THREE.DataTexture(data, width, height, THREE.RedIntegerFormat, THREE.UnsignedByteType);
+  texture.minFilter = THREE.NearestFilter;
+  texture.magFilter = THREE.NearestFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return { texture, width, height };
+}
+
+function ensureMeshLibFaceIndexAttribute(mesh: THREE.Mesh) {
+  if (mesh.geometry.index) {
+    mesh.geometry = mesh.geometry.toNonIndexed();
+  }
+  const geometry = mesh.geometry;
+  if (!geometry.attributes.uv) {
+    return null;
+  }
+  const vertexCount = geometry.attributes.position.count;
+  const faceCount = Math.floor(vertexCount / 3);
+  if (faceCount === 0) {
+    return null;
+  }
+
+  const faceIndices = new Float32Array(vertexCount);
+  for (let faceIndex = 0; faceIndex < faceCount; faceIndex += 1) {
+    faceIndices[faceIndex * 3] = faceIndex;
+    faceIndices[faceIndex * 3 + 1] = faceIndex;
+    faceIndices[faceIndex * 3 + 2] = faceIndex;
+  }
+  geometry.setAttribute('meshlibFaceIndex', new THREE.BufferAttribute(faceIndices, 1));
+  geometry.computeVertexNormals();
+  return { geometry, faceCount };
+}
+
+function createMeshLibTextureArrayMaterial({
+  textureArray,
+  texturePerFaceTexture,
+  texturePerFaceSize,
+  wireframe,
+}: {
+  textureArray: THREE.DataArrayTexture;
+  texturePerFaceTexture: THREE.DataTexture;
+  texturePerFaceSize: [number, number];
+  wireframe: boolean;
+}) {
+  return new THREE.ShaderMaterial({
+    glslVersion: THREE.GLSL3,
+    uniforms: {
+      tex: { value: textureArray },
+      texturePerFace: { value: texturePerFaceTexture },
+      texturePerFaceSize: { value: new THREE.Vector2(texturePerFaceSize[0], texturePerFaceSize[1]) },
+      mainColor: { value: new THREE.Color(0xffffff) },
+      lightDirection: { value: new THREE.Vector3(0.25, 0.45, 1).normalize() },
+    },
+    vertexShader: `
+      in vec3 position;
+      in vec3 normal;
+      in vec2 uv;
+      in float meshlibFaceIndex;
+
+      uniform mat4 modelViewMatrix;
+      uniform mat4 projectionMatrix;
+      uniform mat3 normalMatrix;
+
+      out vec2 vUv;
+      out vec3 vNormal;
+      flat out uint vPrimitiveId;
+
+      void main() {
+        vUv = uv;
+        vNormal = normalize(normalMatrix * normal);
+        vPrimitiveId = uint(meshlibFaceIndex);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      precision highp float;
+      precision highp int;
+      precision highp usampler2D;
+
+      uniform highp sampler2DArray tex;
+      uniform highp usampler2D texturePerFace;
+      uniform vec2 texturePerFaceSize;
+      uniform vec3 mainColor;
+      uniform vec3 lightDirection;
+
+      in vec2 vUv;
+      in vec3 vNormal;
+      flat in uint vPrimitiveId;
+
+      out vec4 outColor;
+
+      void main() {
+        uint textureWidth = uint(texturePerFaceSize.x);
+        uint textId = texelFetch(texturePerFace, ivec2(vPrimitiveId % textureWidth, vPrimitiveId / textureWidth), 0).r;
+        vec4 textColor = texture(tex, vec3(vUv, float(textId)));
+        float light = max(dot(normalize(vNormal), normalize(lightDirection)), 0.18);
+        vec4 colorCpy = vec4(mainColor * light, 1.0);
+        float destA = colorCpy.a;
+        colorCpy.a = textColor.a + destA * (1.0 - textColor.a);
+        if (colorCpy.a == 0.0) {
+          colorCpy.rgb = vec3(0.0);
+        } else {
+          colorCpy.rgb = mix(colorCpy.rgb * destA, textColor.rgb, textColor.a) / colorCpy.a;
+        }
+        outColor = colorCpy;
+      }
+    `,
+    wireframe,
+  });
+}
+
+function applyMeshLibTextureArrayShader({
+  mesh,
+  textureArray,
+  textureEntries,
+  texturePerFace,
+  wireframe,
+}: {
+  mesh: THREE.Mesh;
+  textureArray: THREE.DataArrayTexture | null;
+  textureEntries: TextureArtifactManifest[];
+  texturePerFace: number[];
+  wireframe: boolean;
+}) {
+  if (!textureArray || textureEntries.length <= 1 || texturePerFace.length === 0) {
+    return false;
+  }
+  const geometryDetails = ensureMeshLibFaceIndexAttribute(mesh);
+  if (!geometryDetails) {
+    return false;
+  }
+  const { texture, width, height } = createMeshLibTexturePerFaceTexture({
+    textureEntries,
+    texturePerFace,
+    faceCount: geometryDetails.faceCount,
+  });
+  mesh.material = createMeshLibTextureArrayMaterial({
+    textureArray,
+    texturePerFaceTexture: texture,
+    texturePerFaceSize: [width, height],
+    wireframe,
+  });
+  return true;
+}
+
+function applyMeshLibTexturePerFaceGroups({
+  mesh,
+  textures,
+  textureEntries,
+  texturePerFace,
+}: {
+  mesh: THREE.Mesh;
+  textures: THREE.Texture[];
+  textureEntries: TextureArtifactManifest[];
+  texturePerFace: number[];
+}) {
+  const sourceMaterials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  const sourceMaterial = sourceMaterials.find((material) => material instanceof THREE.Material) ?? new THREE.MeshStandardMaterial();
+  const materials = textureEntries.map((entry, index) =>
+    cloneTexturedMaterial(sourceMaterial, textures[index] ?? textures[0]),
+  );
+  const geometry = mesh.geometry;
+  const faceCount = Math.floor((geometry.index?.count ?? geometry.attributes.position.count) / 3);
+
+  if (materials.length <= 1 || texturePerFace.length === 0 || faceCount === 0) {
+    mesh.material = materials[0] ?? sourceMaterial;
+    return;
+  }
+
+  const materialIndexByTextureId = new Map(textureEntries.map((entry, materialIndex) => [entry.texture_index, materialIndex]));
+  geometry.clearGroups();
+  for (let faceIndex = 0; faceIndex < faceCount; faceIndex += 1) {
+    const textureId = texturePerFace[faceIndex] ?? 0;
+    const materialIndex = materialIndexByTextureId.get(textureId) ?? 0;
+    geometry.addGroup(faceIndex * 3, 3, materialIndex);
+  }
+  mesh.material = materials;
+}
+
+function MeshTextureSync({
+  scene,
+  textureArtifactUrl,
+  textureMetadata,
+  textureArtifacts = [],
+  texturePerFace = [],
+  wireframe,
+}: {
+  scene: THREE.Object3D;
+  textureArtifactUrl?: string | null;
+  textureMetadata?: Record<string, unknown>;
+  textureArtifacts?: TextureArtifactManifest[];
+  texturePerFace?: number[];
+  wireframe: boolean;
+}) {
+  const { gl } = useThree();
+  const textureEntries = useMemo<TextureArtifactManifest[]>(() => {
+    const artifacts = textureArtifacts
+      .filter((texture) => texture.artifact_url)
+      .slice()
+      .sort((left, right) => left.texture_index - right.texture_index);
+    if (artifacts.length > 0) {
+      return artifacts;
+    }
+    return textureArtifactUrl
+      ? [
+          {
+            texture_index: 0,
+            artifact_url: textureArtifactUrl,
+            metadata: textureMetadata ?? {},
+          },
+        ]
+      : [];
+  }, [textureArtifactUrl, textureArtifacts, textureMetadata]);
+  const textureUrls = textureEntries.map((texture) => texture.artifact_url);
+  const textures = useLoader(THREE.TextureLoader, textureUrls);
+  const textureArray = useMemo(() => {
+    if (!((gl.capabilities as { isWebGL2?: boolean }).isWebGL2)) {
+      return null;
+    }
+    return createMeshLibTextureArray(textures);
+  }, [gl.capabilities, textures]);
+
+  useEffect(() => {
+    textures.forEach((texture) => {
+      texture.minFilter = THREE.LinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.wrapS = THREE.ClampToEdgeWrapping;
+      texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.needsUpdate = true;
+    });
+
+    scene.traverse((child) => {
+      if (!(child instanceof THREE.Mesh)) return;
+      const usingTextureArrayShader = applyMeshLibTextureArrayShader({
+        mesh: child,
+        textureArray,
+        textureEntries,
+        texturePerFace,
+        wireframe,
+      });
+      if (usingTextureArrayShader) {
+        return;
+      }
+      applyMeshLibTexturePerFaceGroups({
+        mesh: child,
+        textures,
+        textureEntries,
+        texturePerFace,
+      });
+    });
+  }, [scene, textureArray, textureEntries, textureMetadata, texturePerFace, textures, wireframe]);
+
+  useEffect(() => () => {
+    textureArray?.dispose();
+    textures.forEach((texture) => texture.dispose());
+  }, [textureArray, textures]);
+
+  return null;
 }
 
 function ScalarOverlay({
@@ -549,8 +740,8 @@ function OverlayLayer({
   sectionEnabled,
   sectionConstant,
   sectionAxis,
+  sectionContour,
   onRegionPick,
-  onSectionContourChange,
 }: {
   normalizedMeshUrl?: string | null;
   regionArtifactUrl?: string | null;
@@ -561,29 +752,16 @@ function OverlayLayer({
   sectionEnabled: boolean;
   sectionConstant: number;
   sectionAxis?: [number, number, number] | null;
+  sectionContour: SectionContourPayload | null;
   onRegionPick?: (regionId: string, additive?: boolean) => void;
-  onSectionContourChange?: (payload: SectionContourPayload | null) => void;
 }) {
   const geometry = useLoader(PLYLoader, normalizedMeshUrl || '');
   const regionPayload = useJsonPayload<RegionPayload>(regionArtifactUrl);
-  const contourPayload = useMemo(
-    () => computeSliceStats(geometry, regionPayload, selectedRegionIds, sectionConstant, sectionAxis),
-    [geometry, regionPayload, sectionAxis, sectionConstant, selectedRegionIds],
-  );
 
   useEffect(() => {
     geometry.computeVertexNormals();
     (geometry as THREE.BufferGeometry & { computeBoundsTree?: () => void }).computeBoundsTree?.();
   }, [geometry]);
-
-  useEffect(() => {
-    if (!onSectionContourChange) {
-      return;
-    }
-    onSectionContourChange(contourPayload);
-  }, [contourPayload, onSectionContourChange]);
-
-  useEffect(() => () => onSectionContourChange?.(null), [onSectionContourChange]);
 
   return (
     <>
@@ -595,7 +773,7 @@ function OverlayLayer({
         sectionConstant={sectionConstant}
         sectionAxis={sectionAxis}
       />
-      <SectionContourOverlay contour={contourPayload} sectionEnabled={sectionEnabled} />
+      <SectionContourOverlay contour={sectionContour} sectionEnabled={sectionEnabled} />
       <RegionOverlay
         geometry={geometry}
         regionPayload={regionPayload}
@@ -617,14 +795,18 @@ function MeshModel({
   sectionEnabled,
   sectionConstant,
   sectionAxis,
+  sectionContour,
   normalizedMeshUrl,
   regionArtifactUrl,
   regionOverlayEnabled,
   selectedRegionId,
   selectedRegionIds,
   scalarOverlay,
+  textureArtifactUrl,
+  textureMetadata,
+  textureArtifacts,
+  texturePerFace,
   onRegionPick,
-  onSectionContourChange,
 }: {
   lowUrl: string;
   highUrl?: string | null;
@@ -632,14 +814,18 @@ function MeshModel({
   sectionEnabled: boolean;
   sectionConstant: number;
   sectionAxis?: [number, number, number] | null;
+  sectionContour: SectionContourPayload | null;
   normalizedMeshUrl?: string | null;
   regionArtifactUrl?: string | null;
   regionOverlayEnabled: boolean;
   selectedRegionId: string | null;
   selectedRegionIds: string[];
   scalarOverlay: ScalarOverlayResponse | null;
+  textureArtifactUrl?: string | null;
+  textureMetadata?: Record<string, unknown>;
+  textureArtifacts?: TextureArtifactManifest[];
+  texturePerFace?: number[];
   onRegionPick?: (regionId: string, additive?: boolean) => void;
-  onSectionContourChange?: (payload: SectionContourPayload | null) => void;
 }) {
   const [useHigh, setUseHigh] = useState(false);
   const model = useGLTF(useHigh && highUrl ? highUrl : lowUrl);
@@ -682,6 +868,16 @@ function MeshModel({
 
   return (
     <group ref={groupRef}>
+      {textureArtifactUrl || (textureArtifacts?.length ?? 0) > 0 ? (
+        <MeshTextureSync
+          scene={model.scene}
+          textureArtifactUrl={textureArtifactUrl}
+          textureMetadata={textureMetadata}
+          textureArtifacts={textureArtifacts}
+          texturePerFace={texturePerFace}
+          wireframe={wireframe}
+        />
+      ) : null}
       <primitive object={model.scene} />
       {normalizedMeshUrl && (
         <OverlayLayer
@@ -694,8 +890,8 @@ function MeshModel({
           sectionEnabled={sectionEnabled}
           sectionConstant={sectionConstant}
           sectionAxis={sectionAxis}
+          sectionContour={sectionContour}
           onRegionPick={onRegionPick}
-          onSectionContourChange={onSectionContourChange}
         />
       )}
     </group>
@@ -709,14 +905,18 @@ export default function ViewerEngine({
   sectionEnabled,
   sectionConstant,
   sectionAxis,
+  sectionContour,
   normalizedMeshUrl,
   regionArtifactUrl,
   regionOverlayEnabled,
   selectedRegionId,
   selectedRegionIds,
   scalarOverlay,
+  textureArtifactUrl,
+  textureMetadata,
+  textureArtifacts,
+  texturePerFace,
   onRegionPick,
-  onSectionContourChange,
 }: {
   lowUrl: string;
   highUrl?: string | null;
@@ -724,14 +924,18 @@ export default function ViewerEngine({
   sectionEnabled: boolean;
   sectionConstant: number;
   sectionAxis?: [number, number, number] | null;
+  sectionContour: SectionContourPayload | null;
   normalizedMeshUrl?: string | null;
   regionArtifactUrl?: string | null;
   regionOverlayEnabled: boolean;
   selectedRegionId: string | null;
   selectedRegionIds: string[];
   scalarOverlay: ScalarOverlayResponse | null;
+  textureArtifactUrl?: string | null;
+  textureMetadata?: Record<string, unknown>;
+  textureArtifacts?: TextureArtifactManifest[];
+  texturePerFace?: number[];
   onRegionPick?: (regionId: string, additive?: boolean) => void;
-  onSectionContourChange?: (payload: SectionContourPayload | null) => void;
 }) {
   return (
     <Canvas shadows camera={{ position: [0, 0, 140], fov: 35 }} className="h-full w-full">
@@ -747,14 +951,18 @@ export default function ViewerEngine({
             sectionEnabled={sectionEnabled}
             sectionConstant={sectionConstant}
             sectionAxis={sectionAxis}
+            sectionContour={sectionContour}
             normalizedMeshUrl={normalizedMeshUrl}
             regionArtifactUrl={regionArtifactUrl}
             regionOverlayEnabled={regionOverlayEnabled}
             selectedRegionId={selectedRegionId}
             selectedRegionIds={selectedRegionIds}
             scalarOverlay={scalarOverlay}
+            textureArtifactUrl={textureArtifactUrl}
+            textureMetadata={textureMetadata}
+            textureArtifacts={textureArtifacts}
+            texturePerFace={texturePerFace}
             onRegionPick={onRegionPick}
-            onSectionContourChange={onSectionContourChange}
           />
           <FitScene />
         </Bounds>

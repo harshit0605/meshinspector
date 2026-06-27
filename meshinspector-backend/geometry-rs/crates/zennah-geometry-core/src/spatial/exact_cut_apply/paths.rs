@@ -1,12 +1,16 @@
 use super::super::exact_cut::{ExactCutPathSegment, ExactCutPreplan, ExactCutPrimitive};
 use std::collections::BTreeSet;
 
-pub(super) fn cut_edge_paths_from_preplan(
+type CutEdgePaths = Vec<Vec<[usize; 2]>>;
+type CutEdgePathSourceFaces = Vec<Vec<Option<usize>>>;
+
+pub(super) fn cut_edge_paths_and_source_faces_from_preplan(
     preplan: &ExactCutPreplan,
     cut_edges: &[[usize; 2]],
-) -> Vec<Vec<[usize; 2]>> {
+) -> (CutEdgePaths, CutEdgePathSourceFaces) {
     let cut_edge_set = cut_edges.iter().copied().collect::<BTreeSet<_>>();
     let mut paths = vec![Vec::new(); preplan.contour_points.len()];
+    let mut path_source_faces = vec![Vec::new(); preplan.contour_points.len()];
     for segment in &preplan.path_segments {
         let from = preplan.cut_points[segment.from_point].vertex_index;
         let to = preplan.cut_points[segment.to_point].vertex_index;
@@ -18,10 +22,26 @@ pub(super) fn cut_edge_paths_from_preplan(
             let path = &mut paths[segment.contour_index];
             if path.last().copied() != Some(edge) {
                 path.push(edge);
+                path_source_faces[segment.contour_index]
+                    .push(segment.source_faces.first().copied());
             }
         }
     }
-    paths
+    (paths, path_source_faces)
+}
+
+pub(super) fn collapsed_cut_segment_paths_and_source_faces_from_preplan(
+    preplan: &ExactCutPreplan,
+) -> (CutEdgePaths, CutEdgePathSourceFaces) {
+    let mut paths = vec![Vec::new(); preplan.contour_points.len()];
+    let mut path_source_faces = vec![Vec::new(); preplan.contour_points.len()];
+    for segment in &preplan.collapsed_segments {
+        let from = preplan.cut_points[segment.from_point].vertex_index;
+        let to = preplan.cut_points[segment.to_point].vertex_index;
+        paths[segment.contour_index].push([from, to]);
+        path_source_faces[segment.contour_index].push(segment.source_faces.first().copied());
+    }
+    (paths, path_source_faces)
 }
 
 pub(super) fn directed_path_is_closed(path: &[[usize; 2]]) -> bool {

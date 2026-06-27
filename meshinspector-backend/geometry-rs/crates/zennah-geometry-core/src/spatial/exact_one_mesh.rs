@@ -298,7 +298,7 @@ fn second_mesh_intersection(
 ) -> ExactOneMeshIntersection {
     let primitive = match record.edge_owner {
         ExactTriangleOwner::First => ExactOneMeshPrimitive::Face(record.triangle_face),
-        ExactTriangleOwner::Second => ExactOneMeshPrimitive::Edge(record.edge),
+        ExactTriangleOwner::Second => ExactOneMeshPrimitive::Edge([record.edge[1], record.edge[0]]),
     };
     ExactOneMeshIntersection {
         primitive,

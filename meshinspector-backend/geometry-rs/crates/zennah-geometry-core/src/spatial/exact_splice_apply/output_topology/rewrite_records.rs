@@ -181,6 +181,7 @@ impl OutputFaceTopology {
                     .get(&(command.from_operand, contour_edge))
                     .copied()
             })
+            .filter(|target| self.meshlib_rewrite_target_accepts_record(*target, mapped_from_left))
         {
             return self.prepare_meshlib_mapped_rewrite_target(
                 command,

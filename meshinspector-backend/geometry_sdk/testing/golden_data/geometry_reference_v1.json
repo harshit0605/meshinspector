@@ -27,8 +27,8 @@
       "sdk_stats": {"volume_mm3": 243.59320096874904, "surface_area_mm2": 420.76144247542777, "boundary_edge_count": 0, "connected_components": 1},
       "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 0, "nonmanifold_edge_count": 0},
       "sdk_ray_thickness": {"min_mm": 2.3963372707366943, "avg_mm": 2.39781653881073, "max_mm": 2.4000000953674316, "valid_vertex_count": 576, "violation_count": 0},
-      "sdk_ring_measurement": {"inner_diameter_mm": 15.6, "estimated_ring_size_us": 5.0, "ring_axis_confidence": 0.951, "band_width_min_mm": 1.2, "band_width_max_mm": 2.4, "head_height_mm": 1.2},
-      "sdk_region_counts": {"inner_band": 144, "outer_band": 76, "head": 95, "ornament_relief": 250, "unknown": 11},
+      "sdk_ring_measurement": {"inner_diameter_mm": 15.6, "estimated_ring_size_us": 5.0, "ring_axis_confidence": 0.951, "band_width_min_mm": 1.2, "band_width_max_mm": 1.2, "head_height_mm": 1.2},
+      "sdk_region_counts": {"inner_band": 144, "outer_band": 193, "head": 95, "gem_seat": 0, "ornament_relief": 0, "unknown": 144},
       "sdk_manufacturability": {"export_ready": true, "health_score": 100, "gold_18k_weight_g": 3.795}
     },
     "ring_with_head": {
@@ -39,8 +39,8 @@
       "sdk_stats": {"volume_mm3": 251.4017343020824, "surface_area_mm2": 445.28835438867117, "boundary_edge_count": 0, "connected_components": 2},
       "sdk_health": {"is_closed": true, "holes_count": 0, "self_intersections": 22, "nonmanifold_edge_count": 0},
       "sdk_ray_thickness": {"min_mm": 0.013207316398620605, "avg_mm": 2.368260560781276, "max_mm": 4.400000095367432, "valid_vertex_count": 582, "violation_count": 2},
-      "sdk_ring_measurement": {"inner_diameter_mm": 15.695, "estimated_ring_size_us": 5.0, "ring_axis_confidence": 0.949, "band_width_min_mm": 1.2, "band_width_max_mm": 2.42, "head_height_mm": 4.049},
-      "sdk_region_counts": {"inner_band": 122, "outer_band": 98, "head": 21, "ornament_relief": 284, "unknown": 57}
+      "sdk_ring_measurement": {"inner_diameter_mm": 15.463, "estimated_ring_size_us": 4.5, "ring_axis_confidence": 0.949, "band_width_min_mm": 1.2, "band_width_max_mm": 1.2, "head_height_mm": 4.049},
+      "sdk_region_counts": {"inner_band": 122, "outer_band": 255, "head": 19, "gem_seat": 5, "ornament_relief": 1, "unknown": 180}
     },
     "thin_wall_ring": {
       "mesh": {"vertices": 384, "faces": 768},

@@ -8,7 +8,11 @@ fn initial_edge_map_uses_actual_meshlib_contour_side_when_flipped() {
         cut_edges: vec![[0, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -16,6 +20,7 @@ fn initial_edge_map_uses_actual_meshlib_contour_side_when_flipped() {
     let mut output = OutputFaceTopology::from_faces(&[[0, 1, 2]]).unwrap();
     output.use_meshlib_source_edge_identity();
     let output_edge = output.directed_face_edge(0, [0, 1]).unwrap();
+    output.topology.set_left_direct(output_edge, None).unwrap();
     output
         .meshlib_mapped_contour_edge_indices
         .insert((ExactBooleanOperand::Second, 0), output_edge);
@@ -46,7 +51,11 @@ fn contour_vertex_maps_use_actual_meshlib_source_side_when_flipped() {
         cut_edges: vec![[0, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -74,7 +83,11 @@ fn contour_vertex_maps_prefer_meshlib_cut_edge_index_over_directed_fallback() {
         cut_edges: vec![[0, 1], [1, 2]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -97,7 +110,11 @@ fn initial_edge_map_selects_open_contour_side_for_reversed_nonflip_edge() {
         cut_edges: vec![[1, 0]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -106,6 +123,7 @@ fn initial_edge_map_selects_open_contour_side_for_reversed_nonflip_edge() {
     let mut output = OutputFaceTopology::from_faces(&[[0, 1, 2]]).unwrap();
     output.use_meshlib_source_edge_identity();
     let output_edge = output.directed_face_edge(0, [0, 1]).unwrap();
+    output.topology.set_left_direct(output_edge, None).unwrap();
     output
         .meshlib_mapped_contour_edge_indices
         .insert((ExactBooleanOperand::Second, 0), output_edge);
@@ -127,7 +145,11 @@ fn map_edge_like_meshlib_restores_halfedge_parity_from_undirected_map() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -165,7 +187,11 @@ fn translated_record_walks_use_meshlib_undirected_edge_map_parity() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -196,14 +222,56 @@ fn translated_record_walks_use_meshlib_undirected_edge_map_parity() {
 }
 
 #[test]
-fn mapped_face_edge_prefers_meshlib_valid_left_ring_mapping() {
+fn translated_record_walks_to_next_mapped_source_edge_like_meshlib() {
     let cut_mesh = ExactCutMeshResult {
         vertices: vec![[0.0; 3]; 3],
         faces: vec![[0, 1, 2]],
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
+        skipped_source_faces: Vec::new(),
+    };
+    let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
+    let source_edge = source.face_edges.get(&0).unwrap()[0];
+    let unmapped_next = source.topology.next(source_edge);
+    let mapped_after_next = source.topology.next(unmapped_next);
+    let unmapped_prev = source.topology.prev(source_edge);
+    let mapped_before_prev = source.topology.prev(unmapped_prev);
+    let output_next = ExactHalfEdgeId(100);
+    let output_prev = ExactHalfEdgeId(102);
+    let mut next_edge_map = BTreeMap::new();
+    next_edge_map.insert(mapped_after_next, output_next);
+    let mut prev_edge_map = BTreeMap::new();
+    prev_edge_map.insert(mapped_before_prev, output_prev);
+
+    assert_eq!(
+        mapped_next(&source, unmapped_next, &next_edge_map),
+        Some(output_next)
+    );
+    assert_eq!(
+        mapped_prev(&source, unmapped_prev, &prev_edge_map),
+        Some(output_prev)
+    );
+}
+
+#[test]
+fn mapped_face_edge_uses_meshlib_first_mapped_source_ring_edge() {
+    let cut_mesh = ExactCutMeshResult {
+        vertices: vec![[0.0; 3]; 3],
+        faces: vec![[0, 1, 2]],
+        cut_edges: Vec::new(),
+        cut_edge_paths: Vec::new(),
+        cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
+        source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let source = SourcePreparedTopology::from_cut_mesh(&cut_mesh, &[0]).unwrap();
@@ -225,7 +293,7 @@ fn mapped_face_edge_prefers_meshlib_valid_left_ring_mapping() {
 
     assert_eq!(
         source.mapped_face_edge(&output, 0, 0, &edge_map, false),
-        Some(valid_output_edge)
+        Some(first_output_edge)
     );
 }
 
@@ -237,7 +305,11 @@ fn copied_edge_prepare_records_source_edge_copy_status() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let mut output = OutputFaceTopology::from_faces(&[]).unwrap();
@@ -277,4 +349,47 @@ fn copied_edge_prepare_records_source_edge_copy_status() {
     assert_eq!(lookup.output_right, None);
     assert!(lookup.output_next_edge_id.is_some());
     assert!(lookup.output_prev_edge_id.is_some());
+}
+
+#[test]
+fn copied_edge_prepare_skips_untranslated_contour_support_records() {
+    let cut_mesh = ExactCutMeshResult {
+        vertices: vec![[0.0; 3]; 3],
+        faces: vec![[0, 1, 2]],
+        cut_edges: vec![[0, 1], [1, 2], [2, 0]],
+        cut_edge_paths: Vec::new(),
+        cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
+        source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
+        skipped_source_faces: Vec::new(),
+    };
+    let mut output = OutputFaceTopology::from_faces(&[[0, 1, 2]]).unwrap();
+    output.use_meshlib_source_edge_identity();
+    let output_edge = output.directed_face_edge(0, [0, 1]).unwrap();
+    output.topology.set_left_direct(output_edge, None).unwrap();
+    output
+        .meshlib_mapped_contour_edge_indices
+        .insert((ExactBooleanOperand::Second, 0), output_edge);
+
+    let prepared = prepare_meshlib_copied_edges(
+        &mut output,
+        ExactMeshlibCopiedEdgeTranslationInput {
+            cut_mesh: &cut_mesh,
+            prepared_faces: &[],
+            vertex_map: &[Some(0), Some(1), Some(2)],
+            contour_vertex_maps: vec![([0, 1], [0, 1])],
+            contour_vertex_map_source_indices: vec![Some(0)],
+            face_sources: &[],
+            incoming_operand: ExactBooleanOperand::Second,
+            first_virtual_vertex: 3,
+            append_prepared_faces: false,
+            flip_orientation: false,
+        },
+    )
+    .unwrap();
+
+    assert_eq!(prepared.summary.copied_edges, 0);
 }

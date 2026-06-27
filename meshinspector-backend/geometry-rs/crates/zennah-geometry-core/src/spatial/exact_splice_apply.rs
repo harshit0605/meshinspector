@@ -10,14 +10,17 @@ mod prepared_base;
 mod prepared_base_contours;
 mod source_records;
 pub(super) use copied_edges::{
-    ExactMeshlibCopiedEdgeTranslationInput, ExactMeshlibCopiedSourceEdgeLookupDiagnostic,
+    meshlib_copied_vertex_map_for_input, ExactMeshlibCopiedEdgeTranslationInput,
+    ExactMeshlibCopiedSourceEdgeLookupDiagnostic,
 };
 pub(super) use output_topology::OutputFaceTopology;
 pub(crate) use output_topology::{
-    ExactMeshlibFaceExportFailureDiagnostic, ExactMeshlibNearStitchCandidateDiagnostics,
-    ExactMeshlibNearStitchLinkedEdgeDiagnostic, ExactMeshlibNearStitchRingDiagnostic,
-    ExactMeshlibNearStitchSourceLookupDiagnostics, ExactMeshlibNearStitchTargetSnapshot,
-    ExactMeshlibPreparedSourceRecordReplayDiagnostic, ExactMeshlibRecordRewriteTargetDiagnostic,
+    ExactMeshlibCopiedFaceRecordCandidateDiagnostic, ExactMeshlibCopiedFaceRecordDiagnostic,
+    ExactMeshlibCopiedPrevNextEdgeUpdateDiagnostic, ExactMeshlibFaceExportFailureDiagnostic,
+    ExactMeshlibNearStitchCandidateDiagnostics, ExactMeshlibNearStitchLinkedEdgeDiagnostic,
+    ExactMeshlibNearStitchRingDiagnostic, ExactMeshlibNearStitchSourceLookupDiagnostics,
+    ExactMeshlibNearStitchTargetSnapshot, ExactMeshlibPreparedSourceRecordReplayDiagnostic,
+    ExactMeshlibRecordRewriteTargetDiagnostic,
 };
 pub(super) use prepared_base::{
     output_topology_from_prepared_base, ExactMeshlibPreparedBaseTopologyInput,

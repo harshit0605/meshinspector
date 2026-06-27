@@ -1,14 +1,17 @@
-use crate::math::{add, distance_sq, dot, norm, scale, sub};
+use crate::math::{add, dot, norm, scale, sub};
 use crate::mesh::{
     edge_face_map, mesh_bounds, mesh_stats, validate_faces, vertex_face_adjacency,
     vertex_neighbor_list, vertex_normals,
 };
 use crate::spatial::{
-    closest_point_on_triangle, point_mesh_distances, ray_thickness_at_vertices,
-    self_intersecting_faces, signed_point_mesh_distances,
+    build_flat_bvh, closest_point_excluding_incident, point_mesh_distances,
+    ray_thickness_at_vertices, self_intersecting_faces, signed_point_mesh_distances, FlatBvh,
 };
 use crate::{DistanceSummary, GeometryError, ThicknessSummary, VersionCompareSummary};
 use rayon::prelude::*;
+
+mod section;
+pub use section::{section_contour, SectionContour, SectionContourSegment};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct SignedCompareOptions {
@@ -79,6 +82,77 @@ pub fn summarize_thickness(values: &[f32], threshold_mm: f64) -> ThicknessSummar
     }
 }
 
+#[derive(Debug, Clone, PartialEq)]
+pub struct ScalarOverlayPayload {
+    pub overlay_type: String,
+    pub values: Vec<f64>,
+    pub min_value: f64,
+    pub max_value: f64,
+    pub center_value: f64,
+    pub threshold_mm: Option<f64>,
+    pub max_abs_value: f64,
+    pub mean_value: f64,
+    pub valid_count: usize,
+}
+
+pub fn scalar_overlay_payload(
+    values: &[f32],
+    overlay_type: &str,
+    center_value: f64,
+    threshold_mm: Option<f64>,
+    max_abs_value: f64,
+) -> ScalarOverlayPayload {
+    let mut display_values = Vec::with_capacity(values.len());
+    let mut valid_count = 0_usize;
+    let mut min_value = f64::INFINITY;
+    let mut max_value = f64::NEG_INFINITY;
+    let mut max_abs = 0.0_f64;
+    let mut sum = 0.0_f64;
+
+    for value in values {
+        let scalar = f64::from(*value);
+        let is_valid = scalar.is_finite() && scalar.abs() <= max_abs_value;
+        if is_valid {
+            valid_count += 1;
+            min_value = min_value.min(scalar);
+            max_value = max_value.max(scalar);
+            max_abs = max_abs.max(scalar.abs());
+            sum += scalar;
+            display_values.push(round_five_places(scalar));
+        } else {
+            display_values.push(0.0);
+        }
+    }
+
+    ScalarOverlayPayload {
+        overlay_type: overlay_type.to_string(),
+        values: display_values,
+        min_value: if valid_count == 0 {
+            0.0
+        } else {
+            round_five_places(min_value)
+        },
+        max_value: if valid_count == 0 {
+            0.0
+        } else {
+            round_five_places(max_value)
+        },
+        center_value: round_five_places(center_value),
+        threshold_mm: threshold_mm.map(round_five_places),
+        max_abs_value: round_five_places(max_abs),
+        mean_value: if valid_count == 0 {
+            0.0
+        } else {
+            round_five_places(sum / valid_count as f64)
+        },
+        valid_count,
+    }
+}
+
+fn round_five_places(value: f64) -> f64 {
+    (value * 100_000.0).round() / 100_000.0
+}
+
 pub fn insphere_thickness_at_vertices(
     vertices: &[[f64; 3]],
     faces_i64: &[[i64; 3]],
@@ -94,6 +168,7 @@ pub fn insphere_thickness_at_vertices(
         .iter()
         .map(|face| [vertices[face[0]], vertices[face[1]], vertices[face[2]]])
         .collect();
+    let bvh = build_flat_bvh(&triangles, 16);
     let normals = vertex_normals(vertices.len(), &triangles, &faces);
     let incident_faces = vertex_face_adjacency(vertices.len(), &faces);
     let neighbors = vertex_neighbor_list(vertices.len(), &faces);
@@ -114,6 +189,7 @@ pub fn insphere_thickness_at_vertices(
                     direction,
                     vertices,
                     &triangles,
+                    &bvh,
                     &neighbors[vertex_id],
                     &incident_faces[vertex_id],
                     options,
@@ -208,6 +284,7 @@ fn find_insphere_radius_for_direction(
     direction: [f64; 3],
     vertices: &[[f64; 3]],
     triangles: &[[[f64; 3]; 3]],
+    bvh: &FlatBvh,
     neighbors: &[usize],
     incident_faces: &[i64],
     options: InSphereThicknessOptions,
@@ -227,7 +304,7 @@ fn find_insphere_radius_for_direction(
     for _ in 0..options.max_iters {
         let previous = radius;
         let center = add(anchor, scale(direction, radius));
-        let candidate = closest_nonincident_point(center, triangles, incident_faces)?;
+        let candidate = closest_point_excluding_incident(center, bvh, triangles, incident_faces)?;
         let Some(candidate_radius) =
             candidate_insphere_radius(anchor, direction, candidate, radius, options)
         else {
@@ -271,27 +348,6 @@ fn candidate_insphere_radius(
     Some(radius)
 }
 
-fn closest_nonincident_point(
-    point: [f64; 3],
-    triangles: &[[[f64; 3]; 3]],
-    incident_faces: &[i64],
-) -> Option<[f64; 3]> {
-    let mut best_point = None;
-    let mut best_distance_sq = f64::INFINITY;
-    for (face_index, triangle) in triangles.iter().enumerate() {
-        if incident_faces.contains(&(face_index as i64)) {
-            continue;
-        }
-        let candidate = closest_point_on_triangle(point, *triangle);
-        let candidate_distance_sq = distance_sq(point, candidate);
-        if candidate_distance_sq < best_distance_sq {
-            best_distance_sq = candidate_distance_sq;
-            best_point = Some(candidate);
-        }
-    }
-    best_point
-}
-
 pub fn nearest_vertex_distances(
     source_vertices: &[[f64; 3]],
     target_vertices: &[[f64; 3]],
@@ -300,7 +356,7 @@ pub fn nearest_vertex_distances(
         return vec![0.0; source_vertices.len()];
     }
     source_vertices
-        .iter()
+        .par_iter()
         .map(|source| {
             target_vertices
                 .iter()

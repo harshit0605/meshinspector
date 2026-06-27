@@ -1,0 +1,54 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Algo button icon fix preview</title>
+<style>
+  @font-face { font-family:'FA'; src:url('/meshlib-workbench/runtime/assets/fa-solid-900.ttf') format('truetype'); font-display:block; }
+  body{ margin:0; background:#1b1d22; color:#e8eaed; font-family:'Segoe UI',system-ui,sans-serif; }
+  .tabs{ display:flex; gap:26px; padding:10px 18px; background:#101216; font-size:14px; }
+  .tabs .t{ color:#9aa0a6; } .tabs .active{ color:#fff; background:#2f6fed; padding:3px 12px; border-radius:4px; }
+  .ribbon{ display:flex; align-items:stretch; padding:8px 4px; background:#1b1d22; border-bottom:1px solid #2a2d33; }
+  .grp{ display:flex; align-items:flex-end; padding:0 10px; border-right:1px solid #2a2d33; }
+  .grp:last-child{ border-right:none; }
+  .btn{ width:78px; height:74px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; gap:8px;
+        padding-top:10px; border-radius:6px; cursor:default; }
+  .btn:hover{ background:#262a31; }
+  .ic{ font-family:'FA'; font-size:26px; line-height:26px; height:28px; color:#cbd2dc; }
+  .new .ic{ color:#7db1ff; }
+  .lbl{ font-size:11px; line-height:13px; text-align:center; color:#cfd3d8; max-width:74px; }
+  .section{ padding:14px 20px 4px; font-size:13px; letter-spacing:.12em; text-transform:uppercase; color:#8a909a; }
+  .tag{ display:inline-block; font-size:11px; padding:1px 7px; border-radius:9px; margin-left:8px; }
+  .bad{ background:#3a1d1d; color:#ff8a8a; } .good{ background:#16321f; color:#7ee0a3; }
+</style></head>
+<body>
+  <div class="tabs"><span class="t">Home</span><span class="t">View</span><span class="t">Select</span><span class="t">CT</span><span class="t active">Modify</span><span class="t">Inspect</span></div>
+
+  <div class="section">After — remapped to valid Font Awesome glyphs <span class="tag good">icons render</span></div>
+  <div class="ribbon" id="after"></div>
+
+  <div class="section">Before — broken codepoints the bundled font lacks <span class="tag bad">blank → text-only</span></div>
+  <div class="ribbon" id="before"></div>
+
+<script>
+  // [label, NEW codepoint (valid FA), OLD codepoint (missing from font)]
+  const groups = [
+    ['Simplify', [['Decimate Mesh',0xF066,0xE1D0],['Subdivide Mesh',0xF00A,0xE1D2],['Make Delone',0xF5EE,0xE1D3]]],
+    ['Sculpt',   [['Thicken Brush',0xF1FC,0xE1B2],['Scoop Brush',0xF12D,0xE1C7],['Smooth Brush',0xF0D0,0xE1D5]]],
+    ['Geometry', [['Exact Boolean',0xF247,0xE1AE],['Offset Mesh',0xF065,0xE1B5],['Shell Mesh',0xF0C8,0xE1B6],['Mesh Healer',0xF0AD,0xE1B8]]],
+    ['Analyze',  [['Measure / Inspect',0xF546,0xE0C1],['Compare / Report',0xF24D,0xE1E0],['Point Cloud / ICP',0xF542,0xE1ED],['Voxels / CT',0xF1B3,0xE1F2]]],
+  ];
+  function render(containerId, idx, cls){
+    const c=document.getElementById(containerId);
+    for(const [gname, items] of groups){
+      const g=document.createElement('div'); g.className='grp';
+      for(const it of items){
+        const b=document.createElement('div'); b.className='btn '+cls;
+        const ic=document.createElement('div'); ic.className='ic'; ic.textContent=String.fromCodePoint(it[idx]);
+        const l=document.createElement('div'); l.className='lbl'; l.textContent=it[0];
+        b.appendChild(ic); b.appendChild(l); g.appendChild(b);
+      }
+      c.appendChild(g);
+    }
+  }
+  document.fonts.load('26px FA').then(()=>{ render('after',1,'new'); render('before',2,'old'); });
+  setTimeout(()=>{ if(!document.getElementById('after').children.length){ render('after',1,'new'); render('before',2,'old'); } }, 600);
+</script>
+</body></html>

@@ -5,7 +5,14 @@ import hashlib
 import numpy as np
 import pytest
 
-from geometry_sdk.analysis.artifacts import load_compare_npz, load_thickness_npz, save_compare_npz, save_thickness_npz
+from geometry_sdk.analysis.artifacts import (
+    compare_overlay_payload,
+    load_compare_npz,
+    load_thickness_npz,
+    save_compare_npz,
+    save_thickness_npz,
+    thickness_overlay_payload,
+)
 from geometry_sdk.analysis.compare import signed_surface_distances
 from geometry_sdk.analysis.thickness import ray_thickness_at_vertices
 from geometry_sdk.adapters.meshlib_reference import save_compare_npz as meshlib_save_compare_npz
@@ -13,6 +20,7 @@ from geometry_sdk.adapters.meshlib_reference import save_thickness_npz as meshli
 from geometry_sdk.io.trimesh_adapter import save_mesh
 from geometry_sdk.testing.fixtures import cube
 from geometry_sdk.testing.goldens import GOLDEN_DIR, assert_metric_dict_close, load_golden
+from services import manufacturability as manufacturability_service
 
 
 def test_thickness_npz_matches_current_overlay_contract(tmp_path) -> None:
@@ -45,9 +53,68 @@ def test_compare_npz_matches_current_overlay_contract(tmp_path) -> None:
     assert other_version_id == "version-b"
 
 
+def test_scalar_overlay_payloads_match_frontend_contract(tmp_path) -> None:
+    thickness_path = save_thickness_npz(
+        tmp_path / "thickness.npz",
+        np.array([0.5, np.nan, np.inf, -np.inf, np.finfo(np.float32).max, 1.25], dtype=np.float32),
+        vertex_count=6,
+        threshold_mm=0.6,
+    )
+    compare_path = save_compare_npz(
+        tmp_path / "compare.npz",
+        np.array([-0.25, 0.0, 0.75], dtype=np.float32),
+        vertex_count=3,
+        other_version_id="version-b",
+    )
+
+    thickness = thickness_overlay_payload(thickness_path)
+    compare = compare_overlay_payload(compare_path, other_version_id="version-b")
+
+    assert thickness == {
+        "overlay_type": "thickness",
+        "values": [0.5, 0.0, 0.0, 0.0, 0.0, 1.25],
+        "min_value": 0.5,
+        "max_value": 1.25,
+        "center_value": 0.6,
+        "threshold_mm": 0.6,
+    }
+    assert compare["overlay_type"] == "compare"
+    assert compare["values"] == [-0.25, 0.0, 0.75]
+    assert compare["min_value"] == -0.25
+    assert compare["max_value"] == 0.75
+    assert compare["center_value"] == 0.0
+    assert compare["threshold_mm"] is None
+    assert compare["summary"] == {
+        "other_version_id": "version-b",
+        "max_abs_distance_mm": 0.75,
+        "mean_distance_mm": 0.16667,
+        "cached": True,
+    }
+
+
 def test_scalar_artifact_helpers_reject_vertex_count_mismatch(tmp_path) -> None:
     with pytest.raises(ValueError, match="vertex count"):
         save_thickness_npz(tmp_path / "bad.npz", np.zeros(3, dtype=np.float32), vertex_count=4, threshold_mm=0.6)
+
+
+def test_manufacturability_snapshot_defers_full_thickness_for_large_mesh(monkeypatch, tmp_path) -> None:
+    source = save_mesh(cube(size=2.0), tmp_path / "cube.ply")
+    monkeypatch.setattr(manufacturability_service.settings, "MANUFACTURABILITY_THICKNESS_MAX_VERTICES", 1)
+
+    def fail_service_thickness(*_args, **_kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("full thickness should be deferred")
+
+    monkeypatch.setattr(manufacturability_service.default_sdk, "service_thickness", fail_service_thickness)
+
+    snapshot, artifacts = manufacturability_service.compute_manufacturability_snapshot(source, tmp_path / "snapshot")
+    thickness_values = np.load(artifacts.thickness_scalar_path)["thickness"]
+
+    assert snapshot.thickness.min_mm is None
+    assert snapshot.thickness.avg_mm is None
+    assert snapshot.thickness.max_mm is None
+    assert np.isnan(thickness_values).all()
+    assert thickness_values.shape == (cube(size=2.0).vertex_count,)
+    assert any("deferred" in recommendation for recommendation in snapshot.recommendations)
 
 
 def test_checked_in_meshlib_scalar_artifact_goldens_match_contract() -> None:

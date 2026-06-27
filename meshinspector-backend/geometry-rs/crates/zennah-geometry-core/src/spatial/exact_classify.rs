@@ -4,7 +4,6 @@ use crate::GeometryError;
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
 const CLASSIFICATION_RAY_DIRECTION: [f64; 3] = [1.0, 0.371, 0.219];
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExactComponentClassification {
     pub component_index: usize,
@@ -37,6 +36,17 @@ pub struct ExactCutPathClassificationInput<'a> {
     pub epsilon: f64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(super) struct ExactCutPathSideComponentDetails {
+    pub component_faces: Vec<Vec<usize>>,
+    pub left_component_indices: Vec<usize>,
+    pub right_component_indices: Vec<usize>,
+    pub overlap_component_indices: Vec<usize>,
+    pub left_component_faces: Vec<Vec<usize>>,
+    pub right_component_faces: Vec<Vec<usize>>,
+    pub overlap_component_faces: Vec<Vec<usize>>,
+}
+
 pub fn exact_classify_components(
     vertices: &[[f64; 3]],
     faces_i64: &[[i64; 3]],
@@ -63,10 +73,33 @@ pub fn exact_classify_components(
 pub fn exact_classify_components_with_cut_paths(
     input: ExactCutPathClassificationInput<'_>,
 ) -> Result<ExactMeshPartClassification, GeometryError> {
+    exact_classify_components_with_cut_paths_impl(input, &[], true)
+}
+
+pub(super) fn exact_classify_components_with_cut_paths_and_barriers(
+    input: ExactCutPathClassificationInput<'_>,
+    extra_barrier_edges: &[[usize; 2]],
+) -> Result<ExactMeshPartClassification, GeometryError> {
+    exact_classify_components_with_cut_paths_impl(input, extra_barrier_edges, true)
+}
+
+pub(super) fn exact_classify_components_with_cut_paths_and_barriers_without_orientation_normalization(
+    input: ExactCutPathClassificationInput<'_>,
+    extra_barrier_edges: &[[usize; 2]],
+) -> Result<ExactMeshPartClassification, GeometryError> {
+    exact_classify_components_with_cut_paths_impl(input, extra_barrier_edges, false)
+}
+
+fn exact_classify_components_with_cut_paths_impl(
+    input: ExactCutPathClassificationInput<'_>,
+    extra_barrier_edges: &[[usize; 2]],
+    normalize_cut_path_orientation: bool,
+) -> Result<ExactMeshPartClassification, GeometryError> {
     let faces = validate_faces(input.faces_i64, input.vertices.len())?;
     validate_faces(input.other_faces_i64, input.other_vertices.len())?;
     if input.cut_edge_paths.is_empty() {
-        let components = connected_components_excluding_cut_edges(&faces, input.cut_edges);
+        let component_cut_edges = component_cut_edges(input.cut_edges, extra_barrier_edges);
+        let components = connected_components_excluding_cut_edges(&faces, &component_cut_edges);
         let mut classification = classify_components_by_sampling(
             input.vertices,
             &faces,
@@ -80,12 +113,17 @@ pub fn exact_classify_components_with_cut_paths(
         return Ok(classification);
     }
 
-    let path_cut_edges = cut_path_edges(input.cut_edge_paths);
+    let path_cut_edges =
+        component_cut_edges(&cut_path_edges(input.cut_edge_paths), extra_barrier_edges);
     let components = connected_components_excluding_cut_edges(&faces, &path_cut_edges);
     let face_to_component = face_to_component_map(faces.len(), &components);
     let directed_faces = directed_face_map(&faces);
-    let side_components =
-        cut_path_side_components(input.cut_edge_paths, &directed_faces, &face_to_component);
+    let side_components = cut_path_side_components_impl(
+        input.cut_edge_paths,
+        &directed_faces,
+        &face_to_component,
+        normalize_cut_path_orientation,
+    );
     if !side_components.consistent() {
         let mut classification = classify_components_by_sampling(
             input.vertices,
@@ -128,6 +166,92 @@ pub fn exact_classify_components_with_cut_paths(
         need_inside: input.need_inside,
         epsilon: input.epsilon,
     })
+}
+
+pub(super) fn exact_cut_path_side_component_details(
+    vertex_count: usize,
+    faces_i64: &[[i64; 3]],
+    cut_edge_paths: &[Vec<[usize; 2]>],
+) -> Result<ExactCutPathSideComponentDetails, GeometryError> {
+    exact_cut_path_side_component_details_with_barriers(
+        vertex_count,
+        faces_i64,
+        cut_edge_paths,
+        &[],
+    )
+}
+
+pub(super) fn exact_cut_path_side_component_details_with_barriers(
+    vertex_count: usize,
+    faces_i64: &[[i64; 3]],
+    cut_edge_paths: &[Vec<[usize; 2]>],
+    extra_barrier_edges: &[[usize; 2]],
+) -> Result<ExactCutPathSideComponentDetails, GeometryError> {
+    let faces = validate_faces(faces_i64, vertex_count)?;
+    if cut_edge_paths.is_empty() {
+        return Ok(ExactCutPathSideComponentDetails::default());
+    }
+
+    let path_cut_edges = component_cut_edges(&cut_path_edges(cut_edge_paths), extra_barrier_edges);
+    let components = connected_components_excluding_cut_edges(&faces, &path_cut_edges);
+    let face_to_component = face_to_component_map(faces.len(), &components);
+    let directed_faces = directed_face_map(&faces);
+    let side_components =
+        cut_path_side_components(cut_edge_paths, &directed_faces, &face_to_component);
+    let left_component_indices = side_components
+        .left_components
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+    let right_component_indices = side_components
+        .right_components
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+    let overlap_component_indices = side_components
+        .left_components
+        .intersection(&side_components.right_components)
+        .copied()
+        .collect::<Vec<_>>();
+    let component_faces = components
+        .iter()
+        .map(|component| {
+            let mut faces = component.clone();
+            faces.sort_unstable();
+            faces
+        })
+        .collect::<Vec<_>>();
+
+    let left_component_faces =
+        component_faces_for_indices(&component_faces, &left_component_indices);
+    let right_component_faces =
+        component_faces_for_indices(&component_faces, &right_component_indices);
+    let overlap_component_faces =
+        component_faces_for_indices(&component_faces, &overlap_component_indices);
+
+    Ok(ExactCutPathSideComponentDetails {
+        component_faces,
+        left_component_indices,
+        right_component_indices,
+        overlap_component_indices,
+        left_component_faces,
+        right_component_faces,
+        overlap_component_faces,
+    })
+}
+
+fn component_cut_edges(
+    base_edges: &[[usize; 2]],
+    extra_barrier_edges: &[[usize; 2]],
+) -> Vec<[usize; 2]> {
+    base_edges
+        .iter()
+        .chain(extra_barrier_edges)
+        .copied()
+        .map(ordered_edge)
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 fn classify_components_by_sampling(
@@ -247,25 +371,25 @@ fn connected_components_excluding_cut_edges(
         .copied()
         .map(ordered_edge)
         .collect::<BTreeSet<_>>();
-    let mut edge_faces = HashMap::<[usize; 2], Vec<usize>>::new();
+    let mut unmatched_edges = HashMap::<[usize; 2], Vec<([usize; 2], usize)>>::new();
+    let mut adjacency = vec![Vec::<usize>::new(); faces.len()];
     for (face_index, face) in faces.iter().enumerate() {
         for edge in face_edges(*face) {
-            let edge = ordered_edge(edge);
-            if cut_edges.contains(&edge) {
+            let key = ordered_edge(edge);
+            if cut_edges.contains(&key) {
                 continue;
             }
-            edge_faces.entry(edge).or_default().push(face_index);
-        }
-    }
 
-    let mut adjacency = vec![Vec::<usize>::new(); faces.len()];
-    for face_indices in edge_faces.values() {
-        for left_index in 0..face_indices.len() {
-            for right_index in left_index + 1..face_indices.len() {
-                let left = face_indices[left_index];
-                let right = face_indices[right_index];
-                adjacency[left].push(right);
-                adjacency[right].push(left);
+            let candidates = unmatched_edges.entry(key).or_default();
+            if let Some(match_index) = candidates
+                .iter()
+                .position(|(stored_edge, _)| *stored_edge == reverse_edge(edge))
+            {
+                let (_, adjacent_face) = candidates.swap_remove(match_index);
+                adjacency[face_index].push(adjacent_face);
+                adjacency[adjacent_face].push(face_index);
+            } else {
+                candidates.push((edge, face_index));
             }
         }
     }
@@ -361,9 +485,18 @@ fn cut_path_side_components(
     directed_faces: &BTreeMap<[usize; 2], Vec<usize>>,
     face_to_component: &[Option<usize>],
 ) -> CutPathSideComponents {
+    cut_path_side_components_impl(cut_edge_paths, directed_faces, face_to_component, true)
+}
+
+fn cut_path_side_components_impl(
+    cut_edge_paths: &[Vec<[usize; 2]>],
+    directed_faces: &BTreeMap<[usize; 2], Vec<usize>>,
+    face_to_component: &[Option<usize>],
+    normalize_cut_path_orientation: bool,
+) -> CutPathSideComponents {
     let path_sides = path_cut_side_components(cut_edge_paths, directed_faces, face_to_component);
     let fixed_sides = merge_path_sides(&path_sides);
-    if fixed_sides.consistent() {
+    if fixed_sides.consistent() || !normalize_cut_path_orientation {
         return fixed_sides;
     }
     orientation_normalized_path_sides(&path_sides).unwrap_or(fixed_sides)
@@ -551,6 +684,16 @@ fn ordered_edge(edge: [usize; 2]) -> [usize; 2] {
 
 fn reverse_edge(edge: [usize; 2]) -> [usize; 2] {
     [edge[1], edge[0]]
+}
+
+fn component_faces_for_indices(
+    components: &[Vec<usize>],
+    component_indices: &[usize],
+) -> Vec<Vec<usize>> {
+    component_indices
+        .iter()
+        .filter_map(|component_index| components.get(*component_index).cloned())
+        .collect()
 }
 
 #[cfg(test)]

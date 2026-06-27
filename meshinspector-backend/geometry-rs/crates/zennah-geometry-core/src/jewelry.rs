@@ -1,5 +1,7 @@
 use crate::math::{dot, norm, normalize_vector, scale, sub};
-use crate::mesh::{bounds, safe_normalize_vector, vertex_normals_for_mesh};
+use crate::mesh::{
+    bounds, safe_normalize_vector, vertex_neighbors_for_mesh, vertex_normals_for_mesh,
+};
 use crate::{GeometryError, RegionEntry, RingMeasurement};
 use nalgebra::{Matrix3, SymmetricEigen};
 
@@ -103,12 +105,22 @@ pub fn measure_ring(
         band_width = abs_axial.clone();
     }
 
-    let inner_radius = value_if_nonempty(&band_radial, |values| percentile(values.to_vec(), 12.0));
+    // Bore radius = the innermost band surface. Use a low percentile so the
+    // estimate tracks the true bore (the largest empty cylinder through the
+    // ring) and is not pulled outward by interior cavity walls on a hollowed
+    // ring — those add many mid-radius vertices that inflated a 12th-percentile
+    // estimate (e.g. a hollowed ring read half a US size too large). The 5th
+    // percentile stays at the bore for both solid and hollow rings while
+    // remaining robust to single inward-spike vertices.
+    let inner_radius = value_if_nonempty(&band_radial, |values| percentile(values.to_vec(), 5.0));
     let inner_diameter = inner_radius.map(|radius| round3(radius * 2.0));
     let band_width_min = value_if_nonempty(&band_width, |values| {
         round3(percentile(values.to_vec(), 50.0) * 2.0)
     });
-    let band_width_max = value_if_nonempty(&abs_axial, |values| {
+    // Widest cross-section *within the band window* (axial extent of the band
+    // itself), not the whole-ring axial extent — the global max pulls in the
+    // head/setting that rises along the axis and overstates the band width.
+    let band_width_max = value_if_nonempty(&band_width, |values| {
         round3(values.iter().copied().fold(f64::NEG_INFINITY, f64::max) * 2.0)
     });
     let head_height = value_if_nonempty(&radial_dist, |values| {
@@ -200,31 +212,80 @@ pub fn detect_ring_regions(
         radial_dirs.push(safe_normalize_vector(radial_vector));
     }
 
-    let curvature_like: Vec<f64> = normals
-        .iter()
-        .zip(radial_dirs.iter())
-        .map(|(normal, radial_dir)| 1.0 - dot(*normal, *radial_dir).abs().clamp(0.0, 1.0))
+    // Real local surface relief: how much each vertex normal deviates from its
+    // one-ring neighbours. A smooth surface (sphere, torus, plain band) scores
+    // near zero everywhere; genuine engraved/raised ornament spikes. The old
+    // metric used normal-vs-radial alignment, which is a *shape* signal, not a
+    // *detail* signal, so it flagged most of a smooth torus as ornament.
+    let neighbors = vertex_neighbors_for_mesh(vertices, faces)?;
+    let curvature_like: Vec<f64> = (0..vertices.len())
+        .map(|index| {
+            let normal = normals[index];
+            let neighbor_ids = &neighbors[index];
+            if neighbor_ids.is_empty() {
+                return 0.0;
+            }
+            let total: f64 = neighbor_ids
+                .iter()
+                .map(|neighbor| {
+                    let neighbor_normal = normals[*neighbor as usize];
+                    1.0 - dot(normal, neighbor_normal).clamp(-1.0, 1.0)
+                })
+                .sum();
+            total / neighbor_ids.len() as f64
+        })
         .collect();
     let abs_axial: Vec<f64> = axial.iter().map(|value| value.abs()).collect();
 
     let radial_p35 = percentile(radial.clone(), 35.0);
-    let radial_p72 = percentile(radial.clone(), 72.0);
     let radial_p90 = percentile(radial.clone(), 90.0);
+    let radial_p95 = percentile(radial.clone(), 95.0);
+    let radial_max = radial.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let axial_p40 = percentile(abs_axial.clone(), 40.0);
     let axial_p68 = percentile(abs_axial.clone(), 68.0);
-    let curvature_p75 = percentile(curvature_like.clone(), 75.0);
+    // Ornament relief is curvature that stands out *relative to the surface's
+    // own curvature*, not an absolute angle (which scales with mesh resolution —
+    // a coarse-but-smooth torus has large facet angles yet no relief). A vertex
+    // is relief only if its neighbour-normal deviation is in the top decile AND
+    // several times the median deviation. On a uniformly curved surface the
+    // median*factor threshold sits above every vertex, so nothing is flagged.
+    const ORNAMENT_RELIEF_FACTOR: f64 = 3.0;
+    let curvature_median = percentile(curvature_like.clone(), 50.0);
+    let curvature_p90q = percentile(curvature_like.clone(), 90.0);
+    let ornament_curvature_threshold =
+        (curvature_median * ORNAMENT_RELIEF_FACTOR).max(curvature_p90q);
+    let gem_seat_direction = radial
+        .iter()
+        .enumerate()
+        .max_by(|(_, left), (_, right)| {
+            left.partial_cmp(right).unwrap_or(std::cmp::Ordering::Equal)
+        })
+        .map(|(index, _)| radial_dirs[index])
+        .unwrap_or([0.0, 0.0, 0.0]);
+    let has_gem_seat_relief =
+        radial_max.is_finite() && radial_p90.is_finite() && radial_max >= radial_p90 + 0.5;
 
     let mut masks = RegionMasks::empty(vertices.len());
     for index in 0..vertices.len() {
         let is_inner = abs_axial[index] <= axial_p40 && radial[index] <= radial_p35;
+        let is_gem_seat = has_gem_seat_relief
+            && radial[index] >= radial_p95
+            && dot(radial_dirs[index], gem_seat_direction) >= 0.86;
         let is_head = radial[index] >= radial_p90 && abs_axial[index] >= axial_p40 * 0.8;
+        // Ornament must show genuine surface relief, not merely sit at a large
+        // radius (a smooth raised dome is "head", not ornament). The radius
+        // gate is now a supporting condition, not an independent trigger.
         let is_ornament = !is_inner
+            && !is_gem_seat
             && !is_head
-            && (radial[index] >= radial_p72 || curvature_like[index] >= curvature_p75);
+            && curvature_like[index] >= ornament_curvature_threshold
+            && radial[index] >= radial_p35;
         let is_outer = !is_inner && !is_head && !is_ornament && abs_axial[index] <= axial_p68;
 
         if is_inner {
             masks.inner_band.push(index);
+        } else if is_gem_seat {
+            masks.gem_seat.push(index);
         } else if is_head {
             masks.head.push(index);
         } else if is_ornament {
@@ -379,6 +440,7 @@ struct RegionMasks {
     inner_band: Vec<usize>,
     outer_band: Vec<usize>,
     head: Vec<usize>,
+    gem_seat: Vec<usize>,
     ornament_relief: Vec<usize>,
     unknown: Vec<usize>,
 }
@@ -389,6 +451,7 @@ impl RegionMasks {
             inner_band: Vec::with_capacity(vertex_count),
             outer_band: Vec::new(),
             head: Vec::new(),
+            gem_seat: Vec::new(),
             ornament_relief: Vec::new(),
             unknown: Vec::new(),
         }
@@ -403,28 +466,45 @@ fn region_entries(
 ) -> Vec<RegionEntry> {
     vec![
         region_entry(
-            RegionSpec::new("inner_band", "Inner Band", true, &["scoop", "smooth"]),
+            RegionSpec::new(
+                "inner_band",
+                "Inner Band",
+                true,
+                &["scoop", "thicken", "smooth"],
+            ),
             masks.inner_band,
             vertices,
             thickness,
             threshold_mm,
         ),
         region_entry(
-            RegionSpec::new("outer_band", "Outer Band", false, &["smooth"]),
+            RegionSpec::new("outer_band", "Outer Band", false, &["thicken", "smooth"]),
             masks.outer_band,
             vertices,
             thickness,
             threshold_mm,
         ),
         region_entry(
-            RegionSpec::new("head", "Head", true, &["smooth"]),
+            RegionSpec::new("head", "Head", true, &["thicken", "smooth"]),
             masks.head,
             vertices,
             thickness,
             threshold_mm,
         ),
         region_entry(
-            RegionSpec::new("ornament_relief", "Ornament Relief", true, &["smooth"]),
+            RegionSpec::new("gem_seat", "Gem Seat", true, &["thicken", "smooth"]),
+            masks.gem_seat,
+            vertices,
+            thickness,
+            threshold_mm,
+        ),
+        region_entry(
+            RegionSpec::new(
+                "ornament_relief",
+                "Ornament Relief",
+                true,
+                &["thicken", "smooth"],
+            ),
             masks.ornament_relief,
             vertices,
             thickness,
@@ -528,4 +608,56 @@ fn centroid_for_indices(vertices: &[[f64; 3]], indices: &[usize]) -> [f64; 3] {
         }
     }
     scale(total, 1.0 / indices.len() as f64)
+}
+
+#[cfg(test)]
+mod ornament_curvature_tests {
+    use super::detect_ring_regions;
+
+    fn smooth_torus(
+        nu: usize,
+        nv: usize,
+        big_r: f64,
+        small_r: f64,
+    ) -> (Vec<[f64; 3]>, Vec<[i64; 3]>) {
+        let mut vertices = Vec::with_capacity(nu * nv);
+        for i in 0..nu {
+            let u = std::f64::consts::TAU * i as f64 / nu as f64;
+            for j in 0..nv {
+                let v = std::f64::consts::TAU * j as f64 / nv as f64;
+                vertices.push([
+                    (big_r + small_r * v.cos()) * u.cos(),
+                    (big_r + small_r * v.cos()) * u.sin(),
+                    small_r * v.sin(),
+                ]);
+            }
+        }
+        let vid = |i: usize, j: usize| ((i % nu) * nv + (j % nv)) as i64;
+        let mut faces = Vec::with_capacity(nu * nv * 2);
+        for i in 0..nu {
+            for j in 0..nv {
+                faces.push([vid(i, j), vid(i + 1, j), vid(i + 1, j + 1)]);
+                faces.push([vid(i, j), vid(i + 1, j + 1), vid(i, j + 1)]);
+            }
+        }
+        (vertices, faces)
+    }
+
+    #[test]
+    fn smooth_torus_is_not_labelled_ornament() {
+        let (vertices, faces) = smooth_torus(64, 24, 10.0, 2.0);
+        let regions = detect_ring_regions(&vertices, &faces, [0.0, 0.0, 1.0], None, 0.6).unwrap();
+        let ornament = regions
+            .iter()
+            .find(|region| region.region_id == "ornament_relief")
+            .map(|region| region.vertex_indices.len())
+            .unwrap_or(0);
+        // The old normal-vs-radial metric labelled ~50% of this smooth surface as
+        // ornament; a real curvature gate must leave a smooth torus essentially clean.
+        assert!(
+            ornament <= vertices.len() / 50,
+            "smooth torus over-labelled as ornament: {ornament} / {}",
+            vertices.len()
+        );
+    }
 }

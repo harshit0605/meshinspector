@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from geometry_sdk.accelerators import rust
-from geometry_sdk.types import MeshDocument
+from geometry_sdk.types import MeshDocument, RingFitResult
 
 
 def radial_scale(
@@ -24,6 +24,30 @@ def radial_scale(
         "radial_scale_vertices",
     )
     return mesh.copy(vertices=vertices)
+
+
+def fit_ring_to_diameter(
+    mesh: MeshDocument,
+    measured_diameter_mm: float,
+    target_diameter_mm: float,
+    ring_axis: Any = None,
+    preserve_indices: Any = None,
+    max_preserve_scale_ratio: float = 1.5,
+) -> RingFitResult:
+    vertices, applied_uniform_fallback, scale_factor = rust.fit_ring_to_diameter_vertices(
+        mesh,
+        measured_diameter_mm,
+        target_diameter_mm,
+        ring_axis=ring_axis,
+        preserve_indices=preserve_indices,
+        max_preserve_scale_ratio=max_preserve_scale_ratio,
+    )
+    _require_rust(vertices, "fit_ring_to_diameter_vertices")
+    return RingFitResult(
+        mesh=mesh.copy(vertices=vertices),
+        applied_uniform_fallback=applied_uniform_fallback,
+        scale_factor=scale_factor,
+    )
 
 
 def resize_ring(

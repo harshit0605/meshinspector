@@ -1,15 +1,17 @@
-use super::exact_boolean::ExactBooleanOutputFaceSource;
+use super::exact_boolean::{ExactBooleanOperand, ExactBooleanOutputFaceSource};
 use super::exact_boolean_topology::ExactMeshlibRecordRewriteCommand;
 use super::exact_meshlib_near_stitch::{
     ExactMeshlibNearStitchEdgeUpdateCommand, ExactMeshlibNearStitchEndpoint,
 };
 use super::exact_splice_apply::{
-    output_topology_from_prepared_base, ExactMeshlibPreparedBaseTopologyInput,
+    meshlib_copied_vertex_map_for_input, ExactMeshlibCopiedEdgeTranslationInput,
+    ExactMeshlibCopiedFaceRecordDiagnostic, ExactMeshlibCopiedPrevNextEdgeUpdateDiagnostic,
+    ExactMeshlibFaceExportFailureDiagnostic, ExactMeshlibNearStitchCandidateDiagnostics,
+    ExactMeshlibPreparedSourceRecordReplayDiagnostic, ExactMeshlibRecordRewriteTargetDiagnostic,
+    OutputFaceTopology,
 };
 use super::exact_splice_apply::{
-    ExactMeshlibCopiedEdgeTranslationInput, ExactMeshlibFaceExportFailureDiagnostic,
-    ExactMeshlibNearStitchCandidateDiagnostics, ExactMeshlibPreparedSourceRecordReplayDiagnostic,
-    ExactMeshlibRecordRewriteTargetDiagnostic, OutputFaceTopology,
+    output_topology_from_prepared_base, ExactMeshlibPreparedBaseTopologyInput,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,6 +74,11 @@ pub(super) struct ExactMeshlibRecordRewriteApplyPlan {
     pub mapped_source_record_replay_attempts_on_near_stitch_targets: usize,
     pub skipped_mapped_source_record_replays: usize,
     pub mapped_source_record_replay_details: Vec<ExactMeshlibPreparedSourceRecordReplayDiagnostic>,
+    pub copied_prev_next_edge_update_attempts: usize,
+    pub copied_prev_next_edge_updates_applied: usize,
+    pub copied_prev_next_edge_updates_skipped: usize,
+    pub copied_prev_next_edge_update_details: Vec<ExactMeshlibCopiedPrevNextEdgeUpdateDiagnostic>,
+    pub copied_face_record_details: Vec<ExactMeshlibCopiedFaceRecordDiagnostic>,
     pub failed_copied_edge_records: usize,
     pub refreshed_face_records: usize,
     pub synthetic_side_edges: usize,
@@ -86,15 +93,20 @@ pub(super) struct ExactMeshlibRecordRewriteApplyPlan {
     pub export_failed_face_indices: Vec<usize>,
     pub export_failed_face_details: Vec<ExactMeshlibFaceExportFailureDiagnostic>,
     pub exported_face_indices: Vec<[i64; 3]>,
+    pub exported_face_operands: Vec<Option<ExactBooleanOperand>>,
+    pub exported_face_cut_faces: Vec<Option<usize>>,
+    pub exported_face_source_faces: Vec<Option<usize>>,
     pub topology_edges_before_rewrite: usize,
     pub topology_edges_after_rewrite: usize,
     pub export_changed_faces: bool,
     pub ready_for_export: bool,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct ExactMeshlibPreparedBaseRecordRewriteApplyPlan {
     pub apply: ExactMeshlibRecordRewriteApplyPlan,
+    pub vertices: Vec<[f64; 3]>,
+    pub faces: Vec<[i64; 3]>,
     pub prepared_faces: usize,
     pub prepared_vertices: usize,
     pub virtual_vertices: usize,
@@ -176,12 +188,17 @@ pub(super) fn exact_meshlib_prepared_base_record_rewrite_apply_plan(
             let prepared_vertices = prepared.vertices.len();
             let virtual_vertices = prepared.virtual_vertices;
             let prepared_face_sources = prepared.face_sources.len();
+            let mut vertices = prepared.vertices;
+            let faces = prepared.faces;
             let copied_edges = copied_edges.map(|mut copied_edges| {
-                copied_edges.first_virtual_vertex = prepared.vertices.len();
+                copied_edges.first_virtual_vertex = vertices.len();
                 copied_edges
             });
+            if let Some(copied_edges) = copied_edges.as_ref() {
+                append_meshlib_copied_vertices(&mut vertices, copied_edges);
+            }
             let apply = exact_meshlib_record_rewrite_apply_plan_from_topology(
-                &prepared.faces,
+                &faces,
                 Ok(prepared.topology),
                 commands,
                 near_stitch_updates,
@@ -189,6 +206,8 @@ pub(super) fn exact_meshlib_prepared_base_record_rewrite_apply_plan(
             );
             ExactMeshlibPreparedBaseRecordRewriteApplyPlan {
                 apply,
+                vertices,
+                faces,
                 prepared_faces,
                 prepared_vertices,
                 virtual_vertices,
@@ -205,12 +224,73 @@ pub(super) fn exact_meshlib_prepared_base_record_rewrite_apply_plan(
             );
             ExactMeshlibPreparedBaseRecordRewriteApplyPlan {
                 apply,
+                vertices: Vec::new(),
+                faces: Vec::new(),
                 prepared_faces: 0,
                 prepared_vertices: 0,
                 virtual_vertices: 0,
                 prepared_face_sources: 0,
             }
         }
+    }
+}
+
+fn append_meshlib_copied_vertices(
+    vertices: &mut Vec<[f64; 3]>,
+    copied_edges: &ExactMeshlibCopiedEdgeTranslationInput<'_>,
+) {
+    let Ok(vertex_map) = meshlib_copied_vertex_map_for_input(copied_edges) else {
+        return;
+    };
+    append_meshlib_copied_vertices_from_map(vertices, &copied_edges.cut_mesh.vertices, &vertex_map);
+}
+
+fn append_meshlib_copied_vertices_from_map(
+    vertices: &mut Vec<[f64; 3]>,
+    source_vertices: &[[f64; 3]],
+    vertex_map: &[Option<usize>],
+) {
+    let mut copied_vertices = vertex_map
+        .iter()
+        .enumerate()
+        .filter_map(|(source_vertex, mapped_vertex)| {
+            let mapped_vertex = (*mapped_vertex)?;
+            if mapped_vertex < vertices.len() {
+                return None;
+            }
+            let vertex = source_vertices.get(source_vertex).copied()?;
+            Some((mapped_vertex, vertex))
+        })
+        .collect::<Vec<_>>();
+    copied_vertices.sort_by_key(|(mapped_vertex, _)| *mapped_vertex);
+    for (mapped_vertex, vertex) in copied_vertices {
+        if mapped_vertex == vertices.len() {
+            vertices.push(vertex);
+        }
+    }
+}
+
+#[cfg(test)]
+mod append_tests {
+    use super::append_meshlib_copied_vertices_from_map;
+
+    #[test]
+    fn append_meshlib_copied_vertices_uses_mapped_vertex_order() {
+        let mut vertices = vec![[0.0, 0.0, 0.0]; 3];
+        let source_vertices = vec![
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            [3.0, 0.0, 0.0],
+            [4.0, 0.0, 0.0],
+        ];
+        let vertex_map = vec![None, None, Some(2), Some(4), Some(3)];
+
+        append_meshlib_copied_vertices_from_map(&mut vertices, &source_vertices, &vertex_map);
+
+        assert_eq!(vertices.len(), 5);
+        assert_eq!(vertices[3], [4.0, 0.0, 0.0]);
+        assert_eq!(vertices[4], [3.0, 0.0, 0.0]);
     }
 }
 
@@ -427,6 +507,30 @@ fn exact_meshlib_record_rewrite_apply_plan_from_topology(
         .iter()
         .filter(|detail| !detail.applied)
         .count();
+    let copied_prev_next_edge_update_attempts = output_topology
+        .as_ref()
+        .map(|topology| topology.meshlib_copied_prev_next_edge_update_attempts)
+        .unwrap_or(0);
+    let copied_prev_next_edge_updates_applied = output_topology
+        .as_ref()
+        .map(|topology| topology.meshlib_copied_prev_next_edge_updates_applied)
+        .unwrap_or(0);
+    let copied_prev_next_edge_updates_skipped = output_topology
+        .as_ref()
+        .map(|topology| topology.meshlib_copied_prev_next_edge_updates_skipped)
+        .unwrap_or(0);
+    let copied_prev_next_edge_update_details = output_topology
+        .as_ref()
+        .map(|topology| {
+            topology
+                .meshlib_copied_prev_next_edge_update_details
+                .clone()
+        })
+        .unwrap_or_default();
+    let copied_face_record_details = output_topology
+        .as_ref()
+        .map(|topology| topology.meshlib_copied_face_record_details.clone())
+        .unwrap_or_default();
     failed_copied_edge_records += output_topology
         .as_ref()
         .map(|topology| topology.meshlib_copied_edge_translation.failed_records)
@@ -479,6 +583,18 @@ fn exact_meshlib_record_rewrite_apply_plan_from_topology(
         - export_missing_origin_faces
         - export_face_record_left_mismatch_faces
         - export_face_left_ring_mismatch_faces;
+    let exported_face_operands = output_topology
+        .as_ref()
+        .map(|topology| topology.exported_face_operands_for_results(&export_results))
+        .unwrap_or_default();
+    let exported_face_cut_faces = output_topology
+        .as_ref()
+        .map(|topology| topology.exported_face_cut_faces_for_results(&export_results))
+        .unwrap_or_default();
+    let exported_face_source_faces = output_topology
+        .as_ref()
+        .map(|topology| topology.exported_face_source_faces_for_results(&export_results))
+        .unwrap_or_default();
     let exported_face_indices = export_results
         .into_iter()
         .filter_map(Result::ok)
@@ -526,6 +642,11 @@ fn exact_meshlib_record_rewrite_apply_plan_from_topology(
         mapped_source_record_replay_attempts_on_near_stitch_targets,
         skipped_mapped_source_record_replays,
         mapped_source_record_replay_details,
+        copied_prev_next_edge_update_attempts,
+        copied_prev_next_edge_updates_applied,
+        copied_prev_next_edge_updates_skipped,
+        copied_prev_next_edge_update_details,
+        copied_face_record_details,
         failed_copied_edge_records,
         refreshed_face_records,
         synthetic_side_edges,
@@ -540,6 +661,9 @@ fn exact_meshlib_record_rewrite_apply_plan_from_topology(
         export_failed_face_indices,
         export_failed_face_details,
         exported_face_indices,
+        exported_face_operands,
+        exported_face_cut_faces,
+        exported_face_source_faces,
         topology_edges_before_rewrite,
         topology_edges_after_rewrite,
         export_changed_faces,

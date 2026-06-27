@@ -12,7 +12,11 @@ fn cut_mesh_with_paths(
         cut_edges,
         cut_edge_paths,
         cut_edge_path_closed,
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: Vec::new(),
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     }
 }
@@ -102,6 +106,42 @@ fn exact_stitch_plan_prefers_meshlib_result_cut_path_grouping() {
     assert_eq!(plan.paths.len(), 2);
     assert_eq!(plan.paths[0].pair_indices, vec![0]);
     assert_eq!(plan.paths[1].pair_indices, vec![1]);
+}
+
+#[test]
+fn exact_stitch_plan_keeps_cut_path_segments_for_closed_edge_components() {
+    let vertices = vec![
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 1.0, 0.0],
+        [0.0, 1.0, 0.0],
+    ];
+    let first = cut_mesh_with_paths(
+        vertices.clone(),
+        vec![[0, 1], [1, 2], [2, 3], [0, 3]],
+        vec![vec![[0, 1]], vec![[1, 2]], vec![[2, 3]], vec![[3, 0]]],
+        vec![false, false, false, false],
+    );
+    let second = cut_mesh_with_paths(
+        vertices,
+        vec![[0, 1], [1, 2], [2, 3], [0, 3]],
+        vec![vec![[0, 1]], vec![[1, 2]], vec![[2, 3]], vec![[3, 0]]],
+        vec![false, false, false, false],
+    );
+
+    let plan = exact_stitch_plan_from_cut_meshes(&first, &second, 1e-9);
+
+    assert!(plan.compatible);
+    assert_eq!(plan.pairs.len(), 4);
+    assert_eq!(plan.paths.len(), 4);
+    assert!(plan.paths.iter().all(|path| !path.closed));
+    assert_eq!(
+        plan.paths
+            .iter()
+            .map(|path| path.pair_indices.clone())
+            .collect::<Vec<_>>(),
+        vec![vec![0], vec![1], vec![2], vec![3]]
+    );
 }
 
 #[test]

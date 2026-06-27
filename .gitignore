@@ -20,6 +20,10 @@ venv/
 .vscode/
 .idea/
 
+# AI agent / tooling scratch
+.codex/
+.playwright-mcp/
+
 # Frontend
 /meshinspector-frontend/node_modules/
 /meshinspector-frontend/.git.nested-backup/

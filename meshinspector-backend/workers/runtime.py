@@ -9,25 +9,34 @@ from sqlalchemy.orm import Session
 from core.config import settings
 from domain.models import JobRecord, ModelRecord, ModelVersionRecord
 from domain.schemas import (
+    BrushReplayRequest,
     CompareRequest,
+    DecimateRequest,
     HollowRequest,
     InteractiveCommitRequest,
+    MakeDeloneRequest,
     MakeManufacturableRequest,
+    RepairRequest,
     ResizeRequest,
     ScoopRequest,
     SmoothRequest,
+    SubdivideRequest,
     ThickenRequest,
 )
 from services.ingest import run_ingest_pipeline
 from services.operations import (
     run_compare_operation,
+    run_decimate_operation,
     run_hollow_operation,
+    run_interactive_brush_replay_operation,
     run_interactive_commit_operation,
+    run_make_delone_operation,
     run_make_manufacturable_operation,
     run_repair_operation,
     run_resize_operation,
     run_scoop_operation,
     run_smooth_operation,
+    run_subdivide_operation,
     run_thicken_operation,
 )
 from storage.object_store import object_store
@@ -86,7 +95,7 @@ def execute_operation_task(db: Session, operation_type: str, source_version_id: 
     try:
         result: dict | None = None
         if operation_type == "repair":
-            version = run_repair_operation(db, source_version, job, workdir)
+            version = run_repair_operation(db, source_version, job, workdir, RepairRequest.model_validate(payload))
             result = {"version_id": version.id}
         elif operation_type == "resize":
             version = run_resize_operation(db, source_version, job, workdir, ResizeRequest.model_validate(payload))
@@ -102,6 +111,42 @@ def execute_operation_task(db: Session, operation_type: str, source_version_id: 
             result = {"version_id": version.id}
         elif operation_type == "smooth":
             version = run_smooth_operation(db, source_version, job, workdir, SmoothRequest.model_validate(payload))
+            result = {"version_id": version.id}
+        elif operation_type == "decimate":
+            version = run_decimate_operation(
+                db,
+                source_version,
+                job,
+                workdir,
+                DecimateRequest.model_validate(payload),
+            )
+            result = {"version_id": version.id}
+        elif operation_type == "subdivide":
+            version = run_subdivide_operation(
+                db,
+                source_version,
+                job,
+                workdir,
+                SubdivideRequest.model_validate(payload),
+            )
+            result = {"version_id": version.id}
+        elif operation_type == "make_delone":
+            version = run_make_delone_operation(
+                db,
+                source_version,
+                job,
+                workdir,
+                MakeDeloneRequest.model_validate(payload),
+            )
+            result = {"version_id": version.id}
+        elif operation_type == "interactive_brush_replay":
+            version = run_interactive_brush_replay_operation(
+                db,
+                source_version,
+                job,
+                workdir,
+                BrushReplayRequest.model_validate(payload),
+            )
             result = {"version_id": version.id}
         elif operation_type == "compare":
             request = CompareRequest.model_validate(payload)

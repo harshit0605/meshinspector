@@ -148,7 +148,9 @@ fn weighted_inner_offset_vertices(
     let rust_vertex_indices = read_i64_values(vertex_indices);
     let displaced = py
         .detach(|| {
-            zennah_geometry_core::weighted_inner_offset_vertices(
+            // Preview semantics: protected regions stay frozen. The voxel-shell
+            // pipeline calls the core non-preview variant directly.
+            zennah_geometry_core::weighted_inner_offset_preview_vertices(
                 &rust_vertices,
                 &rust_faces,
                 &region_ids,

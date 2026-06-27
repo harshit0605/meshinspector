@@ -21,9 +21,55 @@ export type ContextToolId =
   | 'scoop'
   | 'smooth'
   | 'batch-smooth'
+  | 'runtime-thicken-brush'
+  | 'runtime-scoop-brush'
+  | 'runtime-smooth-brush'
+  | 'decimate-mesh'
+  | 'subdivide-mesh'
+  | 'make-delone'
+  | 'offset-mesh'
+  | 'shell-mesh'
+  | 'thicken-mesh'
+  | 'weighted-shell'
+  | 'partial-offset'
+  | 'offset-verts'
+  | 'expand-shrink'
+  | 'shrink-expand'
   | 'section'
   | 'heatmap'
   | 'regions'
+  | 'measure-inspect'
+  | 'mesh-cut-measure-path'
+  | 'distance-map-from-mesh'
+  | 'distance-map-contours'
+  | 'distance-map-iso-lines'
+  | 'distance-map-merge'
+  | 'distance-map-contour-boolean'
+  | 'distance-map-from-tiff'
+  | 'distance-map-to-tiff'
+  | 'object-lines-from-contours'
+  | 'object-lines-load-mrlines'
+  | 'object-lines-load-ply'
+  | 'object-lines-load-pts'
+  | 'object-lines-load-svg'
+  | 'object-lines-save-dxf'
+  | 'object-lines-save-mrlines'
+  | 'object-lines-save-ply'
+  | 'object-lines-save-pts'
+  | 'object-lines-to-contours'
+  | 'offset-contours'
+  | 'point-cloud-icp'
+  | 'gcode-parse-paths'
+  | 'gcode-load-source'
+  | 'gcode-write-source'
+  | 'gcode-parse-file-paths'
+  | 'mesh-to-voxels-sdf'
+  | 'open-raw-voxels'
+  | 'open-voxels-from-tiff'
+  | 'voxel-volume-render-ray'
+  | 'exact-boolean'
+  | 'voxel-boolean'
+  | 'collision-detect'
   | 'wireframe'
   | 'snapshots';
 
@@ -35,12 +81,26 @@ export type WorkspaceCommandId =
   | 'version-history'
   | 'restore-branch'
   | 'job-activity'
+  | 'voxel-binary-operations'
+  | 'voxel-slice'
+  | 'voxel-line-graph'
+  | 'voxel-active-box'
+  | 'voxel-path'
+  | 'voxel-path-build-four'
+  | 'voxel-segmentation'
+  | 'voxel-mask-to-mesh'
+  | 'voxel-to-mesh-simple'
+  | 'voxel-to-mesh-dual'
+  | 'voxel-to-mesh-smart'
+  | 'voxel-volume-render-data'
+  | 'voxel-volume-render-lut'
   | ContextToolId;
 
 export type ToolDrafts = {
   targetRingSize: number;
   targetWeight: number;
   wallThickness: number;
+  hollowFullResolution: boolean;
   minThickness: number;
   resizeTargetSize: number;
   thickenTarget: number;
@@ -48,6 +108,102 @@ export type ToolDrafts = {
   scoopFalloff: number;
   smoothIterations: number;
   smoothStrength: number;
+  decimateStrategy: 'minimize_error' | 'shortest_edge_first';
+  decimateMaxError: number;
+  decimateTargetFaces: number;
+  decimateTargetPercent: number;
+  decimateMaxEdgeLen: number;
+  decimateMaxBoundaryShift: number;
+  decimateStabilizer: number;
+  decimateParallelAlgorithm: boolean;
+  decimateSubdivideParts: number;
+  decimateRegionFaces: string;
+  decimateNotFlippableEdges: string;
+  decimateCollapseNearNotFlippable: boolean;
+  decimateAngleWeightedDistToPlane: boolean;
+  decimateMaxDeletedVertices: number;
+  decimateMaxDeletedFaces: number;
+  decimateMaxTriangleAspectRatio: number;
+  decimateTouchNearBoundaryEdges: boolean;
+  decimateTouchBoundaryVerts: boolean;
+  decimateOptimizeVertexPos: boolean;
+  decimatePackMesh: boolean;
+  subdivideMaxEdgeLen: number;
+  subdivideMaxEdgeSplits: number;
+  subdivideBorder: boolean;
+  subdivideCurvaturePriority: number;
+  subdivideProjectOnOriginalMesh: boolean;
+  subdivideSmoothMode: boolean;
+  subdivideMinSharpDihedralAngle: number;
+  subdivideMaxTriAspectRatio: number;
+  subdivideMaxSplittableTriAspectRatio: number;
+  subdivideMaxDeviationAfterFlip: number;
+  subdivideMaxAngleChangeAfterFlip: number;
+  subdivideCriticalTriAspectRatioFlip: number;
+  subdivideRegionFaces: string;
+  subdivideNotFlippableEdges: string;
+  makeDeloneNumIters: number;
+  makeDeloneMaxDeviationAfterFlip: number;
+  makeDeloneMaxAngleChange: number;
+  makeDeloneCriticalTriAspectRatio: number;
+  makeDeloneRegionFaces: string;
+  makeDeloneNotFlippableEdges: string;
+  makeDeloneVertRegion: string;
+  offsetDistanceMm: number;
+  offsetVoxelSizeMm: number;
+  offsetPaddingMm: number;
+  offsetRefine: boolean;
+  shellWallThicknessMm: number;
+  shellVoxelSizeMm: number;
+  shellPaddingMm: number;
+  shellRefine: boolean;
+  thickenMeshThicknessMm: number;
+  thickenMeshVoxelSizeMm: number;
+  thickenMeshPaddingMm: number;
+  thickenMeshRefine: boolean;
+  weightedShellOffsetMm: number;
+  weightedShellRegionWeightMm: number;
+  weightedShellInterpolationMm: number;
+  weightedShellVoxelSizeMm: number;
+  weightedShellPaddingMm: number;
+  weightedShellRefine: boolean;
+  partialOffsetDistanceMm: number;
+  partialOffsetVoxelSizeMm: number;
+  partialOffsetPaddingMm: number;
+  partialOffsetRefine: boolean;
+  offsetVertsDistanceMm: number;
+  expandShrinkDistanceMm: number;
+  expandShrinkVoxelSizeMm: number;
+  expandShrinkPaddingMm: number;
+  expandShrinkRefine: boolean;
+  shrinkExpandDistanceMm: number;
+  shrinkExpandVoxelSizeMm: number;
+  shrinkExpandPaddingMm: number;
+  shrinkExpandRefine: boolean;
+  gcodeSource: string;
+  voxelSizeMm: number;
+  voxelSurfaceOffsetVoxels: number;
+  voxelMode: 'signed' | 'unsigned';
+  voxelExtractSurface: boolean;
+  volumeRayStartX: number;
+  volumeRayStartY: number;
+  volumeRayStartZ: number;
+  volumeRayDirectionX: number;
+  volumeRayDirectionY: number;
+  volumeRayDirectionZ: number;
+  volumeRaySamplingStep: number;
+  volumeRayAlphaLimit: number;
+  volumeRayMaxSteps: number;
+  booleanTargetVersionId: string;
+  booleanOperation: 'union' | 'intersection' | 'difference' | 'difference_ab' | 'difference_ba' | 'inside_a' | 'inside_b' | 'outside_a' | 'outside_b';
+  voxelBooleanTargetVersionId: string;
+  voxelBooleanOperation: 'union' | 'intersection' | 'difference';
+  voxelBooleanSizeMm: number;
+  voxelBooleanPaddingMm: number;
+  voxelBooleanRefine: boolean;
+  collisionTargetVersionId: string;
+  collisionFirstOnly: boolean;
+  collisionMaxPairs: number;
   snapshotName: string;
 };
 
@@ -55,6 +211,7 @@ export const DEFAULT_TOOL_DRAFTS: ToolDrafts = {
   targetRingSize: 7,
   targetWeight: 5,
   wallThickness: 0.8,
+  hollowFullResolution: false,
   minThickness: 0.6,
   resizeTargetSize: 8,
   thickenTarget: 0.8,
@@ -62,5 +219,101 @@ export const DEFAULT_TOOL_DRAFTS: ToolDrafts = {
   scoopFalloff: 1.5,
   smoothIterations: 6,
   smoothStrength: 0.35,
+  decimateStrategy: 'minimize_error',
+  decimateMaxError: 0.2,
+  decimateTargetFaces: 0,
+  decimateTargetPercent: 0,
+  decimateMaxEdgeLen: 0,
+  decimateMaxBoundaryShift: 0,
+  decimateStabilizer: 0.001,
+  decimateParallelAlgorithm: false,
+  decimateSubdivideParts: 1,
+  decimateRegionFaces: '',
+  decimateNotFlippableEdges: '',
+  decimateCollapseNearNotFlippable: false,
+  decimateAngleWeightedDistToPlane: false,
+  decimateMaxDeletedVertices: 1000,
+  decimateMaxDeletedFaces: 2000,
+  decimateMaxTriangleAspectRatio: 20,
+  decimateTouchNearBoundaryEdges: true,
+  decimateTouchBoundaryVerts: true,
+  decimateOptimizeVertexPos: true,
+  decimatePackMesh: true,
+  subdivideMaxEdgeLen: 0.3,
+  subdivideMaxEdgeSplits: 1000,
+  subdivideBorder: true,
+  subdivideCurvaturePriority: 0,
+  subdivideProjectOnOriginalMesh: false,
+  subdivideSmoothMode: false,
+  subdivideMinSharpDihedralAngle: 0.5235987755982989,
+  subdivideMaxTriAspectRatio: 0,
+  subdivideMaxSplittableTriAspectRatio: 0,
+  subdivideMaxDeviationAfterFlip: 1,
+  subdivideMaxAngleChangeAfterFlip: 0,
+  subdivideCriticalTriAspectRatioFlip: 1000,
+  subdivideRegionFaces: '',
+  subdivideNotFlippableEdges: '',
+  makeDeloneNumIters: 1,
+  makeDeloneMaxDeviationAfterFlip: 0,
+  makeDeloneMaxAngleChange: 0,
+  makeDeloneCriticalTriAspectRatio: 0,
+  makeDeloneRegionFaces: '',
+  makeDeloneNotFlippableEdges: '',
+  makeDeloneVertRegion: '',
+  offsetDistanceMm: 0.25,
+  offsetVoxelSizeMm: 0.5,
+  offsetPaddingMm: 1,
+  offsetRefine: true,
+  shellWallThicknessMm: 0.6,
+  shellVoxelSizeMm: 0.4,
+  shellPaddingMm: 1.2,
+  shellRefine: true,
+  thickenMeshThicknessMm: 0.4,
+  thickenMeshVoxelSizeMm: 0.4,
+  thickenMeshPaddingMm: 1,
+  thickenMeshRefine: true,
+  weightedShellOffsetMm: 0.2,
+  weightedShellRegionWeightMm: 0.35,
+  weightedShellInterpolationMm: 1.5,
+  weightedShellVoxelSizeMm: 0.4,
+  weightedShellPaddingMm: 1.2,
+  weightedShellRefine: true,
+  partialOffsetDistanceMm: 0.25,
+  partialOffsetVoxelSizeMm: 0.4,
+  partialOffsetPaddingMm: 1.2,
+  partialOffsetRefine: true,
+  offsetVertsDistanceMm: 0.1,
+  expandShrinkDistanceMm: 0.3,
+  expandShrinkVoxelSizeMm: 0.5,
+  expandShrinkPaddingMm: 1,
+  expandShrinkRefine: true,
+  shrinkExpandDistanceMm: 0.3,
+  shrinkExpandVoxelSizeMm: 0.5,
+  shrinkExpandPaddingMm: 1,
+  shrinkExpandRefine: true,
+  gcodeSource: 'G90\nG21\nG0 X0 Y0 Z5\nG1 X10 Y0 Z5 F1200\nG2 X10 Y10 I0 J5 F900\nM30',
+  voxelSizeMm: 1,
+  voxelSurfaceOffsetVoxels: 3,
+  voxelMode: 'signed',
+  voxelExtractSurface: true,
+  volumeRayStartX: 0,
+  volumeRayStartY: 0.5,
+  volumeRayStartZ: 0.5,
+  volumeRayDirectionX: 1,
+  volumeRayDirectionY: 0,
+  volumeRayDirectionZ: 0,
+  volumeRaySamplingStep: 0.25,
+  volumeRayAlphaLimit: 10,
+  volumeRayMaxSteps: 64,
+  booleanTargetVersionId: '',
+  booleanOperation: 'difference',
+  voxelBooleanTargetVersionId: '',
+  voxelBooleanOperation: 'union',
+  voxelBooleanSizeMm: 0.5,
+  voxelBooleanPaddingMm: 1,
+  voxelBooleanRefine: true,
+  collisionTargetVersionId: '',
+  collisionFirstOnly: false,
+  collisionMaxPairs: 1000,
   snapshotName: '',
 };

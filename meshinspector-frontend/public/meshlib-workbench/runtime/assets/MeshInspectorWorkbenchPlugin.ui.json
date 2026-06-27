@@ -3,11 +3,82 @@
   "LibName": "meshinspector_meshlib_workbench",
   "Tabs": [
     {
-      "Name": "Modify",
+      "Name": "Home",
+      "Priority": 5,
+      "Groups": [
+        {
+          "Name": "File and Scene",
+          "List": [
+            { "Name": "File / Scene / Viewer" },
+            { "Name": "Automation / Plugin API" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "View",
+      "Priority": 10,
+      "Groups": [
+        {
+          "Name": "Viewport",
+          "List": [
+            { "Name": "File / Scene / Viewer" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Select",
+      "Priority": 20,
+      "Groups": [
+        {
+          "Name": "Selection",
+          "List": [
+            { "Name": "Select / Mark Region" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Mesh Repair",
+      "Priority": 30,
+      "Groups": [
+        {
+          "Name": "Healing",
+          "List": [
+            { "Name": "Mesh Healer" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Mesh Edit",
       "Priority": 40,
       "Groups": [
         {
-          "Name": "Local Editing",
+          "Name": "Geometry",
+          "List": [
+            { "Name": "Offset / Shell" },
+            { "Name": "Offset Mesh" },
+            { "Name": "Shell Mesh" },
+            { "Name": "Thickening" },
+            { "Name": "Weighted Shell" },
+            { "Name": "Partial Offset" },
+            { "Name": "Offset Verts" },
+            { "Name": "Expand/Shrink" },
+            { "Name": "Shrink/Expand" },
+            { "Name": "Boolean / Collision" },
+            { "Name": "Exact Boolean" },
+            { "Name": "Voxel Boolean" },
+            { "Name": "Collision Detection" },
+            { "Name": "Mesh Edit / Simplify" },
+            { "Name": "Decimate Mesh" },
+            { "Name": "Subdivide Mesh" },
+            { "Name": "Make Delone" }
+          ]
+        },
+        {
+          "Name": "Surface Manipulation",
           "List": [
             { "Name": "Select / Mark Region" },
             { "Name": "Thicken Brush" },
@@ -18,13 +89,88 @@
       ]
     },
     {
-      "Name": "Inspect",
+      "Name": "Inspect / Features",
       "Priority": 50,
       "Groups": [
         {
           "Name": "Measurement",
           "List": [
             { "Name": "Measure / Inspect" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Compare / Report",
+      "Priority": 60,
+      "Groups": [
+        {
+          "Name": "Deviation",
+          "List": [
+            { "Name": "Compare / Report" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Point Cloud",
+      "Priority": 70,
+      "Groups": [
+        {
+          "Name": "Scan to Mesh",
+          "List": [
+            { "Name": "Point Cloud / ICP" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "CT / Voxels",
+      "Priority": 80,
+      "Groups": [
+        {
+          "Name": "Volume",
+          "List": [
+            { "Name": "Voxels / CT / SDF" },
+            { "Name": "Mesh to Voxels / SDF" },
+            { "Name": "Open RAW Voxels" },
+            { "Name": "Open Voxels From TIFF" },
+            { "Name": "Voxels Slice" },
+            { "Name": "Voxels Line Graph" },
+            { "Name": "Set Active Voxel Box" },
+            { "Name": "Voxels Segmentation" },
+            { "Name": "Voxels Mask to Mesh" },
+            { "Name": "Voxels to Mesh Simple" },
+            { "Name": "Voxels to Mesh Smart" },
+            { "Name": "Voxels Path" },
+            { "Name": "Voxels Path Build Four" },
+            { "Name": "Binary Operations" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Distance Maps / Lines / G-code",
+      "Priority": 90,
+      "Groups": [
+        {
+          "Name": "Maps and Toolpaths",
+          "List": [
+            { "Name": "Distance Maps / Lines / G-code" },
+            { "Name": "Offset Contours" },
+            { "Name": "G-code Path Parser" }
+          ]
+        }
+      ]
+    },
+    {
+      "Name": "Automation",
+      "Priority": 100,
+      "Groups": [
+        {
+          "Name": "Plugin API",
+          "List": [
+            { "Name": "Automation / Plugin API" }
           ]
         }
       ]

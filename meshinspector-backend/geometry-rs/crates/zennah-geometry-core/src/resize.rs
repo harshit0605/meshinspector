@@ -51,6 +51,82 @@ pub fn resize_ring_vertices(
     radial_scale_vertices(vertices, scale_factor, ring_axis, preserve_indices)
 }
 
+/// Outcome of [`fit_ring_to_diameter_vertices`].
+#[derive(Debug, Clone, PartialEq)]
+pub struct RingFitResult {
+    pub vertices: Vec<[f64; 3]>,
+    /// True when the protected (head) region was dropped because the requested
+    /// scale was too extreme to preserve it without folding the surface.
+    pub applied_uniform_fallback: bool,
+    pub scale_factor: f64,
+}
+
+/// Fit a ring to an absolute target inner diameter, scaling the measured bore to
+/// the target.
+///
+/// Within the safe band `[1/max_preserve_scale_ratio, max_preserve_scale_ratio]`
+/// the bore is grown by scaling only the radial component about the ring axis,
+/// which keeps the band width constant and (optionally) anchors a head/ornament
+/// region — the correct model for small finger-size adjustments to a real ring.
+///
+/// Outside that band the radial-only model breaks down: it stretches any
+/// protruding ornament *anisotropically* (≈`scale_factor` across the ring plane
+/// but ≈1× along the axis), visibly deforming a snake head / gem setting, and
+/// anchoring the head rigidly while the band grows that far would fold the
+/// surface. So an extreme ratio falls back to a true **uniform** (isotropic)
+/// similarity scale about the centroid: every local shape — head included — is
+/// preserved while the bore still lands exactly on the target. This is the
+/// correct behaviour for fitting an unscaled miniature up to a real ring size,
+/// where holding a 5 mm head fixed against a 20 mm band would be nonsensical.
+pub fn fit_ring_to_diameter_vertices(
+    vertices: &[[f64; 3]],
+    measured_diameter_mm: f64,
+    target_diameter_mm: f64,
+    ring_axis: Option<[f64; 3]>,
+    preserve_indices: &[i64],
+    max_preserve_scale_ratio: f64,
+) -> Result<RingFitResult, GeometryError> {
+    if !(measured_diameter_mm > 0.0) || !(target_diameter_mm > 0.0) {
+        return Err(GeometryError::InvalidRingFitDiameter {
+            measured_diameter_mm,
+            target_diameter_mm,
+        });
+    }
+    let scale_factor = target_diameter_mm / measured_diameter_mm;
+    let ratio = max_preserve_scale_ratio.max(1.0);
+    let within_safe_band = scale_factor >= 1.0 / ratio && scale_factor <= ratio;
+    // A ratio outside the safe band always uses the uniform similarity scale (it
+    // never distorts the ornament). The reported fallback flag stays scoped to
+    // the case where a preserve set was actually requested and had to be dropped,
+    // since that is what the service surfaces to the user.
+    let use_uniform_scale = !within_safe_band;
+    let applied_uniform_fallback = use_uniform_scale && !preserve_indices.is_empty();
+    let scaled = if use_uniform_scale {
+        uniform_scale_vertices(vertices, scale_factor)
+    } else {
+        radial_scale_vertices(vertices, scale_factor, ring_axis, preserve_indices)?
+    };
+    Ok(RingFitResult {
+        vertices: scaled,
+        applied_uniform_fallback,
+        scale_factor,
+    })
+}
+
+/// Isotropic similarity scale about the centroid: scales all three components by
+/// `scale_factor`, so every local shape is preserved and all pairwise distances
+/// (including the bore) scale by exactly `scale_factor`.
+fn uniform_scale_vertices(vertices: &[[f64; 3]], scale_factor: f64) -> Vec<[f64; 3]> {
+    if vertices.is_empty() {
+        return Vec::new();
+    }
+    let center = centroid(vertices);
+    vertices
+        .iter()
+        .map(|vertex| add(center, scale(sub(*vertex, center), scale_factor)))
+        .collect()
+}
+
 fn radial_local_scales(vertices: &[[f64; 3]], scale_factor: f64, preserve: &[usize]) -> Vec<f64> {
     let mut local_scale = vec![scale_factor; vertices.len()];
     if preserve.is_empty() {
@@ -146,4 +222,88 @@ fn percentile(values: &mut [f64], percentile: f64) -> f64 {
         return values[lower];
     }
     values[lower] + (values[upper] - values[lower]) * (rank - lower as f64)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A ring of revolution in the z-plane plus one ornament vertex protruding
+    /// along the ring axis (+z) — like a snake head sitting proud of the band.
+    fn ring_with_ornament() -> Vec<[f64; 3]> {
+        vec![
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.5, 0.5, 2.0], // ornament protruding along the ring axis
+        ]
+    }
+
+    /// Regression for the snake-head deformation: an extreme fit ratio must scale
+    /// the whole piece *isotropically* so the ornament keeps its shape, rather
+    /// than the old radial-only scale that stretched it across the ring plane
+    /// while leaving its axial extent unchanged.
+    #[test]
+    fn extreme_ratio_fit_is_isotropic_similarity_scale() {
+        let vertices = ring_with_ornament();
+        let preserve = vec![4i64];
+        let result = fit_ring_to_diameter_vertices(
+            &vertices,
+            2.0, // measured bore (ring plane)
+            8.0, // target bore -> 4x, well outside the [1/1.5, 1.5] safe band
+            Some([0.0, 0.0, 1.0]),
+            &preserve,
+            1.5,
+        )
+        .unwrap();
+
+        assert!(result.applied_uniform_fallback);
+        let s = result.scale_factor;
+        assert!((s - 4.0).abs() < 1e-9);
+
+        let center = centroid(&vertices);
+        for (orig, got) in vertices.iter().zip(result.vertices.iter()) {
+            let expected = add(center, scale(sub(*orig, center), s));
+            for k in 0..3 {
+                assert!(
+                    (got[k] - expected[k]).abs() < 1e-9,
+                    "axis {k}: {got:?} is not the isotropic similarity image {expected:?}",
+                );
+            }
+        }
+
+        // The protruding ornament's axial offset must grow by ~s (the bug left it
+        // ~unchanged, which is exactly the visible head distortion).
+        let axial_before = (vertices[4][2] - center[2]).abs();
+        let axial_after = (result.vertices[4][2] - center[2]).abs();
+        assert!(
+            (axial_after / axial_before - s).abs() < 1e-6,
+            "ornament axial extent grew {}x, expected {}x",
+            axial_after / axial_before,
+            s,
+        );
+    }
+
+    /// A small (in-band) resize keeps the radial-only model: the band grows in
+    /// the ring plane while a protruding ornament's axial extent is unchanged.
+    #[test]
+    fn in_band_ratio_keeps_radial_only_behaviour() {
+        let vertices = ring_with_ornament();
+        let result = fit_ring_to_diameter_vertices(
+            &vertices,
+            2.0,
+            2.2, // 1.1x — inside the safe band
+            Some([0.0, 0.0, 1.0]),
+            &[],
+            1.5,
+        )
+        .unwrap();
+
+        assert!(!result.applied_uniform_fallback);
+        // Axial (z) coordinate of the protruding vertex is preserved by radial scaling.
+        assert!((result.vertices[4][2] - vertices[4][2]).abs() < 1e-9);
+        // Radial extent in the ring plane grew.
+        assert!(result.vertices[0][0].abs() > vertices[0][0].abs());
+    }
 }

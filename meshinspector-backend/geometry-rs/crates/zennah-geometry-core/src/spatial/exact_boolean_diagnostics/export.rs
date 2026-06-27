@@ -13,7 +13,7 @@ pub(super) fn mesh_export_stats(
     faces: &[[i64; 3]],
     failed_faces: usize,
 ) -> Result<Option<MeshStats>, GeometryError> {
-    if failed_faces > 0 {
+    if failed_faces > 0 || !faces_reference_existing_vertices(vertices, faces) {
         return Ok(None);
     }
     mesh_stats(vertices, faces).map(Some)
@@ -26,7 +26,7 @@ pub(super) fn mesh_export_health(
     epsilon: f64,
     self_intersection_budget: usize,
 ) -> Result<Option<MeshHealth>, GeometryError> {
-    if failed_faces > 0 {
+    if failed_faces > 0 || !faces_reference_existing_vertices(vertices, faces) {
         return Ok(None);
     }
     mesh_health(
@@ -44,7 +44,7 @@ pub(super) fn packed_mesh_export(
     faces: &[[i64; 3]],
     failed_faces: usize,
 ) -> Result<Option<PackedMeshExport>, GeometryError> {
-    if failed_faces > 0 {
+    if failed_faces > 0 || !faces_reference_existing_vertices(vertices, faces) {
         return Ok(None);
     }
     let mut vertex_map = BTreeMap::<usize, usize>::new();
@@ -84,4 +84,11 @@ pub(super) fn packed_mesh_export(
         vertices: packed_vertices,
         faces: packed_faces,
     }))
+}
+
+fn faces_reference_existing_vertices(vertices: &[[f64; 3]], faces: &[[i64; 3]]) -> bool {
+    faces.iter().all(|face| {
+        face.iter()
+            .all(|vertex| *vertex >= 0 && (*vertex as usize) < vertices.len())
+    })
 }

@@ -11,7 +11,16 @@ name = "zennah_geometry_core"
 path = "src/lib.rs"
 
 [dependencies]
+base64.workspace = true
+blosc-src.workspace = true
+image.workspace = true
+flate2.workspace = true
 nalgebra.workspace = true
 num-bigint.workspace = true
 num-traits.workspace = true
 rayon.workspace = true
+roxmltree.workspace = true
+rustc-hash.workspace = true
+serde_json.workspace = true
+tiff.workspace = true
+zip.workspace = true

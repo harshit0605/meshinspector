@@ -151,7 +151,11 @@ fn exact_meshlib_record_rewrite_apply_plan_translates_copied_edge_records() {
         cut_edges: vec![[2, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let prepared_faces = [0];
@@ -195,7 +199,11 @@ fn meshlib_prepared_base_topology_maps_raw_prepare_part_faces() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![10, 11],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let prepared_faces = [1];
@@ -208,6 +216,7 @@ fn meshlib_prepared_base_topology_maps_raw_prepare_part_faces() {
         cut_mesh: &cut_mesh,
         prepared_faces: &prepared_faces,
         vertex_map: &vertex_map,
+        contour_vertex_maps: Vec::new(),
         output_vertices: &output_vertices,
         operand: ExactBooleanOperand::Second,
         first_virtual_vertex: 20,
@@ -230,6 +239,42 @@ fn meshlib_prepared_base_topology_maps_raw_prepare_part_faces() {
 }
 
 #[test]
+fn meshlib_prepared_base_contour_maps_seed_unmapped_vertices_before_virtual_copy() {
+    let cut_mesh = ExactCutMeshResult {
+        vertices: vec![[0.0; 3]; 3],
+        faces: vec![[0, 1, 2]],
+        cut_edges: Vec::new(),
+        cut_edge_paths: Vec::new(),
+        cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
+        source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
+        skipped_source_faces: Vec::new(),
+    };
+    let prepared_faces = [0];
+    let vertex_map = [Some(10), Some(8), None];
+    let output_vertices = vec![[0.0; 3]; 12];
+
+    let prepared = output_topology_from_prepared_base(ExactMeshlibPreparedBaseTopologyInput {
+        cut_mesh: &cut_mesh,
+        prepared_faces: &prepared_faces,
+        vertex_map: &vertex_map,
+        contour_vertex_maps: vec![([1, 2], [4, 5])],
+        output_vertices: &output_vertices,
+        operand: ExactBooleanOperand::First,
+        first_virtual_vertex: 12,
+        flip_orientation: false,
+    })
+    .expect("prepared base topology");
+
+    assert_eq!(prepared.faces, vec![[10, 8, 5]]);
+    assert_eq!(prepared.virtual_vertices, 0);
+    assert_eq!(prepared.vertices.len(), output_vertices.len());
+}
+
+#[test]
 fn meshlib_prepared_base_registers_indexed_contour_targets() {
     let cut_mesh = ExactCutMeshResult {
         vertices: vec![[0.0; 3]; 3],
@@ -237,7 +282,11 @@ fn meshlib_prepared_base_registers_indexed_contour_targets() {
         cut_edges: vec![[1, 2]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let prepared_faces = [0];
@@ -248,6 +297,7 @@ fn meshlib_prepared_base_registers_indexed_contour_targets() {
         cut_mesh: &cut_mesh,
         prepared_faces: &prepared_faces,
         vertex_map: &vertex_map,
+        contour_vertex_maps: Vec::new(),
         output_vertices: &output_vertices,
         operand: ExactBooleanOperand::First,
         first_virtual_vertex: 3,
@@ -273,14 +323,63 @@ fn meshlib_prepared_base_registers_indexed_contour_targets() {
 }
 
 #[test]
-fn meshlib_prepared_base_does_not_register_closed_indexed_contour_targets() {
+fn meshlib_prepared_base_uses_cut_paths_for_indexed_contour_targets() {
+    let cut_mesh = ExactCutMeshResult {
+        vertices: vec![[0.0; 3]; 3],
+        faces: vec![[0, 1, 2]],
+        cut_edges: vec![[0, 1], [1, 2]],
+        cut_edge_paths: vec![vec![[2, 1]]],
+        cut_edge_path_closed: vec![false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
+        source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
+        skipped_source_faces: Vec::new(),
+    };
+    let prepared_faces = [0];
+    let vertex_map = [Some(0), Some(1), Some(2)];
+    let output_vertices = vec![[0.0; 3]; 3];
+
+    let prepared = output_topology_from_prepared_base(ExactMeshlibPreparedBaseTopologyInput {
+        cut_mesh: &cut_mesh,
+        prepared_faces: &prepared_faces,
+        vertex_map: &vertex_map,
+        contour_vertex_maps: Vec::new(),
+        output_vertices: &output_vertices,
+        operand: ExactBooleanOperand::First,
+        first_virtual_vertex: 3,
+        flip_orientation: false,
+    })
+    .expect("prepared base topology");
+
+    assert!(!prepared
+        .topology
+        .meshlib_mapped_contour_edge_indices
+        .contains_key(&(ExactBooleanOperand::First, 0)));
+    let target = prepared
+        .topology
+        .meshlib_mapped_contour_edge_indices
+        .get(&(ExactBooleanOperand::First, 1))
+        .copied()
+        .expect("path contour target");
+    assert_eq!(prepared.topology.topology.left(target), None);
+    assert_eq!(prepared.topology.topology.right(target), Some(0));
+}
+
+#[test]
+fn meshlib_prepared_base_cut_paths_preserve_duplicate_occurrences() {
     let cut_mesh = ExactCutMeshResult {
         vertices: vec![[0.0; 3]; 4],
-        faces: vec![[0, 1, 2], [2, 1, 3]],
-        cut_edges: vec![[1, 2]],
-        cut_edge_paths: Vec::new(),
-        cut_edge_path_closed: Vec::new(),
+        faces: vec![[0, 1, 2], [1, 2, 3]],
+        cut_edges: vec![[1, 2], [1, 2]],
+        cut_edge_paths: vec![vec![[1, 2], [1, 2]]],
+        cut_edge_path_closed: vec![false],
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let prepared_faces = [0, 1];
@@ -291,6 +390,58 @@ fn meshlib_prepared_base_does_not_register_closed_indexed_contour_targets() {
         cut_mesh: &cut_mesh,
         prepared_faces: &prepared_faces,
         vertex_map: &vertex_map,
+        contour_vertex_maps: Vec::new(),
+        output_vertices: &output_vertices,
+        operand: ExactBooleanOperand::First,
+        first_virtual_vertex: 4,
+        flip_orientation: false,
+    })
+    .expect("prepared base topology");
+
+    let first_target = prepared
+        .topology
+        .meshlib_mapped_contour_edge_indices
+        .get(&(ExactBooleanOperand::First, 0))
+        .copied()
+        .expect("first duplicate target");
+    let second_target = prepared
+        .topology
+        .meshlib_mapped_contour_edge_indices
+        .get(&(ExactBooleanOperand::First, 1))
+        .copied()
+        .expect("second duplicate target");
+
+    assert_ne!(first_target, second_target);
+    assert_eq!(prepared.topology.topology.left(first_target), None);
+    assert_eq!(prepared.topology.topology.left(second_target), None);
+    assert_eq!(prepared.topology.topology.right(first_target), Some(0));
+    assert_eq!(prepared.topology.topology.right(second_target), Some(1));
+}
+
+#[test]
+fn meshlib_prepared_base_does_not_register_closed_indexed_contour_targets() {
+    let cut_mesh = ExactCutMeshResult {
+        vertices: vec![[0.0; 3]; 4],
+        faces: vec![[0, 1, 2], [2, 1, 3]],
+        cut_edges: vec![[1, 2]],
+        cut_edge_paths: Vec::new(),
+        cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
+        source_face_for_faces: vec![0, 1],
+        cut_face_source_events: Vec::new(),
+        skipped_source_faces: Vec::new(),
+    };
+    let prepared_faces = [0, 1];
+    let vertex_map = [Some(0), Some(1), Some(2), Some(3)];
+    let output_vertices = vec![[0.0; 3]; 4];
+
+    let prepared = output_topology_from_prepared_base(ExactMeshlibPreparedBaseTopologyInput {
+        cut_mesh: &cut_mesh,
+        prepared_faces: &prepared_faces,
+        vertex_map: &vertex_map,
+        contour_vertex_maps: Vec::new(),
         output_vertices: &output_vertices,
         operand: ExactBooleanOperand::First,
         first_virtual_vertex: 4,
@@ -313,7 +464,11 @@ fn exact_meshlib_record_rewrite_apply_plan_accepts_prepared_base_topology() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![5],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let prepared_faces = [0];
@@ -325,6 +480,7 @@ fn exact_meshlib_record_rewrite_apply_plan_accepts_prepared_base_topology() {
             cut_mesh: &cut_mesh,
             prepared_faces: &prepared_faces,
             vertex_map: &vertex_map,
+            contour_vertex_maps: Vec::new(),
             output_vertices: &output_vertices,
             operand: ExactBooleanOperand::First,
             first_virtual_vertex: 6,
@@ -350,7 +506,11 @@ fn exact_meshlib_record_rewrite_apply_plan_appends_prepared_base_copied_faces() 
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let incoming_cut_mesh = ExactCutMeshResult {
@@ -359,7 +519,11 @@ fn exact_meshlib_record_rewrite_apply_plan_appends_prepared_base_copied_faces() 
         cut_edges: vec![[2, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![7],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let base_faces = [0];
@@ -386,6 +550,7 @@ fn exact_meshlib_record_rewrite_apply_plan_appends_prepared_base_copied_faces() 
             cut_mesh: &base_cut_mesh,
             prepared_faces: &base_faces,
             vertex_map: &base_vertex_map,
+            contour_vertex_maps: Vec::new(),
             output_vertices: &output_vertices,
             operand: ExactBooleanOperand::First,
             first_virtual_vertex: 3,
@@ -411,7 +576,11 @@ fn prepared_base_copied_vertices_start_after_base_virtual_vertices() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let incoming_cut_mesh = ExactCutMeshResult {
@@ -420,7 +589,11 @@ fn prepared_base_copied_vertices_start_after_base_virtual_vertices() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![7],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let base_faces = [0];
@@ -447,6 +620,7 @@ fn prepared_base_copied_vertices_start_after_base_virtual_vertices() {
             cut_mesh: &base_cut_mesh,
             prepared_faces: &base_faces,
             vertex_map: &base_vertex_map,
+            contour_vertex_maps: Vec::new(),
             output_vertices: &output_vertices,
             operand: ExactBooleanOperand::First,
             first_virtual_vertex: 3,
@@ -469,7 +643,11 @@ fn exact_meshlib_record_rewrite_apply_plan_uses_prepared_source_records() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let incoming_cut_mesh = ExactCutMeshResult {
@@ -478,7 +656,11 @@ fn exact_meshlib_record_rewrite_apply_plan_uses_prepared_source_records() {
         cut_edges: Vec::new(),
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![7],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let base_faces = [0];
@@ -506,6 +688,7 @@ fn exact_meshlib_record_rewrite_apply_plan_uses_prepared_source_records() {
             cut_mesh: &base_cut_mesh,
             prepared_faces: &base_faces,
             vertex_map: &base_vertex_map,
+            contour_vertex_maps: Vec::new(),
             output_vertices: &output_vertices,
             operand: ExactBooleanOperand::First,
             first_virtual_vertex: 3,
@@ -524,13 +707,13 @@ fn exact_meshlib_record_rewrite_apply_plan_uses_prepared_source_records() {
     assert_eq!(plan.mapped_source_record_replays, 0);
     assert_eq!(plan.mapped_source_record_replays_on_near_stitch_targets, 0);
     assert_eq!(plan.translated_face_records, 1);
-    assert_eq!(plan.export_failed_faces, 1);
-    assert_eq!(plan.export_face_record_left_mismatch_faces, 1);
+    assert_eq!(plan.export_failed_faces, 0);
+    assert_eq!(plan.export_face_record_left_mismatch_faces, 0);
     assert_eq!(plan.export_face_left_ring_mismatch_faces, 0);
     assert_eq!(plan.export_other_failed_faces, 0);
-    assert_eq!(plan.export_failed_face_indices, vec![1]);
-    assert_eq!(plan.exported_face_indices, vec![[0, 1, 2]]);
-    assert!(!plan.ready_for_export);
+    assert_eq!(plan.export_failed_face_indices, Vec::<usize>::new());
+    assert_eq!(plan.exported_face_indices, vec![[0, 1, 2], [2, 2, 3]]);
+    assert!(plan.ready_for_export);
 }
 
 #[test]
@@ -610,7 +793,11 @@ fn exact_meshlib_record_rewrite_apply_plan_with_copied_edges_keeps_synthetic_fro
         cut_edges: vec![[2, 1]],
         cut_edge_paths: Vec::new(),
         cut_edge_path_closed: Vec::new(),
+        cut_edge_path_source_faces: Vec::new(),
+        collapsed_cut_segment_paths: Vec::new(),
+        collapsed_cut_segment_path_source_faces: Vec::new(),
         source_face_for_faces: vec![0],
+        cut_face_source_events: Vec::new(),
         skipped_source_faces: Vec::new(),
     };
     let prepared_faces = [0];

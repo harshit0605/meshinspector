@@ -10,6 +10,7 @@ from geometry_sdk.spatial.aabb_tree import (
     ray_candidate_faces,
     ray_intersects_aabb,
 )
+from geometry_sdk.spatial.boolean import ExactBooleanOperation, exact_boolean_mesh
 from geometry_sdk.spatial.closest_point import closest_point_on_triangle, closest_points_on_mesh, point_mesh_distances
 from geometry_sdk.spatial.intersections import self_intersecting_faces, triangles_intersect
 from geometry_sdk.spatial.raycast import RayHit, first_ray_hit, first_ray_hits, ray_triangle_hits
@@ -28,6 +29,8 @@ __all__ = [
     "closest_candidate_faces",
     "closest_point_on_triangle",
     "closest_points_on_mesh",
+    "ExactBooleanOperation",
+    "exact_boolean_mesh",
     "first_ray_hit",
     "first_ray_hits",
     "overlapping_face_pairs",

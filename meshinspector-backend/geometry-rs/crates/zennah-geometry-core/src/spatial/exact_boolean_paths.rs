@@ -3,7 +3,7 @@ use super::exact_boolean::{
 };
 use super::exact_cut_apply::ExactCutMeshResult;
 use super::exact_stitch::{ExactStitchPath, ExactStitchPlan};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Default)]
 pub(super) struct MappedStitchedEdges {
@@ -86,6 +86,55 @@ pub(super) fn mapped_result_cut_paths(
     }
 }
 
+pub(super) fn mapped_prepare_result_cut_paths(
+    operation: ExactBooleanOperation,
+    first: &ExactCutMeshResult,
+    second: &ExactCutMeshResult,
+    first_prepare_faces: &[usize],
+    second_prepare_faces: &[usize],
+) -> MappedResultCutPaths {
+    let source_operand = result_cut_source_operand(operation);
+    let (source, prepare_faces) = match source_operand {
+        ExactBooleanOperand::First => (first, first_prepare_faces),
+        ExactBooleanOperand::Second => (second, second_prepare_faces),
+    };
+    let prepared_map = PreparedPartMap::new(source, prepare_faces);
+    let mut complete = true;
+    let mut paths = Vec::new();
+    let mut closed = Vec::new();
+    for (path_index, path) in source.cut_edge_paths.iter().enumerate() {
+        let source_closed = source
+            .cut_edge_path_closed
+            .get(path_index)
+            .copied()
+            .unwrap_or(false);
+        let mut mapped_path = Vec::with_capacity(path.len());
+        let mut path_complete = true;
+        for edge in path {
+            match prepared_map.mapped_directed_edge(*edge) {
+                Some(mapped_edge) => mapped_path.push(mapped_edge),
+                None => {
+                    complete = false;
+                    path_complete = false;
+                    if !mapped_path.is_empty() {
+                        paths.push(std::mem::take(&mut mapped_path));
+                        closed.push(false);
+                    }
+                }
+            }
+        }
+        if !mapped_path.is_empty() || path.is_empty() {
+            paths.push(mapped_path);
+            closed.push(source_closed && path_complete);
+        }
+    }
+    MappedResultCutPaths {
+        paths,
+        closed,
+        complete,
+    }
+}
+
 fn result_cut_source<'a>(
     operation: ExactBooleanOperation,
     first: &'a ExactCutMeshResult,
@@ -97,20 +146,74 @@ fn result_cut_source<'a>(
     &'a ExactCutMeshResult,
     &'a [Option<usize>],
 ) {
+    match result_cut_source_operand(operation) {
+        ExactBooleanOperand::First => (ExactBooleanOperand::First, first, first_vertex_map),
+        ExactBooleanOperand::Second => (ExactBooleanOperand::Second, second, second_vertex_map),
+    }
+}
+
+fn result_cut_source_operand(operation: ExactBooleanOperation) -> ExactBooleanOperand {
     if requires_stitched_result_cut(operation) {
         if operation == ExactBooleanOperation::Intersection {
-            (ExactBooleanOperand::Second, second, second_vertex_map)
+            ExactBooleanOperand::Second
         } else {
-            (ExactBooleanOperand::First, first, first_vertex_map)
+            ExactBooleanOperand::First
         }
     } else if matches!(
         operation,
         ExactBooleanOperation::InsideA | ExactBooleanOperation::OutsideA
     ) {
-        (ExactBooleanOperand::First, first, first_vertex_map)
+        ExactBooleanOperand::First
     } else {
-        (ExactBooleanOperand::Second, second, second_vertex_map)
+        ExactBooleanOperand::Second
     }
+}
+
+struct PreparedPartMap {
+    vertices: Vec<Option<usize>>,
+    edges: BTreeSet<[usize; 2]>,
+}
+
+impl PreparedPartMap {
+    fn new(source: &ExactCutMeshResult, prepare_faces: &[usize]) -> Self {
+        let mut vertices = vec![None; source.vertices.len()];
+        let mut edges = BTreeSet::new();
+        for face_index in prepare_faces {
+            let Some(face) = source.faces.get(*face_index) else {
+                continue;
+            };
+            let Some(face_vertices) = valid_face_vertices(*face, source.vertices.len()) else {
+                continue;
+            };
+            for vertex in face_vertices {
+                let next_vertex = vertices.iter().filter(|vertex| vertex.is_some()).count();
+                vertices[vertex].get_or_insert(next_vertex);
+            }
+            edges.insert(ordered_edge([face_vertices[0], face_vertices[1]]));
+            edges.insert(ordered_edge([face_vertices[1], face_vertices[2]]));
+            edges.insert(ordered_edge([face_vertices[2], face_vertices[0]]));
+        }
+        Self { vertices, edges }
+    }
+
+    fn mapped_directed_edge(&self, edge: [usize; 2]) -> Option<[usize; 2]> {
+        self.edges.contains(&ordered_edge(edge)).then(|| {
+            let mapped = mapped_directed_edge(&self.vertices, edge)?;
+            (mapped[0] != mapped[1]).then_some(mapped)
+        })?
+    }
+}
+
+fn valid_face_vertices(face: [i64; 3], vertex_count: usize) -> Option<[usize; 3]> {
+    let vertices = [
+        usize::try_from(face[0]).ok()?,
+        usize::try_from(face[1]).ok()?,
+        usize::try_from(face[2]).ok()?,
+    ];
+    vertices
+        .iter()
+        .all(|vertex| *vertex < vertex_count)
+        .then_some(vertices)
 }
 
 struct ResultCutVertexLookup<'a> {

@@ -3,7 +3,6 @@ use crate::math::{add, norm, normalize_vector, scale};
 use crate::mesh::{validate_faces, vertex_face_adjacency, vertex_normals};
 use crate::{ClosestPointsResult, GeometryError, RayHit, RayHitsResult};
 use rayon::prelude::*;
-use std::collections::BTreeSet;
 mod aabb_query;
 mod bvh;
 mod closest;
@@ -11,6 +10,7 @@ mod exact_boolean;
 mod exact_boolean_assembly;
 mod exact_boolean_candidate;
 mod exact_boolean_diagnostics;
+mod exact_boolean_output;
 mod exact_boolean_paths;
 mod exact_boolean_topology;
 mod exact_classify;
@@ -33,28 +33,27 @@ mod exact_splice;
 mod exact_splice_apply;
 mod exact_splice_path;
 mod exact_stitch;
+mod fast_winding;
 mod predicates;
 mod ray;
+mod ray_batch;
+mod self_intersections;
 mod sign;
+mod unsigned_sdf;
+mod weighted_sdf;
 mod winding;
 pub use aabb_query::{
     aabb_closest_candidate_faces, aabb_overlapping_face_pairs, aabb_ray_candidate_faces,
     point_aabb_distance_sq, ray_intersects_aabb, AabbQueryTree,
 };
-use bvh::{build_flat_bvh, overlapping_face_pairs};
+pub(crate) use bvh::{build_flat_bvh, FlatBvh};
+pub(crate) use closest::{closest_point_excluding_incident, nearest_point_in_cloud};
 use closest::{
     closest_point_on_triangle as closest_point_on_triangle_impl, closest_point_with_bvh,
     ClosestPointHit,
 };
-pub use exact_boolean::{
-    assemble_classified_boolean, exact_assemble_boolean_from_cut_meshes, exact_boolean_from_meshes,
-    ExactBooleanAssemblyResult, ExactBooleanOperand, ExactBooleanOperation,
-    ExactBooleanOutputFaceSource, ExactBooleanPipelineDiagnostics, ExactBooleanPipelineResult,
-    ExactBooleanStitchedEdgeSource, MeshlibFaceExportFailureDiagnostic,
-    MeshlibNearStitchFailureDiagnostic, MeshlibNearStitchLinkedEdgeDiagnostic,
-    MeshlibNearStitchRingDiagnostic, MeshlibNearStitchSourceLookupDiagnostic,
-    MeshlibNearStitchTargetSnapshotDiagnostic, MeshlibPreparedSourceRecordReplayDiagnostic,
-};
+#[rustfmt::skip]
+pub use exact_boolean::{assemble_classified_boolean, exact_assemble_boolean_from_cut_meshes, exact_boolean_from_meshes, ExactBooleanAssemblyResult, ExactBooleanOperand, ExactBooleanOperation, ExactBooleanOutputFaceSource, ExactBooleanOutputMesh, ExactBooleanOutputMeshSource, ExactBooleanPipelineDiagnostics, ExactBooleanPipelineResult, ExactBooleanStitchedEdgeSource, MeshlibCopiedFaceRecordCandidateDiagnostic, MeshlibCopiedFaceRecordDiagnostic, MeshlibCopiedPrevNextEdgeUpdateDiagnostic, MeshlibFaceExportFailureDiagnostic, MeshlibNearStitchFailureDiagnostic, MeshlibNearStitchLinkedEdgeDiagnostic, MeshlibNearStitchRingDiagnostic, MeshlibNearStitchSourceLookupDiagnostic, MeshlibNearStitchTargetSnapshotDiagnostic, MeshlibPreparedBaseRecordRewriteDiagnostics, MeshlibPreparedSourceRecordReplayDiagnostic, MeshlibRecordRewriteFailedCommandDiagnostic, MeshlibRecordRewriteTargetDiagnostic};
 pub use exact_classify::{
     exact_classify_components, ExactComponentClassification, ExactMeshPartClassification,
 };
@@ -68,7 +67,8 @@ pub use exact_cut::{
 pub use exact_cut_apply::{exact_cut_mesh_by_contours, ExactCutMeshResult};
 pub use exact_cut_pair::{exact_mesh_pair_cut_meshes, ExactMeshPairCutMeshes};
 pub use exact_fill_apply::{
-    exact_cut_hole_fill_plans, exact_fill_cut_holes, ExactCutHoleFillPlan, ExactCutHoleFillResult,
+    exact_cut_hole_fill_plans, exact_cut_hole_fill_plans_with_replacements, exact_fill_cut_holes,
+    exact_fill_cut_holes_with_replacements, ExactCutHoleFillPlan, ExactCutHoleFillResult,
 };
 pub use exact_fill_plan::{
     exact_planar_hole_fill_plan, execute_exact_planar_hole_fill_plan, ExactPlanarHoleFillExecution,
@@ -98,41 +98,19 @@ pub use exact_stitch::{
     exact_stitch_plan_by_edges, exact_stitch_plan_from_cut_meshes, ExactStitchEdgePair,
     ExactStitchPath, ExactStitchPlan,
 };
-use predicates::{faces_share_vertex, triangles_intersect as triangles_intersect_predicate};
+use predicates::triangles_intersect as triangles_intersect_predicate;
 use ray::{first_ray_hit_with_bvh, ray_hits_with_bvh};
+pub(crate) use ray_batch::ray_triangle_hit_counts;
+pub use self_intersections::{
+    self_intersecting_faces, self_intersecting_faces_by_component_with_touch,
+    self_intersecting_faces_with_touch,
+};
 pub use sign::{
     point_inside_mesh, point_inside_mesh_winding, signed_point_mesh_distances_with_method,
     supports_winding_sign_for_mesh,
 };
-use winding::triangle_solid_angle;
-pub fn self_intersecting_faces(
-    vertices: &[[f64; 3]],
-    faces_i64: &[[i64; 3]],
-    epsilon: f64,
-) -> Result<Vec<usize>, GeometryError> {
-    let faces = validate_faces(faces_i64, vertices.len())?;
-    if faces.len() < 2 {
-        return Ok(Vec::new());
-    }
-    let triangles: Vec<[[f64; 3]; 3]> = faces
-        .iter()
-        .map(|face| [vertices[face[0]], vertices[face[1]], vertices[face[2]]])
-        .collect();
-    let bvh = build_flat_bvh(&triangles, 16);
-    let candidate_pairs = overlapping_face_pairs(&bvh, epsilon);
-    let mut intersecting = BTreeSet::new();
-    for (face_a, face_b) in candidate_pairs {
-        if faces_share_vertex(faces[face_a], faces[face_b]) {
-            continue;
-        }
-        if triangles_intersect_predicate(triangles[face_a], triangles[face_b], epsilon) {
-            intersecting.insert(face_a);
-            intersecting.insert(face_b);
-        }
-    }
-
-    Ok(intersecting.into_iter().collect())
-}
+pub use unsigned_sdf::unsigned_sdf_grid_values;
+pub use weighted_sdf::weighted_sdf_grid_values;
 
 pub fn triangles_intersect(
     triangle_a: [[f64; 3]; 3],
@@ -209,16 +187,11 @@ pub fn winding_numbers(
         .iter()
         .map(|face| [vertices[face[0]], vertices[face[1]], vertices[face[2]]])
         .collect();
-    let normalization = 4.0 * std::f64::consts::PI;
+    let bvh = build_flat_bvh(&triangles, 16);
+    let winding_eval = fast_winding::WindingEvaluator::new(&triangles, &bvh);
     let output = points
         .par_iter()
-        .map(|point| {
-            let solid_angle: f64 = triangles
-                .iter()
-                .map(|triangle| triangle_solid_angle(*point, *triangle))
-                .sum();
-            solid_angle / normalization
-        })
+        .map(|point| winding_eval.winding_at(*point))
         .collect();
     Ok(output)
 }
@@ -239,17 +212,13 @@ pub fn signed_point_mesh_distances(
         .map(|face| [vertices[face[0]], vertices[face[1]], vertices[face[2]]])
         .collect();
     let bvh = build_flat_bvh(&triangles, 16);
-    let normalization = 4.0 * std::f64::consts::PI;
+    let winding_eval = fast_winding::WindingEvaluator::new(&triangles, &bvh);
 
     let output = points
         .par_iter()
         .map(|point| {
             let closest = closest_point_with_bvh(*point, &bvh, &triangles);
-            let winding = triangles
-                .iter()
-                .map(|triangle| triangle_solid_angle(*point, *triangle))
-                .sum::<f64>()
-                / normalization;
+            let winding = winding_eval.winding_at(*point);
             let sign = if winding.abs() >= winding_threshold {
                 -1.0
             } else {
@@ -338,7 +307,7 @@ pub fn sdf_grid_values(
         .map(|face| [vertices[face[0]], vertices[face[1]], vertices[face[2]]])
         .collect();
     let bvh = build_flat_bvh(&triangles, 16);
-    let normalization = 4.0 * std::f64::consts::PI;
+    let winding_eval = fast_winding::WindingEvaluator::new(&triangles, &bvh);
     let yz_plane = shape[1] * shape[2];
     let output = (0..total)
         .into_par_iter()
@@ -353,11 +322,7 @@ pub fn sdf_grid_values(
                 origin[2] + iz as f64 * voxel_size,
             ];
             let closest = closest_point_with_bvh(point, &bvh, &triangles);
-            let winding = triangles
-                .iter()
-                .map(|triangle| triangle_solid_angle(point, *triangle))
-                .sum::<f64>()
-                / normalization;
+            let winding = winding_eval.winding_at(point);
             let sign = if winding.abs() >= winding_threshold {
                 -1.0
             } else {

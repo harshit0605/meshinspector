@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "e2e:workbench": "playwright test --project=chromium-desktop",
+    "e2e:workbench:headed": "playwright test --project=chromium-desktop --headed"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

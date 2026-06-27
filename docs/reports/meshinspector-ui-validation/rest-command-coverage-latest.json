@@ -1,0 +1,6051 @@
+{
+  "generated_at": "2026-06-12T21:33:56.759Z",
+  "manifest": ".codex/ui-validation/current-workbench-manifest.json",
+  "evidence_root": ".codex/ui-validation",
+  "command_totals": {
+    "total": 80,
+    "pass": 80,
+    "guarded": 0,
+    "failed": 0,
+    "untested": 0
+  },
+  "sdk_operation_totals": {
+    "total": 171,
+    "covered_by_passing_command": 171,
+    "uncovered": 0
+  },
+  "commands": [
+    {
+      "command_id": "export-section",
+      "label": "Export Section SVG",
+      "group": "file",
+      "state": "PASS",
+      "sdk_operations": [
+        "section_contour"
+      ],
+      "endpoint_url_key": "section_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/section",
+      "last_evidence_file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "repair",
+      "label": "Auto Repair",
+      "group": "prepare",
+      "state": "PASS",
+      "sdk_operations": [
+        "mesh_healer_diagnostics",
+        "hole_fill_plan_diagnostics",
+        "repeated_hole_boundary_vertices_diagnostics",
+        "hole_complicating_faces_diagnostics",
+        "remove_hole_complicating_faces",
+        "short_edge_diagnostics",
+        "degenerate_face_diagnostics",
+        "multiple_edge_diagnostics",
+        "repair_multiple_edges",
+        "repair_nonmanifold_edges",
+        "duplicate_nonmanifold_vertices",
+        "duplicate_multi_hole_vertices",
+        "not_smooth_face_diagnostics",
+        "find_disoriented_faces",
+        "flip_normals",
+        "crease_edge_diagnostics",
+        "crease_repair_plan_diagnostics",
+        "fix_mesh_creases",
+        "unite_close_vertices",
+        "basic_repair",
+        "service_fill_holes",
+        "prune_small_components",
+        "tunnel_diagnostics",
+        "detect_tunnel_faces",
+        "eliminate_tunnels",
+        "fix_self_intersections_relax",
+        "rebuild_via_sdf"
+      ],
+      "endpoint_url_key": "repair_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/repair",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-missing-mesh-edit-runtime/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-missing-mesh-edit-runtime/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_40b85cf771b6",
+              "status": "succeeded",
+              "child_version": "ver_25228b5c322c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_dbe000b53df4",
+              "status": "succeeded",
+              "child_version": "ver_e65a0c779016"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_dbe000b53df4",
+              "status": "succeeded",
+              "child_version": "ver_e65a0c779016"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "fit-size",
+      "label": "Fit To Size",
+      "group": "prepare",
+      "state": "PASS",
+      "sdk_operations": [
+        "resize_ring"
+      ],
+      "endpoint_url_key": "resize_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/resize",
+      "last_evidence_file": ".codex/ui-validation/official-ui-edit-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9b076a98353c",
+              "status": "succeeded",
+              "child_version": "ver_646be520a132"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9b076a98353c",
+              "status": "succeeded",
+              "child_version": "ver_646be520a132"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c599dedfa73a",
+              "status": "succeeded",
+              "child_version": "ver_c19c54bed34b"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c599dedfa73a",
+              "status": "succeeded",
+              "child_version": "ver_c19c54bed34b"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "reduce-weight",
+      "label": "Reduce Weight",
+      "group": "prepare",
+      "state": "PASS",
+      "sdk_operations": [
+        "adaptive_protected_hollow_to_weight"
+      ],
+      "endpoint_url_key": "hollow_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/hollow",
+      "last_evidence_file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 12,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_82c57d0fdcb6",
+              "status": "succeeded",
+              "child_version": "ver_6ea11591744f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_82c57d0fdcb6",
+              "status": "succeeded",
+              "child_version": "ver_6ea11591744f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-full-resolution-cube-patched/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8e152d6d83d9"
+          ],
+          "jobs": [
+            {
+              "id": "job_a63f8baa8729",
+              "status": "succeeded",
+              "child_version": "ver_42e9ea7bf8ef"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-full-resolution-cube-patched/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8e152d6d83d9"
+          ],
+          "jobs": [
+            {
+              "id": "job_a63f8baa8729",
+              "status": "succeeded",
+              "child_version": "ver_42e9ea7bf8ef"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-full-resolution-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8e152d6d83d9"
+          ],
+          "jobs": [
+            {
+              "id": "job_d0c014cbc249",
+              "status": "succeeded",
+              "child_version": "ver_d14a047a349e"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-full-resolution-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8e152d6d83d9"
+          ],
+          "jobs": [
+            {
+              "id": "job_d0c014cbc249",
+              "status": "succeeded",
+              "child_version": "ver_d14a047a349e"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode-patched/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_d425caa41687",
+              "status": "succeeded",
+              "child_version": "ver_76f9bb783286"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode-patched/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_d425caa41687",
+              "status": "succeeded",
+              "child_version": "ver_76f9bb783286"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_58d92edec291",
+              "status": "succeeded",
+              "child_version": "ver_74018dba9e2f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_58d92edec291",
+              "status": "succeeded",
+              "child_version": "ver_74018dba9e2f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c8d39d933609",
+              "status": "succeeded",
+              "child_version": "ver_7bd707dd28a5"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c8d39d933609",
+              "status": "succeeded",
+              "child_version": "ver_7bd707dd28a5"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "prepare-casting",
+      "label": "Prepare For Casting",
+      "group": "prepare",
+      "state": "PASS",
+      "sdk_operations": [
+        "protected_hollow_mesh",
+        "plan_drain_holes",
+        "apply_drain_holes_voxel"
+      ],
+      "endpoint_url_key": "hollow_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/hollow",
+      "last_evidence_file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 8,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9908a338d3f3",
+              "status": "succeeded",
+              "child_version": "ver_495234023ceb"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9908a338d3f3",
+              "status": "succeeded",
+              "child_version": "ver_495234023ceb"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode-patched/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9034ff70a4c6",
+              "status": "succeeded",
+              "child_version": "ver_07d63e18ad06"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode-patched/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9034ff70a4c6",
+              "status": "succeeded",
+              "child_version": "ver_07d63e18ad06"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_198e98a1498a",
+              "status": "succeeded",
+              "child_version": "ver_73930faaa2da"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_198e98a1498a",
+              "status": "succeeded",
+              "child_version": "ver_73930faaa2da"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e6c764979787",
+              "status": "succeeded",
+              "child_version": "ver_f1db48255d8c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e6c764979787",
+              "status": "succeeded",
+              "child_version": "ver_f1db48255d8c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "make-manufacturable",
+      "label": "Make Manufacturable",
+      "group": "prepare",
+      "state": "PASS",
+      "sdk_operations": [
+        "mesh_healer_diagnostics",
+        "hole_fill_plan_diagnostics",
+        "repeated_hole_boundary_vertices_diagnostics",
+        "hole_complicating_faces_diagnostics",
+        "remove_hole_complicating_faces",
+        "short_edge_diagnostics",
+        "degenerate_face_diagnostics",
+        "multiple_edge_diagnostics",
+        "repair_multiple_edges",
+        "repair_nonmanifold_edges",
+        "duplicate_nonmanifold_vertices",
+        "duplicate_multi_hole_vertices",
+        "not_smooth_face_diagnostics",
+        "find_disoriented_faces",
+        "flip_normals",
+        "crease_edge_diagnostics",
+        "crease_repair_plan_diagnostics",
+        "fix_mesh_creases",
+        "unite_close_vertices",
+        "basic_repair",
+        "prune_small_components",
+        "tunnel_diagnostics",
+        "detect_tunnel_faces",
+        "eliminate_tunnels",
+        "fix_self_intersections_relax",
+        "rebuild_via_sdf",
+        "resize_ring",
+        "adaptive_protected_hollow_to_weight",
+        "service_health"
+      ],
+      "endpoint_url_key": "make_manufacturable_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/make-manufacturable",
+      "last_evidence_file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-make-manufacturable-visual-ready-timeout-fixed/partial-results.json",
+      "run_count": 6,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_7d9c82f26ed3",
+              "status": "timeout",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_7d9c82f26ed3",
+              "status": "timeout",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-make-manufacturable-visual-ready-timeout-fixed/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ad0246f15aad",
+              "status": "succeeded",
+              "child_version": "ver_9332cf9510cc"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-make-manufacturable-visual-ready-timeout-fixed/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ad0246f15aad",
+              "status": "succeeded",
+              "child_version": "ver_9332cf9510cc"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e7bf5f01bf2e",
+              "status": "succeeded",
+              "child_version": "ver_e6fc2cd47369"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e7bf5f01bf2e",
+              "status": "succeeded",
+              "child_version": "ver_e6fc2cd47369"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "resize",
+      "label": "Resize",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "resize_ring"
+      ],
+      "endpoint_url_key": "resize_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/resize",
+      "last_evidence_file": ".codex/ui-validation/official-ui-edit-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_69092b9618ae",
+              "status": "succeeded",
+              "child_version": "ver_774ced430ce5"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_69092b9618ae",
+              "status": "succeeded",
+              "child_version": "ver_774ced430ce5"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ce99bc90758e",
+              "status": "succeeded",
+              "child_version": "ver_64d99178fb88"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ce99bc90758e",
+              "status": "succeeded",
+              "child_version": "ver_64d99178fb88"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "protected-hollow",
+      "label": "Protected Hollow",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "protected_hollow_mesh"
+      ],
+      "endpoint_url_key": "hollow_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/hollow",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_d8e8f22f48e2",
+              "status": "succeeded",
+              "child_version": "ver_71dfe83384cf"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_d8e8f22f48e2",
+              "status": "succeeded",
+              "child_version": "ver_71dfe83384cf"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_b848ec392446",
+              "status": "succeeded",
+              "child_version": "ver_754461e6b5b6"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_b848ec392446",
+              "status": "succeeded",
+              "child_version": "ver_754461e6b5b6"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "offset-mesh",
+      "label": "Offset Mesh",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_offset_mesh"
+      ],
+      "endpoint_url_key": "offset_mesh_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/voxel",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_c0f06aacef3c"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_c0f06aacef3c"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_108be4a36a84"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_108be4a36a84"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "shell-mesh",
+      "label": "Shell Mesh",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_shell_mesh"
+      ],
+      "endpoint_url_key": "shell_mesh_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/shell/voxel",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_656f40aa2604"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_656f40aa2604"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_3f4460699576"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_3f4460699576"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "thicken-mesh",
+      "label": "Thickening",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_thicken_mesh"
+      ],
+      "endpoint_url_key": "thicken_mesh_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/thicken",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_080981bc0732"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_f858fdd968a9"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_f858fdd968a9"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8b543206e86f"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8b543206e86f"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "weighted-shell",
+      "label": "Weighted Shell",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_weighted_shell_mesh"
+      ],
+      "endpoint_url_key": "weighted_shell_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/weighted-shell",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_08db43c10314"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_08db43c10314"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_4ea0d8e55974"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_4ea0d8e55974"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "partial-offset",
+      "label": "Partial Offset",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_partial_offset_mesh"
+      ],
+      "endpoint_url_key": "partial_offset_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/partial",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_b1bcecf9b943"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_b1bcecf9b943"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_af93ef997926"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_af93ef997926"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "offset-verts",
+      "label": "Offset Verts",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "offset_verts_mesh"
+      ],
+      "endpoint_url_key": "offset_verts_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/verts",
+      "last_evidence_file": ".codex/ui-validation/official-ui-offset-verts-after-runner-patch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_cfee2c9fd09b"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-offset-verts-after-runner-patch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_19fcb571156c"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-offset-verts-after-runner-patch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_19fcb571156c"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "expand-shrink",
+      "label": "Expand/Shrink",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_offset_mesh"
+      ],
+      "endpoint_url_key": "expand_shrink_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/expand-shrink",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_06df06d0953b"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_06df06d0953b"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_6197bef39c1d"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_6197bef39c1d"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "shrink-expand",
+      "label": "Shrink/Expand",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_offset_mesh"
+      ],
+      "endpoint_url_key": "shrink_expand_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/offset/shrink-expand",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_01fc98e48bed"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_01fc98e48bed"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_e81513dfbc08"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxel-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_e81513dfbc08"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "hollow-drains",
+      "label": "Hollow + Drains",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "protected_hollow_mesh",
+        "plan_drain_holes",
+        "apply_drain_holes_voxel"
+      ],
+      "endpoint_url_key": "hollow_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/hollow",
+      "last_evidence_file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 16,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e701d7eea508",
+              "status": "succeeded",
+              "child_version": "ver_6ca2162dcc4f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e701d7eea508",
+              "status": "succeeded",
+              "child_version": "ver_6ca2162dcc4f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-full-resolution-dense-guard/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_722d21ba2199",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-full-resolution-dense-guard/results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_722d21ba2199",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode-patched/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_8f98c06a49f8",
+              "status": "succeeded",
+              "child_version": "ver_2c9f7563ec5f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode-patched/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_8f98c06a49f8",
+              "status": "succeeded",
+              "child_version": "ver_2c9f7563ec5f"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_8232250116aa",
+              "status": "succeeded",
+              "child_version": "ver_367f7c430f9d"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-after-full-mode/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_8232250116aa",
+              "status": "succeeded",
+              "child_version": "ver_367f7c430f9d"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-drains-metadata/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_2637c7abc193",
+              "status": "succeeded",
+              "child_version": "ver_ee8defac3158"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-drains-metadata/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_2637c7abc193",
+              "status": "succeeded",
+              "child_version": "ver_ee8defac3158"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-drains-recommendation/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_2a1072f24fa0",
+              "status": "succeeded",
+              "child_version": "ver_da8cbd84be9c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-drains-recommendation/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_2a1072f24fa0",
+              "status": "succeeded",
+              "child_version": "ver_da8cbd84be9c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-interactive-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ca6be3136c6d",
+              "status": "succeeded",
+              "child_version": "ver_378270999b93"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-hollow-interactive-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ca6be3136c6d",
+              "status": "succeeded",
+              "child_version": "ver_378270999b93"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_0926b1ad5874",
+              "status": "succeeded",
+              "child_version": "ver_4383d3b6fa8c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-manufacture-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_0926b1ad5874",
+              "status": "succeeded",
+              "child_version": "ver_4383d3b6fa8c"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "thicken-violations",
+      "label": "Thicken Violations",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "local_thicken_to_minimum"
+      ],
+      "endpoint_url_key": "thicken_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/thicken",
+      "last_evidence_file": ".codex/ui-validation/official-ui-thicken-violations/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 8,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_6d8657268a0f",
+              "status": "succeeded",
+              "child_version": "ver_7b1d33571125"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_6d8657268a0f",
+              "status": "succeeded",
+              "child_version": "ver_7b1d33571125"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_1e12d1263c91",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_1e12d1263c91",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-thicken-violations-dense-after-deferred-fallback/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_cae35df0cffb",
+              "status": "succeeded",
+              "child_version": "ver_c17cf5ac36fb"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-thicken-violations-dense-after-deferred-fallback/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_cae35df0cffb",
+              "status": "succeeded",
+              "child_version": "ver_c17cf5ac36fb"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-thicken-violations/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_01f131e219e9"
+          ],
+          "jobs": [
+            {
+              "id": "job_c02d2e12cbe7",
+              "status": "succeeded",
+              "child_version": "ver_2122c21a2f06"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-thicken-violations/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_01f131e219e9"
+          ],
+          "jobs": [
+            {
+              "id": "job_c02d2e12cbe7",
+              "status": "succeeded",
+              "child_version": "ver_2122c21a2f06"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "thicken-region",
+      "label": "Thicken Region",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "local_thicken_to_minimum"
+      ],
+      "endpoint_url_key": "thicken_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/thicken",
+      "last_evidence_file": ".codex/ui-validation/official-ui-thicken-region-after-local-deform-fix/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-thicken-region-after-local-deform-fix/partial-results.json",
+      "run_count": 2,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-thicken-region-after-local-deform-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_1194f2df7ae3",
+              "status": "succeeded",
+              "child_version": "ver_94c3518645ac"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-thicken-region-after-local-deform-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_1194f2df7ae3",
+              "status": "succeeded",
+              "child_version": "ver_94c3518645ac"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "batch-thicken",
+      "label": "Batch Thicken",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "local_thicken_to_minimum"
+      ],
+      "endpoint_url_key": "thicken_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/thicken",
+      "last_evidence_file": ".codex/ui-validation/official-ui-edit-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_3ddb00ea9950",
+              "status": "succeeded",
+              "child_version": "ver_59da6859e677"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_3ddb00ea9950",
+              "status": "succeeded",
+              "child_version": "ver_59da6859e677"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_0dc9289c6bbd",
+              "status": "succeeded",
+              "child_version": "ver_03aaf8e08df2"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_0dc9289c6bbd",
+              "status": "succeeded",
+              "child_version": "ver_03aaf8e08df2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "scoop",
+      "label": "Scoop",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "local_scoop"
+      ],
+      "endpoint_url_key": "scoop_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/scoop",
+      "last_evidence_file": ".codex/ui-validation/official-ui-scoop-after-local-deform-fix/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-scoop-after-local-deform-fix/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-missing-mesh-edit-runtime-after-scoop-fix/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c6f51c63abf7",
+              "status": "timeout",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-scoop-after-local-deform-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_beaa7ba78f75",
+              "status": "succeeded",
+              "child_version": "ver_1965e1f45fd0"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-scoop-after-local-deform-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_beaa7ba78f75",
+              "status": "succeeded",
+              "child_version": "ver_1965e1f45fd0"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "smooth",
+      "label": "Smooth",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "smooth"
+      ],
+      "endpoint_url_key": "smooth_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/smooth",
+      "last_evidence_file": ".codex/ui-validation/official-ui-smooth-after-local-deform-fix/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-smooth-after-local-deform-fix/partial-results.json",
+      "run_count": 2,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-smooth-after-local-deform-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_dbd410755c6c",
+              "status": "succeeded",
+              "child_version": "ver_32f5ea2d4a3d"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-smooth-after-local-deform-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_dbd410755c6c",
+              "status": "succeeded",
+              "child_version": "ver_32f5ea2d4a3d"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "batch-smooth",
+      "label": "Batch Smooth",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "smooth"
+      ],
+      "endpoint_url_key": "smooth_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/smooth",
+      "last_evidence_file": ".codex/ui-validation/official-ui-edit-user/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_dea2f67b7e49",
+              "status": "succeeded",
+              "child_version": "ver_0452a830ad9c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_dea2f67b7e49",
+              "status": "succeeded",
+              "child_version": "ver_0452a830ad9c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_41b2f7a4d256",
+              "status": "succeeded",
+              "child_version": "ver_0dce4226b988"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-edit-user/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_41b2f7a4d256",
+              "status": "succeeded",
+              "child_version": "ver_0dce4226b988"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "decimate-mesh",
+      "label": "Decimate Mesh",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "decimate_mesh"
+      ],
+      "endpoint_url_key": "decimate_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/decimate",
+      "last_evidence_file": ".codex/ui-validation/official-ui-decimate-selected-region-after-guard/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 10,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_d69ef367fcb5",
+              "status": "succeeded",
+              "child_version": "ver_d233a3e08f81"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_d69ef367fcb5",
+              "status": "succeeded",
+              "child_version": "ver_d233a3e08f81"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-full-dense-guard-after-restart/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_266d37a233da",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-full-dense-guard-after-restart/results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_266d37a233da",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-full-dense-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c85b7ae1dcdb",
+              "status": "succeeded",
+              "child_version": "ver_1080d748f3c6"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-full-dense-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_c85b7ae1dcdb",
+              "status": "succeeded",
+              "child_version": "ver_1080d748f3c6"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-selected-region-after-decimate-guard-restart/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9392c54220b1",
+              "status": "succeeded",
+              "child_version": "ver_7213ffe1f9bd"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-selected-region-after-decimate-guard-restart/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9392c54220b1",
+              "status": "succeeded",
+              "child_version": "ver_7213ffe1f9bd"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-selected-region-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_78ef116824d3",
+              "status": "succeeded",
+              "child_version": "ver_b8033f83a7c1"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-decimate-selected-region-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_78ef116824d3",
+              "status": "succeeded",
+              "child_version": "ver_b8033f83a7c1"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "subdivide-mesh",
+      "label": "Subdivide Mesh",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "subdivide_mesh"
+      ],
+      "endpoint_url_key": "subdivide_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/subdivide",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-mesh-refinement/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 12,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_98fdcf2d42fc",
+              "status": "succeeded",
+              "child_version": "ver_ad8fed0c85fb"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_98fdcf2d42fc",
+              "status": "succeeded",
+              "child_version": "ver_ad8fed0c85fb"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-200-face-selected-region/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_aafeacf5eaae",
+              "status": "succeeded",
+              "child_version": "ver_43fa2eea85aa"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-200-face-selected-region/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_aafeacf5eaae",
+              "status": "succeeded",
+              "child_version": "ver_43fa2eea85aa"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-long-edge-after-cua-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_fe1a3cfb4fd1"
+          ],
+          "jobs": [
+            {
+              "id": "job_47515bbb036a",
+              "status": "succeeded",
+              "child_version": "ver_0d3412486eee"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-long-edge-after-cua-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_fe1a3cfb4fd1"
+          ],
+          "jobs": [
+            {
+              "id": "job_47515bbb036a",
+              "status": "succeeded",
+              "child_version": "ver_0d3412486eee"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-region1-after-noop-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_fe1a3cfb4fd1"
+          ],
+          "jobs": [
+            {
+              "id": "job_d21061384aa8",
+              "status": "succeeded",
+              "child_version": "ver_7c7f5e8611cf"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-region1-after-noop-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_fe1a3cfb4fd1"
+          ],
+          "jobs": [
+            {
+              "id": "job_d21061384aa8",
+              "status": "succeeded",
+              "child_version": "ver_7c7f5e8611cf"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-selected-region-after-harness-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9b1758be8fb7",
+              "status": "succeeded",
+              "child_version": "ver_cf8b12c3b4c4"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-subdivide-selected-region-after-harness-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9b1758be8fb7",
+              "status": "succeeded",
+              "child_version": "ver_cf8b12c3b4c4"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-mesh-refinement/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_086287c666a9",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-mesh-refinement/results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_086287c666a9",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "make-delone",
+      "label": "Make Delone",
+      "group": "modify",
+      "state": "PASS",
+      "sdk_operations": [
+        "make_delone_edge_flips"
+      ],
+      "endpoint_url_key": "make_delone_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/make-delone",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-mesh-refinement/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_1fbdf6f16db9",
+              "status": "succeeded",
+              "child_version": "ver_d735eb319eca"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_1fbdf6f16db9",
+              "status": "succeeded",
+              "child_version": "ver_d735eb319eca"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-mesh-refinement/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e9b3cac0a912",
+              "status": "succeeded",
+              "child_version": "ver_32554da48aa2"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-mesh-refinement/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_e9b3cac0a912",
+              "status": "succeeded",
+              "child_version": "ver_32554da48aa2"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "section",
+      "label": "Section",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "section_contour"
+      ],
+      "endpoint_url_key": "section_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/section",
+      "last_evidence_file": ".codex/ui-validation/official-ui-section-regions-exact-ids/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-section-regions-exact-ids/partial-results.json",
+      "run_count": 2,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-section-regions-exact-ids/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-section-regions-exact-ids/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "heatmap",
+      "label": "Heatmap",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "thickness_overlay_payload"
+      ],
+      "endpoint_url_key": "thickness_overlay_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/overlays/thickness",
+      "last_evidence_file": ".codex/ui-validation/official-ui-tail/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-tail/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "regions",
+      "label": "Regions",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "detect_ring_regions",
+        "closest_points_on_mesh",
+        "expand_face_selection_to_components",
+        "graph_cut_select_region",
+        "graph_cut_select_region_auto_not_region",
+        "select_boundary_faces",
+        "select_boundary_edges",
+        "select_camera_facing_faces",
+        "select_crease_edges",
+        "select_degenerate_faces",
+        "select_face_by_ray",
+        "select_faces_by_area",
+        "select_faces_by_screen_brush",
+        "select_faces_by_screen_polygon",
+        "select_faces_by_screen_rect",
+        "select_inside_part_faces",
+        "select_largest_component_faces",
+        "select_not_smooth_faces",
+        "select_outer_layer_faces",
+        "select_overlapping_faces",
+        "select_overhang_faces",
+        "select_short_edges",
+        "self_intersecting_faces"
+      ],
+      "endpoint_url_key": "selection_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/selection-commit",
+      "last_evidence_file": ".codex/ui-validation/official-ui-section-regions-exact-ids/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-regions-exact-id-after-runtime-tool-fix/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-regions-exact-id-after-runtime-tool-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-regions-exact-id-after-runtime-tool-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-section-regions-exact-ids/partial-results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-section-regions-exact-ids/results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "measure-inspect",
+      "label": "Measure / Inspect",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "closest_points_on_mesh",
+        "feature_pair_measurements",
+        "mesh_geodesic_path",
+        "mesh_geodesic_polyline_path",
+        "mesh_cut_measure_contours",
+        "mesh_geodesic_quadrangle_path",
+        "mesh_fast_marching_surface_path",
+        "mesh_fast_marching_surface_path_tri_points",
+        "mesh_surface_path_tri_points",
+        "object_lines_from_contours",
+        "mesh_geodesic_distance_field",
+        "mesh_closest_surface_path_targets",
+        "mesh_surface_distance_seed_vertices",
+        "mesh_geodesic_iso_region",
+        "mesh_geodesic_extreme_edges",
+        "thickness_overlay_payload"
+      ],
+      "endpoint_url_key": "measurement_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/measure-inspect",
+      "last_evidence_file": ".codex/ui-validation/official-ui-visual-ready-smoke/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 6,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-visual-ready-smoke/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-visual-ready-smoke/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "mesh-cut-measure-path",
+      "label": "Mesh Cut & Measure Path",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "mesh_geodesic_path",
+        "mesh_geodesic_polyline_path",
+        "mesh_cut_measure_contours",
+        "mesh_cut_measure_edge_path_topology_cut",
+        "mesh_geodesic_quadrangle_path",
+        "object_lines_from_contours"
+      ],
+      "endpoint_url_key": "mesh_cut_measure_topology_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/mesh-cut-measure/topology",
+      "last_evidence_file": ".codex/ui-validation/official-ui-tail/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_2953d30ad62b"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_33ff8555e50a"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_33ff8555e50a"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "compare-versions",
+      "label": "Compare Versions",
+      "group": "review",
+      "state": "PASS",
+      "sdk_operations": [
+        "service_compare_field",
+        "service_compare"
+      ],
+      "endpoint_url_key": "compare_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/compare",
+      "last_evidence_file": ".codex/ui-validation/official-ui-tail/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-compare-cube/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-compare-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8e152d6d83d9"
+          ],
+          "jobs": [
+            {
+              "id": "job_937aa4e19cd2",
+              "status": "succeeded",
+              "child_version": "ver_8e152d6d83d9"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-compare-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_8e152d6d83d9"
+          ],
+          "jobs": [
+            {
+              "id": "job_937aa4e19cd2",
+              "status": "succeeded",
+              "child_version": "ver_8e152d6d83d9"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_f947fe74af2b",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_f947fe74af2b",
+              "status": "failed",
+              "child_version": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "point-cloud-icp",
+      "label": "Point Cloud / ICP",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "point_cloud_nearest_projections",
+        "point_cloud_project_to_mesh",
+        "point_cloud_n_closest_neighbors",
+        "point_cloud_two_closest_points",
+        "point_cloud_neighbors_in_radius",
+        "point_cloud_select_by_screen_polygon",
+        "point_cloud_select_by_screen_rect",
+        "point_cloud_select_by_screen_brush",
+        "point_cloud_pick_by_ray",
+        "point_cloud_extract_selected_points_as_object",
+        "point_cloud_local_neighbor_fan",
+        "point_cloud_local_fan_triangles",
+        "point_cloud_local_triangulation_repetitions",
+        "point_cloud_triangulate_candidate_mesh",
+        "point_cloud_triangulate_cleaned_candidate_mesh",
+        "point_cloud_triangulate_topology_candidate_mesh",
+        "point_cloud_triangulate_filled_candidate_mesh",
+        "point_cloud_uniform_sample",
+        "point_cloud_grid_sample",
+        "pairwise_point_to_point_icp",
+        "pairwise_point_to_plane_icp",
+        "multiway_point_to_point_icp",
+        "multiway_point_to_plane_icp",
+        "multiway_combined_icp",
+        "multiway_all_object_point_to_point_icp",
+        "multiway_all_object_point_to_plane_icp",
+        "multiway_all_object_combined_icp",
+        "multiway_sequential_cascade_point_to_point_icp",
+        "multiway_sequential_cascade_point_to_plane_icp",
+        "multiway_sequential_cascade_combined_icp",
+        "multiway_aabb_cascade_point_to_point_icp",
+        "multiway_aabb_cascade_point_to_plane_icp",
+        "multiway_aabb_cascade_combined_icp"
+      ],
+      "endpoint_url_key": "point_cloud_icp_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/point-cloud/icp",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-contours",
+      "label": "Contour Distance Map",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_from_contours"
+      ],
+      "endpoint_url_key": "distance_map_contours_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/contours",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-from-contours",
+      "label": "ObjectLines From Contours",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_from_contours"
+      ],
+      "endpoint_url_key": "object_lines_from_contours_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/from-contours",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-to-contours",
+      "label": "ObjectLines To Contours",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_to_contours"
+      ],
+      "endpoint_url_key": "object_lines_to_contours_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/to-contours",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "offset-contours",
+      "label": "Offset Contours",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "offset_contours",
+        "offset_contours_with_origins"
+      ],
+      "endpoint_url_key": "offset_contours_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/contours/offset",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-load-mrlines",
+      "label": "ObjectLines Load MrLines",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_from_mrlines"
+      ],
+      "endpoint_url_key": "object_lines_load_mrlines_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/load-mrlines",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-save-mrlines",
+      "label": "ObjectLines Save MrLines",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_to_mrlines"
+      ],
+      "endpoint_url_key": "object_lines_save_mrlines_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/save-mrlines",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-load-ply",
+      "label": "ObjectLines Load PLY",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_from_ply"
+      ],
+      "endpoint_url_key": "object_lines_load_ply_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/load-ply",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-save-ply",
+      "label": "ObjectLines Save PLY",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_to_ply"
+      ],
+      "endpoint_url_key": "object_lines_save_ply_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/save-ply",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-load-pts",
+      "label": "ObjectLines Load PTS",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_from_pts"
+      ],
+      "endpoint_url_key": "object_lines_load_pts_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/load-pts",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-load-svg",
+      "label": "ObjectLines Load SVG",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_from_svg"
+      ],
+      "endpoint_url_key": "object_lines_load_svg_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/load-svg",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-save-pts",
+      "label": "ObjectLines Save PTS",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_to_pts"
+      ],
+      "endpoint_url_key": "object_lines_save_pts_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/save-pts",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "object-lines-save-dxf",
+      "label": "ObjectLines Save DXF",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "object_lines_to_dxf"
+      ],
+      "endpoint_url_key": "object_lines_save_dxf_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/object-lines/save-dxf",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-from-mesh",
+      "label": "Mesh Distance Map",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_from_mesh"
+      ],
+      "endpoint_url_key": "distance_map_from_mesh_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/mesh",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-iso-lines",
+      "label": "Distance Map Iso-Lines",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_to_iso_segments"
+      ],
+      "endpoint_url_key": "distance_map_iso_lines_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/iso-lines",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-merge",
+      "label": "Distance Map Merge",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_merge"
+      ],
+      "endpoint_url_key": "distance_map_merge_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/merge",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-contour-boolean",
+      "label": "Contour Boolean From Distance Maps",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_contour_boolean"
+      ],
+      "endpoint_url_key": "distance_map_contour_boolean_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/contour-boolean",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-from-tiff",
+      "label": "TIFF Distance Map Import",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_from_tiff"
+      ],
+      "endpoint_url_key": "distance_map_from_tiff_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/from-tiff",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "distance-map-to-tiff",
+      "label": "TIFF Distance Map Export",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "distance_map_to_tiff"
+      ],
+      "endpoint_url_key": "distance_map_to_tiff_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/distance-map/to-tiff",
+      "last_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-distance-lines-pointcloud-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "gcode-parse-paths",
+      "label": "G-code Path Parser",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "parse_gcode_paths"
+      ],
+      "endpoint_url_key": "gcode_parse_paths_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/gcode/parse-paths",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "mesh-to-voxels-sdf",
+      "label": "Mesh to Voxels / SDF",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "sample_sdf_grid",
+        "sdf_occupancy",
+        "estimate_sdf_volume",
+        "extract_sdf_isosurface"
+      ],
+      "endpoint_url_key": "voxelize_mesh_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/mesh-to-sdf",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-binary-operations",
+      "label": "Binary Operations",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_binary_values",
+        "voxel_binary_iso_value"
+      ],
+      "endpoint_url_key": "voxel_binary_operations_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/binary",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "open-raw-voxels",
+      "label": "Open RAW Voxels",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "load_raw_voxels",
+        "load_raw_voxels_auto",
+        "voxel_default_iso_value"
+      ],
+      "endpoint_url_key": "open_raw_voxels_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/open-raw",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "open-voxels-from-tiff",
+      "label": "Open Voxels From TIFF",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "load_tiff_voxels_dir",
+        "voxel_default_iso_value"
+      ],
+      "endpoint_url_key": "open_voxels_from_tiff_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/open-tiff-dir",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-slice",
+      "label": "Voxels Slice",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_slice"
+      ],
+      "endpoint_url_key": "voxel_slice_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/slice",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-line-graph",
+      "label": "Voxels Line Graph",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_line_graph"
+      ],
+      "endpoint_url_key": "voxel_line_graph_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/line-graph",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-active-box",
+      "label": "Set Active Voxel Box",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_active_box"
+      ],
+      "endpoint_url_key": "voxel_active_box_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/active-box",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-volume-render-data",
+      "label": "Voxels Volume Rendering Data",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_volume_render_data"
+      ],
+      "endpoint_url_key": "voxel_volume_render_data_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/volume-render-data",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-volume-render-lut",
+      "label": "Voxels Volume Rendering LUT",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_volume_render_lut"
+      ],
+      "endpoint_url_key": "voxel_volume_render_lut_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/volume-render-lut",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-volume-render-ray",
+      "label": "Voxels Volume Rendering Ray",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_volume_render_ray"
+      ],
+      "endpoint_url_key": "voxel_volume_render_ray_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/volume-render-ray",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-segmentation",
+      "label": "Voxels Segmentation",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_segmentation",
+        "voxel_segmentation_mesh"
+      ],
+      "endpoint_url_key": "voxel_segmentation_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/segmentation",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-mask-to-mesh",
+      "label": "Voxels Mask to Mesh",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_mask_to_mesh"
+      ],
+      "endpoint_url_key": "voxel_mask_to_mesh_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/mask-to-mesh",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-to-mesh-simple",
+      "label": "Voxels to Mesh Simple",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_to_mesh_simple"
+      ],
+      "endpoint_url_key": "voxel_to_mesh_simple_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/to-mesh/simple",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-to-mesh-smart",
+      "label": "Voxels to Mesh Smart",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_to_mesh_smart",
+        "voxel_move_mesh_to_max_deriv"
+      ],
+      "endpoint_url_key": "voxel_to_mesh_smart_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/to-mesh/smart",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-path",
+      "label": "Voxels Path",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_path"
+      ],
+      "endpoint_url_key": "voxel_path_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/path",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-path-build-four",
+      "label": "Voxels Path Build Four",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_path_build_four"
+      ],
+      "endpoint_url_key": "voxel_path_build_four_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/voxels/path/build-four",
+      "last_evidence_file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-voxels-batch/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "voxel-boolean",
+      "label": "Voxel Boolean",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "voxel_boolean_mesh"
+      ],
+      "endpoint_url_key": "voxel_boolean_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/boolean/voxel",
+      "last_evidence_file": ".codex/ui-validation/official-ui-boolean-cube/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-boolean-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_dc2080b6427e"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_dc2080b6427e"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_a4a8e99bc3eb"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_a4a8e99bc3eb"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "collision-detect",
+      "label": "Collision Detection",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "exact_mesh_intersections"
+      ],
+      "endpoint_url_key": "collision_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/collision/detect",
+      "last_evidence_file": ".codex/ui-validation/official-ui-tail/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-tail/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-tail/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "exact-boolean",
+      "label": "Exact Boolean",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "exact_boolean_mesh"
+      ],
+      "endpoint_url_key": "exact_boolean_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/boolean/exact",
+      "last_evidence_file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-boolean-cube-visual-ready-after-guard/partial-results.json",
+      "run_count": 7,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube-visual-ready-after-guard/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_6fc48618de5a"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube-visual-ready-after-guard/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_6fc48618de5a"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_d04f7e76e49d"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-boolean-cube/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_d04f7e76e49d"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-dense-exact-boolean-guard/partial-results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-dense-exact-boolean-guard/results.json",
+          "pass": false,
+          "response_count": 1,
+          "statuses": [
+            400
+          ],
+          "child_versions": [],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-offset-boolean-inspect-visual-ready/partial-results.json",
+          "pass": false,
+          "response_count": 0,
+          "statuses": [],
+          "child_versions": [],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "gcode-load-source",
+      "label": "Load G-code Source",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "load_gcode_source"
+      ],
+      "endpoint_url_key": "gcode_load_source_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/gcode/load-source",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "gcode-write-source",
+      "label": "Write G-code Source",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "write_gcode_source"
+      ],
+      "endpoint_url_key": "gcode_write_source_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/gcode/write-source",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "gcode-parse-file-paths",
+      "label": "Parse G-code File Paths",
+      "group": "inspect",
+      "state": "PASS",
+      "sdk_operations": [
+        "parse_gcode_file_paths"
+      ],
+      "endpoint_url_key": "gcode_parse_file_paths_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/gcode/parse-file-paths",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+      "run_count": 3,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "runtime-select-mark-region",
+      "label": "Select / Mark Region",
+      "group": "runtime",
+      "state": "PASS",
+      "sdk_operations": [
+        "closest_points_on_mesh",
+        "detect_ring_regions",
+        "extract_selected_faces_as_mesh",
+        "expand_face_selection_to_components",
+        "graph_cut_select_region",
+        "graph_cut_select_region_auto_not_region",
+        "select_boundary_faces",
+        "select_boundary_edges",
+        "select_camera_facing_faces",
+        "select_crease_edges",
+        "select_degenerate_faces",
+        "select_face_by_ray",
+        "select_faces_by_area",
+        "select_faces_by_screen_brush",
+        "select_faces_by_screen_polygon",
+        "select_faces_by_screen_rect",
+        "select_inside_part_faces",
+        "select_largest_component_faces",
+        "select_not_smooth_faces",
+        "select_outer_layer_faces",
+        "select_overlapping_faces",
+        "select_overhang_faces",
+        "select_short_edges",
+        "self_intersecting_faces"
+      ],
+      "endpoint_url_key": "selection_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/selection-commit",
+      "last_evidence_file": ".codex/ui-validation/official-ui-selection/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-selection/partial-results.json",
+      "run_count": 2,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-selection/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-selection/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "runtime-selection-to-object",
+      "label": "Selection to Object",
+      "group": "runtime",
+      "state": "PASS",
+      "sdk_operations": [
+        "extract_selected_faces_as_mesh"
+      ],
+      "endpoint_url_key": "selection_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/selection-commit",
+      "last_evidence_file": ".codex/ui-validation/official-ui-selection/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-selection/partial-results.json",
+      "run_count": 2,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-selection/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-selection/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    },
+    {
+      "command_id": "runtime-thicken-brush",
+      "label": "Thicken Brush",
+      "group": "runtime",
+      "state": "PASS",
+      "sdk_operations": [
+        "apply_brush_strokes"
+      ],
+      "endpoint_url_key": "brush_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/brush-replay",
+      "last_evidence_file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9a7ff43e6469",
+              "status": "succeeded",
+              "child_version": "ver_01ef81c0ed44"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_9a7ff43e6469",
+              "status": "succeeded",
+              "child_version": "ver_01ef81c0ed44"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_a8881c8741a7",
+              "status": "succeeded",
+              "child_version": "ver_2495453b45ab"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_a8881c8741a7",
+              "status": "succeeded",
+              "child_version": "ver_2495453b45ab"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "runtime-scoop-brush",
+      "label": "Scoop Brush",
+      "group": "runtime",
+      "state": "PASS",
+      "sdk_operations": [
+        "apply_brush_strokes"
+      ],
+      "endpoint_url_key": "brush_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/brush-replay",
+      "last_evidence_file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_72fb92c84e42",
+              "status": "succeeded",
+              "child_version": "ver_12187b3a0258"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_72fb92c84e42",
+              "status": "succeeded",
+              "child_version": "ver_12187b3a0258"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ef41b1eb787d",
+              "status": "succeeded",
+              "child_version": "ver_f21d5a7f30ec"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_ef41b1eb787d",
+              "status": "succeeded",
+              "child_version": "ver_f21d5a7f30ec"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "runtime-smooth-brush",
+      "label": "Smooth Brush",
+      "group": "runtime",
+      "state": "PASS",
+      "sdk_operations": [
+        "apply_brush_strokes"
+      ],
+      "endpoint_url_key": "brush_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/brush-replay",
+      "last_evidence_file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 4,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_5f6cc5355cbc",
+              "status": "succeeded",
+              "child_version": "ver_3302965a4e1c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_5f6cc5355cbc",
+              "status": "succeeded",
+              "child_version": "ver_3302965a4e1c"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_67f24dfb1d42",
+              "status": "succeeded",
+              "child_version": "ver_15e4c4d19fbe"
+            }
+          ]
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-runtime-brushes-after-local-deform-fix/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": [
+            {
+              "id": "job_67f24dfb1d42",
+              "status": "succeeded",
+              "child_version": "ver_15e4c4d19fbe"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "command_id": "runtime-measure-inspect",
+      "label": "Measure / Inspect",
+      "group": "runtime",
+      "state": "PASS",
+      "sdk_operations": [
+        "closest_points_on_mesh",
+        "feature_pair_measurements",
+        "mesh_geodesic_path",
+        "mesh_geodesic_polyline_path",
+        "mesh_cut_measure_contours",
+        "mesh_geodesic_quadrangle_path",
+        "mesh_fast_marching_surface_path",
+        "mesh_fast_marching_surface_path_tri_points",
+        "mesh_surface_path_tri_points",
+        "object_lines_from_contours",
+        "mesh_geodesic_distance_field",
+        "mesh_closest_surface_path_targets",
+        "mesh_surface_distance_seed_vertices",
+        "mesh_geodesic_iso_region",
+        "mesh_geodesic_extreme_edges",
+        "thickness_overlay_payload"
+      ],
+      "endpoint_url_key": "measurement_endpoint_url",
+      "endpoint_url": "/api/versions/ver_96dc817ec518/measure-inspect",
+      "last_evidence_file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+      "passing_evidence_file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+      "run_count": 5,
+      "runs": [
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-core-customer-workflows-visual-ready/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-sweep/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/partial-results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        },
+        {
+          "file": ".codex/ui-validation/official-ui-unvalidated-direct-batch-1/results.json",
+          "pass": true,
+          "response_count": 1,
+          "statuses": [
+            200
+          ],
+          "child_versions": [
+            "ver_96dc817ec518"
+          ],
+          "jobs": []
+        }
+      ]
+    }
+  ],
+  "uncovered_sdk_operations": []
+}

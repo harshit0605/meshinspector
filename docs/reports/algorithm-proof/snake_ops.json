@@ -1,0 +1,88 @@
+{
+  "subdivide": {
+    "ver": "ver_527dc6e6b20b",
+    "faces": 22000,
+    "verts": 10996,
+    "vol": 47.93,
+    "bnd": 0
+  },
+  "make_delone": {
+    "ver": "ver_04b7f1451601",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 47.87,
+    "bnd": 0
+  },
+  "smooth": {
+    "ver": "ver_d80c745b9b4d",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 45.76,
+    "bnd": 0
+  },
+  "resize": {
+    "ver": "ver_702aa5391fb4",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 542.96,
+    "bnd": 0
+  },
+  "thicken": {
+    "ver": "ver_88034c1690b6",
+    "faces": 192142,
+    "verts": 96071,
+    "vol": 89.24,
+    "bnd": 0
+  },
+  "hollow": {
+    "ver": "ver_409f957c59eb",
+    "faces": 178732,
+    "verts": 89354,
+    "vol": 37.93,
+    "bnd": 0
+  },
+  "offset_verts": {
+    "ver": "ver_1f648abb1aa2",
+    "faces": 20000,
+    "verts": 9996,
+    "vol": 40.61,
+    "bnd": 0
+  },
+  "partial_offset": {
+    "status": "refused",
+    "detail": "Partial offset requires at least one selected region"
+  },
+  "weighted_shell": {
+    "status": "refused",
+    "detail": "Weighted Shell opened 6 boundary edge(s) on a watertight source, so the shell is not manufacturable. Reduce voxel_size_mm below 0.12, or use Offset Verts for a topology-preserving jewelry offset."
+  },
+  "expand_shrink": {
+    "ver": "ver_86b70002b713",
+    "faces": 111904,
+    "verts": 55952,
+    "vol": 49.6,
+    "bnd": 0
+  },
+  "shrink_expand": {
+    "ver": "ver_6d991c254083",
+    "faces": 87608,
+    "verts": 43798,
+    "vol": 32.16,
+    "bnd": 0
+  },
+  "shell_mesh": {
+    "status": "refused",
+    "detail": "Shell Mesh fragmented a watertight source into 25 components. Reduce voxel_size_mm below 0.12, or use Offset Verts for a topology-preserving jewelry offset."
+  },
+  "thicken_mesh": {
+    "ver": "ver_7f4133f9928a",
+    "faces": 158848,
+    "verts": 79386,
+    "vol": 63.61,
+    "bnd": 0
+  },
+  "offset_mesh": {
+    "status": "refused",
+    "detail": "Offset Mesh -0.2 mm fragmented a watertight source into 63 components. Reduce voxel_size_mm below 0.12, or use Offset Verts for a topology-preserving jewelry offset."
+  }
+}

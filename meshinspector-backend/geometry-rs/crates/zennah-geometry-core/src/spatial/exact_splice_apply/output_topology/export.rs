@@ -7,14 +7,24 @@ pub(crate) struct ExactMeshlibFaceExportFailureDiagnostic {
     pub face_index: usize,
     pub face_edge_id: usize,
     pub face_operand: Option<ExactBooleanOperand>,
+    pub face_cut_face: Option<usize>,
+    pub face_source_face: Option<usize>,
     pub error: &'static str,
     pub left_ring_edge_ids: Vec<usize>,
     pub left_ring_record_next_edge_ids: Vec<usize>,
     pub left_ring_record_prev_edge_ids: Vec<usize>,
     pub left_ring_next_edge_ids: Vec<usize>,
     pub left_ring_origins: Vec<Option<usize>>,
+    pub left_ring_destinations: Vec<Option<usize>>,
     pub left_ring_left_faces: Vec<Option<usize>>,
     pub left_ring_right_faces: Vec<Option<usize>>,
+    pub same_left_face_edge_ids: Vec<usize>,
+    pub same_left_face_record_next_edge_ids: Vec<usize>,
+    pub same_left_face_record_prev_edge_ids: Vec<usize>,
+    pub same_left_face_next_edge_ids: Vec<usize>,
+    pub same_left_face_origins: Vec<Option<usize>>,
+    pub same_left_face_destinations: Vec<Option<usize>>,
+    pub same_left_face_right_faces: Vec<Option<usize>>,
     pub left_ring_repeated_edge_id: Option<usize>,
     pub left_ring_returned_to_start: bool,
 }
@@ -36,10 +46,17 @@ impl OutputFaceTopology {
                 let error = result.err()?;
                 let face_edge = self.face_edges[face_index];
                 let left_ring_trace = self.trace_left_ring_edges(face_edge);
+                let same_left_face_edges = self
+                    .topology
+                    .edge_ids()
+                    .filter(|edge| self.topology.left(*edge) == Some(face_index))
+                    .collect::<Vec<_>>();
                 Some(ExactMeshlibFaceExportFailureDiagnostic {
                     face_index,
                     face_edge_id: face_edge.0,
                     face_operand: self.face_operands.get(face_index).copied().flatten(),
+                    face_cut_face: self.face_cut_faces.get(face_index).copied().flatten(),
+                    face_source_face: self.face_source_faces.get(face_index).copied().flatten(),
                     error,
                     left_ring_edge_ids: left_ring_trace.edges.iter().map(|edge| edge.0).collect(),
                     left_ring_record_next_edge_ids: left_ring_trace
@@ -62,6 +79,11 @@ impl OutputFaceTopology {
                         .iter()
                         .map(|edge| self.topology.origin(*edge))
                         .collect(),
+                    left_ring_destinations: left_ring_trace
+                        .edges
+                        .iter()
+                        .map(|edge| self.topology.origin(ExactHalfEdgeTopology::sym(*edge)))
+                        .collect(),
                     left_ring_left_faces: left_ring_trace
                         .edges
                         .iter()
@@ -69,6 +91,34 @@ impl OutputFaceTopology {
                         .collect(),
                     left_ring_right_faces: left_ring_trace
                         .edges
+                        .iter()
+                        .map(|edge| self.topology.right(*edge))
+                        .collect(),
+                    same_left_face_edge_ids: same_left_face_edges
+                        .iter()
+                        .map(|edge| edge.0)
+                        .collect(),
+                    same_left_face_record_next_edge_ids: same_left_face_edges
+                        .iter()
+                        .map(|edge| self.topology.next(*edge).0)
+                        .collect(),
+                    same_left_face_record_prev_edge_ids: same_left_face_edges
+                        .iter()
+                        .map(|edge| self.topology.prev(*edge).0)
+                        .collect(),
+                    same_left_face_next_edge_ids: same_left_face_edges
+                        .iter()
+                        .map(|edge| self.topology.prev(ExactHalfEdgeTopology::sym(*edge)).0)
+                        .collect(),
+                    same_left_face_origins: same_left_face_edges
+                        .iter()
+                        .map(|edge| self.topology.origin(*edge))
+                        .collect(),
+                    same_left_face_destinations: same_left_face_edges
+                        .iter()
+                        .map(|edge| self.topology.origin(ExactHalfEdgeTopology::sym(*edge)))
+                        .collect(),
+                    same_left_face_right_faces: same_left_face_edges
                         .iter()
                         .map(|edge| self.topology.right(*edge))
                         .collect(),
@@ -130,6 +180,10 @@ mod tests {
             vec![Some(0), Some(1), Some(2)]
         );
         assert_eq!(
+            details[0].left_ring_destinations,
+            vec![Some(1), Some(2), Some(0)]
+        );
+        assert_eq!(
             details[0].left_ring_left_faces,
             vec![None, Some(0), Some(0)]
         );
@@ -137,6 +191,16 @@ mod tests {
         assert_eq!(details[0].left_ring_record_next_edge_ids.len(), 3);
         assert_eq!(details[0].left_ring_record_prev_edge_ids.len(), 3);
         assert_eq!(details[0].left_ring_right_faces.len(), 3);
+        assert_eq!(details[0].same_left_face_edge_ids, vec![2, 4]);
+        assert_eq!(details[0].same_left_face_record_next_edge_ids.len(), 2);
+        assert_eq!(details[0].same_left_face_record_prev_edge_ids.len(), 2);
+        assert_eq!(details[0].same_left_face_next_edge_ids.len(), 2);
+        assert_eq!(details[0].same_left_face_origins, vec![Some(1), Some(2)]);
+        assert_eq!(
+            details[0].same_left_face_destinations,
+            vec![Some(2), Some(0)]
+        );
+        assert_eq!(details[0].same_left_face_right_faces.len(), 2);
         assert_eq!(
             details[0].left_ring_repeated_edge_id,
             Some(details[0].face_edge_id)

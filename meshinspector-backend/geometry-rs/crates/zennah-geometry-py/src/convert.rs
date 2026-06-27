@@ -1,7 +1,10 @@
 use numpy::{PyReadonlyArray1, PyReadonlyArray2};
 use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
-use zennah_geometry_core::{SdfBooleanOperation, VoxelMeshExtractor};
+use zennah_geometry_core::{
+    RawVoxelScalarType, SdfBooleanOperation, VoxelBinaryOperation, VoxelMeshExtractor,
+    VoxelPathMetric, VoxelPathPlane,
+};
 
 pub(crate) fn read_vertices(vertices: PyReadonlyArray2<'_, f64>) -> PyResult<Vec<[f64; 3]>> {
     let vertex_rows = vertices.as_array();
@@ -62,6 +65,43 @@ pub(crate) fn read_shape3(values: PyReadonlyArray1<'_, i64>) -> PyResult<[usize;
     Ok([rows[0] as usize, rows[1] as usize, rows[2] as usize])
 }
 
+pub(crate) fn read_index3(name: &str, values: PyReadonlyArray1<'_, i64>) -> PyResult<[usize; 3]> {
+    let rows = values.as_array();
+    if rows.ndim() != 1 || rows.shape()[0] != 3 {
+        return Err(PyValueError::new_err(format!(
+            "{name} must have shape (3,)"
+        )));
+    }
+    if rows.iter().any(|value| *value < 0) {
+        return Err(PyValueError::new_err(format!(
+            "{name} values must be non-negative"
+        )));
+    }
+    Ok([rows[0] as usize, rows[1] as usize, rows[2] as usize])
+}
+
+pub(crate) fn read_index3_rows(
+    name: &str,
+    values: PyReadonlyArray2<'_, i64>,
+) -> PyResult<Vec<[usize; 3]>> {
+    let rows = values.as_array();
+    if rows.ndim() != 2 || rows.shape()[1] != 3 {
+        return Err(PyValueError::new_err(format!(
+            "{name} must have shape (n, 3)"
+        )));
+    }
+    let mut output = Vec::with_capacity(rows.shape()[0]);
+    for row in rows.outer_iter() {
+        if row.iter().any(|value| *value < 0) {
+            return Err(PyValueError::new_err(format!(
+                "{name} values must be non-negative"
+            )));
+        }
+        output.push([row[0] as usize, row[1] as usize, row[2] as usize]);
+    }
+    Ok(output)
+}
+
 pub(crate) fn read_faces(faces: PyReadonlyArray2<'_, i64>) -> PyResult<Vec<[i64; 3]>> {
     let face_rows = faces.as_array();
     if face_rows.ndim() != 2 || face_rows.shape()[1] != 3 {
@@ -86,6 +126,41 @@ pub(crate) fn parse_sdf_boolean_operation(operation: &str) -> PyResult<SdfBoolea
     }
 }
 
+pub(crate) fn parse_voxel_binary_operation(operation: &str) -> PyResult<VoxelBinaryOperation> {
+    match operation {
+        "union" => Ok(VoxelBinaryOperation::Union),
+        "intersection" => Ok(VoxelBinaryOperation::Intersection),
+        "difference" => Ok(VoxelBinaryOperation::Difference),
+        "max" => Ok(VoxelBinaryOperation::Max),
+        "min" => Ok(VoxelBinaryOperation::Min),
+        "sum" => Ok(VoxelBinaryOperation::Sum),
+        "multiply" => Ok(VoxelBinaryOperation::Multiply),
+        "divide" => Ok(VoxelBinaryOperation::Divide),
+        _ => Err(PyValueError::new_err(
+            "operation must be one of: union, intersection, difference, max, min, sum, multiply, divide",
+        )),
+    }
+}
+
+pub(crate) fn parse_raw_voxel_scalar_type(scalar_type: &str) -> PyResult<RawVoxelScalarType> {
+    match scalar_type {
+        "uint8" => Ok(RawVoxelScalarType::UInt8),
+        "int8" => Ok(RawVoxelScalarType::Int8),
+        "uint16" => Ok(RawVoxelScalarType::UInt16),
+        "int16" => Ok(RawVoxelScalarType::Int16),
+        "uint32" => Ok(RawVoxelScalarType::UInt32),
+        "int32" => Ok(RawVoxelScalarType::Int32),
+        "uint64" => Ok(RawVoxelScalarType::UInt64),
+        "int64" => Ok(RawVoxelScalarType::Int64),
+        "float32" => Ok(RawVoxelScalarType::Float32),
+        "float64" => Ok(RawVoxelScalarType::Float64),
+        "float32_4" => Ok(RawVoxelScalarType::Float32_4),
+        _ => Err(PyValueError::new_err(
+            "scalar_type must be one of: uint8, int8, uint16, int16, uint32, int32, uint64, int64, float32, float64, float32_4",
+        )),
+    }
+}
+
 pub(crate) fn parse_voxel_mesh_extractor(extractor: &str) -> PyResult<VoxelMeshExtractor> {
     match extractor {
         "marching" => Ok(VoxelMeshExtractor::Marching),
@@ -93,5 +168,36 @@ pub(crate) fn parse_voxel_mesh_extractor(extractor: &str) -> PyResult<VoxelMeshE
         _ => Err(PyValueError::new_err(
             "extractor must be 'marching' or 'cells'",
         )),
+    }
+}
+
+pub(crate) fn parse_voxel_path_metric(metric: &str) -> PyResult<VoxelPathMetric> {
+    match metric {
+        "difference" | "sum_diffs" => Ok(VoxelPathMetric::Difference),
+        "exponent" => Ok(VoxelPathMetric::Exponent),
+        _ => Err(PyValueError::new_err(
+            "metric must be 'difference' or 'exponent'",
+        )),
+    }
+}
+
+pub(crate) fn parse_voxel_path_plane(plane: &str) -> PyResult<VoxelPathPlane> {
+    match plane {
+        "none" => Ok(VoxelPathPlane::None),
+        "yz" => Ok(VoxelPathPlane::YZ),
+        "zx" => Ok(VoxelPathPlane::ZX),
+        "xy" => Ok(VoxelPathPlane::XY),
+        _ => Err(PyValueError::new_err(
+            "plane must be 'none', 'yz', 'zx', or 'xy'",
+        )),
+    }
+}
+
+pub(crate) fn parse_voxel_axis(axis: &str) -> PyResult<usize> {
+    match axis {
+        "x" => Ok(0),
+        "y" => Ok(1),
+        "z" => Ok(2),
+        _ => Err(PyValueError::new_err("axis must be 'x', 'y', or 'z'")),
     }
 }

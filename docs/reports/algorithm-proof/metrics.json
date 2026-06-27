@@ -1,0 +1,354 @@
+{
+  "decimate": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_c7dd178df7bc",
+      "faces": 900,
+      "verts": 450,
+      "volume_mm3": 766.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.7,
+        23.7,
+        4.02
+      ]
+    }
+  },
+  "subdivide": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_4320ef1f9843",
+      "faces": 28260,
+      "verts": 14130,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    }
+  },
+  "make_delone": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_8735c6c8cd9d",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    }
+  },
+  "smooth": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_06125ff5d92c",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 739.4,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.54,
+        23.54,
+        3.91
+      ]
+    }
+  },
+  "protected_hollow": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_1b474b7a9072",
+      "faces": 412254,
+      "verts": 206130,
+      "volume_mm3": 395.8,
+      "watertight": false,
+      "boundary_edges": 10,
+      "bbox": [
+        23.66,
+        23.66,
+        4.0
+      ]
+    }
+  },
+  "resize": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_9d13cea7406c",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 1318.9,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        30.87,
+        30.87,
+        4.0
+      ]
+    }
+  },
+  "offset_verts": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_54ecbcadb4a8",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 663.3,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.37,
+        23.37,
+        3.7
+      ]
+    }
+  },
+  "partial_offset": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_1898147aba50",
+      "faces": 81920,
+      "verts": 40960,
+      "volume_mm3": 840.0,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.66,
+        23.66,
+        4.11
+      ]
+    }
+  },
+  "weighted_shell": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_47229a597569",
+      "faces": 91348,
+      "verts": 45674,
+      "volume_mm3": 1063.8,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        24.26,
+        24.26,
+        4.6
+      ]
+    }
+  },
+  "expand_shrink": {
+    "before": {
+      "ver": "ver_f810c91ad554",
+      "faces": 28160,
+      "verts": 14080,
+      "volume_mm3": 775.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.67,
+        23.67,
+        4.0
+      ]
+    },
+    "after": {
+      "ver": "ver_808957c4a96b",
+      "faces": 75848,
+      "verts": 37924,
+      "volume_mm3": 769.7,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        23.65,
+        23.65,
+        4.0
+      ]
+    }
+  },
+  "scoop": {
+    "before": {
+      "ver": "ver_0afab045659c",
+      "faces": 20480,
+      "verts": 10240,
+      "volume_mm3": 3152.4,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        28.0,
+        28.0,
+        8.0
+      ]
+    },
+    "after": {
+      "ver": "ver_f4a6774d64bd",
+      "faces": 20480,
+      "verts": 10240,
+      "volume_mm3": 2987.9,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        27.51,
+        27.51,
+        8.36
+      ]
+    }
+  },
+  "thicken": {
+    "before": {
+      "ver": "ver_96dc817ec518",
+      "faces": 468286,
+      "verts": 234081,
+      "volume_mm3": 43.3,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        7.23,
+        9.71,
+        8.02
+      ]
+    },
+    "after": {
+      "ver": "ver_59da6859e677",
+      "faces": 468286,
+      "verts": 234081,
+      "volume_mm3": 48.9,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        7.35,
+        10.16,
+        8.26
+      ]
+    }
+  },
+  "obj_import": {
+    "before": null,
+    "after": {
+      "ver": "ver_f2ffe5daf923",
+      "faces": 320,
+      "verts": 162,
+      "volume_mm3": 259008.2,
+      "watertight": true,
+      "boundary_edges": 0,
+      "bbox": [
+        80.0,
+        80.0,
+        80.0
+      ]
+    }
+  }
+}

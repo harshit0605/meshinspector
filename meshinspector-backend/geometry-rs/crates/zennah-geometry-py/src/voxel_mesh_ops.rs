@@ -5,7 +5,7 @@ use pyo3::types::PyDict;
 
 use crate::convert::{
     parse_sdf_boolean_operation, parse_voxel_mesh_extractor, read_f32_values, read_faces,
-    read_shape3, read_vec3, read_vertices,
+    read_i64_values, read_shape3, read_vec3, read_vertices,
 };
 
 fn mesh_arrays_to_dict(
@@ -134,6 +134,101 @@ fn voxel_shell_mesh(
     mesh_arrays_to_dict(py, result)
 }
 
+#[pyfunction(signature = (vertices, faces, thickness_mm, voxel_size_mm, padding_mm = None, extractor = "marching", refine = false))]
+#[allow(clippy::too_many_arguments)]
+fn voxel_thicken_mesh(
+    py: Python<'_>,
+    vertices: PyReadonlyArray2<'_, f64>,
+    faces: PyReadonlyArray2<'_, i64>,
+    thickness_mm: f64,
+    voxel_size_mm: f64,
+    padding_mm: Option<f64>,
+    extractor: &str,
+    refine: bool,
+) -> PyResult<Py<PyDict>> {
+    let rust_vertices = read_vertices(vertices)?;
+    let rust_faces = read_faces(faces)?;
+    let rust_extractor = parse_voxel_mesh_extractor(extractor)?;
+    let result = py
+        .detach(|| {
+            zennah_geometry_core::voxel_thicken_mesh(
+                &rust_vertices,
+                &rust_faces,
+                thickness_mm,
+                zennah_geometry_core::VoxelMeshOptions {
+                    voxel_size: voxel_size_mm,
+                    padding_mm,
+                    extractor: rust_extractor,
+                    refine,
+                },
+            )
+        })
+        .map_err(|error| PyValueError::new_err(error.to_string()))?;
+    mesh_arrays_to_dict(py, result)
+}
+
+#[pyfunction(signature = (
+    vertices,
+    faces,
+    region_ids,
+    vertex_offsets,
+    vertex_indices,
+    weighted_region_ids,
+    region_weights,
+    offset_mm,
+    interpolation_distance_mm,
+    voxel_size_mm,
+    padding_mm = None,
+    extractor = "marching",
+    refine = false
+))]
+#[allow(clippy::too_many_arguments)]
+fn voxel_weighted_shell_mesh(
+    py: Python<'_>,
+    vertices: PyReadonlyArray2<'_, f64>,
+    faces: PyReadonlyArray2<'_, i64>,
+    region_ids: Vec<String>,
+    vertex_offsets: PyReadonlyArray1<'_, i64>,
+    vertex_indices: PyReadonlyArray1<'_, i64>,
+    weighted_region_ids: Vec<String>,
+    region_weights: PyReadonlyArray1<'_, f32>,
+    offset_mm: f64,
+    interpolation_distance_mm: f64,
+    voxel_size_mm: f64,
+    padding_mm: Option<f64>,
+    extractor: &str,
+    refine: bool,
+) -> PyResult<Py<PyDict>> {
+    let rust_vertices = read_vertices(vertices)?;
+    let rust_faces = read_faces(faces)?;
+    let rust_vertex_offsets = read_i64_values(vertex_offsets);
+    let rust_vertex_indices = read_i64_values(vertex_indices);
+    let rust_region_weights = read_f32_values(region_weights);
+    let rust_extractor = parse_voxel_mesh_extractor(extractor)?;
+    let result = py
+        .detach(|| {
+            zennah_geometry_core::voxel_weighted_shell_mesh(
+                &rust_vertices,
+                &rust_faces,
+                &region_ids,
+                &rust_vertex_offsets,
+                &rust_vertex_indices,
+                &weighted_region_ids,
+                &rust_region_weights,
+                offset_mm,
+                interpolation_distance_mm,
+                zennah_geometry_core::VoxelMeshOptions {
+                    voxel_size: voxel_size_mm,
+                    padding_mm,
+                    extractor: rust_extractor,
+                    refine,
+                },
+            )
+        })
+        .map_err(|error| PyValueError::new_err(error.to_string()))?;
+    mesh_arrays_to_dict(py, result)
+}
+
 #[pyfunction(signature = (
     left_vertices,
     left_faces,
@@ -216,6 +311,8 @@ pub(crate) fn register(module: &Bound<'_, PyModule>) -> PyResult<()> {
     module.add_function(wrap_pyfunction!(extract_grid_mesh, module)?)?;
     module.add_function(wrap_pyfunction!(voxel_offset_mesh, module)?)?;
     module.add_function(wrap_pyfunction!(voxel_shell_mesh, module)?)?;
+    module.add_function(wrap_pyfunction!(voxel_thicken_mesh, module)?)?;
+    module.add_function(wrap_pyfunction!(voxel_weighted_shell_mesh, module)?)?;
     module.add_function(wrap_pyfunction!(voxel_boolean_mesh, module)?)?;
     module.add_function(wrap_pyfunction!(global_thicken_mesh, module)?)?;
     Ok(())

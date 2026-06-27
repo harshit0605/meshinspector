@@ -1,21 +1,26 @@
-use super::exact_cut::{
-    exact_cut_preplan, ExactCutPathSegment, ExactCutPreplan, ExactCutPrimitive,
-};
+use super::exact_cut::{exact_cut_preplan, ExactCutPathSegment, ExactCutPreplan};
 use super::exact_face_split::{
     split_triangle_with_boundary_segments, split_triangle_with_interior_cycle,
     split_triangle_with_interior_segment, split_triangle_with_interior_spokes,
 };
 use super::exact_one_mesh::ExactOneMeshContour;
-use crate::math::{cross, dot, norm, sub};
+use crate::math::{cross, norm, sub};
 use crate::mesh::validate_faces;
 use crate::GeometryError;
 use std::collections::BTreeSet;
 
+mod helpers;
 mod paths;
 mod polygon;
 
+use self::helpers::{
+    effective_epsilon, face_point_position, nearly_equal, ordered_edge, set_shared_interior,
+    FacePointPosition,
+};
 use self::paths::{
-    cut_edge_paths_from_preplan, directed_path_is_closed, segment_lies_on_shared_boundary_edge,
+    collapsed_cut_segment_paths_and_source_faces_from_preplan,
+    cut_edge_paths_and_source_faces_from_preplan, directed_path_is_closed,
+    segment_lies_on_shared_boundary_edge,
 };
 use self::polygon::{boundary_path, dedupe_closed_polygon};
 
@@ -26,8 +31,24 @@ pub struct ExactCutMeshResult {
     pub cut_edges: Vec<[usize; 2]>,
     pub cut_edge_paths: Vec<Vec<[usize; 2]>>,
     pub cut_edge_path_closed: Vec<bool>,
+    pub cut_edge_path_source_faces: Vec<Vec<Option<usize>>>,
+    pub collapsed_cut_segment_paths: Vec<Vec<[usize; 2]>>,
+    pub collapsed_cut_segment_path_source_faces: Vec<Vec<Option<usize>>>,
     pub source_face_for_faces: Vec<usize>,
+    pub cut_face_source_events: Vec<ExactCutFaceSourceEvent>,
     pub skipped_source_faces: Vec<usize>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ExactCutFaceSourceEvent {
+    pub kind: ExactCutFaceSourceEventKind,
+    pub source_face: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExactCutFaceSourceEventKind {
+    Original,
+    Split,
 }
 
 pub fn exact_cut_mesh_by_contours(
@@ -65,6 +86,7 @@ pub fn exact_cut_mesh_from_preplan(
         faces: Vec::with_capacity(faces.len()),
         cut_edges: Vec::new(),
         source_face_for_faces: Vec::with_capacity(faces.len()),
+        cut_face_source_events: Vec::with_capacity(faces.len()),
         skipped_source_faces: BTreeSet::new(),
         epsilon: effective_epsilon(epsilon),
     };
@@ -72,7 +94,7 @@ pub fn exact_cut_mesh_from_preplan(
     for (face_index, face) in faces.iter().copied().enumerate() {
         let segment_indices = &segments_by_face[face_index];
         if segment_indices.is_empty() {
-            output.push_face(face, face_index);
+            output.push_original_face(face, face_index);
             continue;
         }
         if segment_indices.len() == 1 {
@@ -85,12 +107,19 @@ pub fn exact_cut_mesh_from_preplan(
         }
         {
             output.skipped_source_faces.insert(face_index);
-            output.push_face(face, face_index);
+            output.push_original_face(face, face_index);
         }
     }
 
     let mut result = output.finish();
-    result.cut_edge_paths = cut_edge_paths_from_preplan(preplan, &result.cut_edges);
+    let (cut_edge_paths, cut_edge_path_source_faces) =
+        cut_edge_paths_and_source_faces_from_preplan(preplan, &result.cut_edges);
+    result.cut_edge_paths = cut_edge_paths;
+    result.cut_edge_path_source_faces = cut_edge_path_source_faces;
+    let (collapsed_paths, collapsed_path_source_faces) =
+        collapsed_cut_segment_paths_and_source_faces_from_preplan(preplan);
+    result.collapsed_cut_segment_paths = collapsed_paths;
+    result.collapsed_cut_segment_path_source_faces = collapsed_path_source_faces;
     result.cut_edge_path_closed = result
         .cut_edge_paths
         .iter()
@@ -112,6 +141,7 @@ struct CutMeshBuilder {
     faces: Vec<[i64; 3]>,
     cut_edges: Vec<[usize; 2]>,
     source_face_for_faces: Vec<usize>,
+    cut_face_source_events: Vec<ExactCutFaceSourceEvent>,
     skipped_source_faces: BTreeSet<usize>,
     epsilon: f64,
 }
@@ -552,9 +582,26 @@ impl CutMeshBuilder {
     }
 
     fn push_face(&mut self, face: [usize; 3], source_face: usize) {
+        self.push_face_with_event_kind(face, source_face, ExactCutFaceSourceEventKind::Split);
+    }
+
+    fn push_original_face(&mut self, face: [usize; 3], source_face: usize) {
+        self.push_face_with_event_kind(face, source_face, ExactCutFaceSourceEventKind::Original);
+    }
+
+    fn push_face_with_event_kind(
+        &mut self,
+        face: [usize; 3],
+        source_face: usize,
+        event_kind: ExactCutFaceSourceEventKind,
+    ) {
         self.faces
             .push([face[0] as i64, face[1] as i64, face[2] as i64]);
         self.source_face_for_faces.push(source_face);
+        self.cut_face_source_events.push(ExactCutFaceSourceEvent {
+            kind: event_kind,
+            source_face,
+        });
     }
 
     fn push_cut_edge(&mut self, edge: [usize; 2]) {
@@ -578,99 +625,13 @@ impl CutMeshBuilder {
             cut_edges: self.cut_edges,
             cut_edge_paths: Vec::new(),
             cut_edge_path_closed: Vec::new(),
+            cut_edge_path_source_faces: Vec::new(),
+            collapsed_cut_segment_paths: Vec::new(),
+            collapsed_cut_segment_path_source_faces: Vec::new(),
             source_face_for_faces: self.source_face_for_faces,
+            cut_face_source_events: self.cut_face_source_events,
             skipped_source_faces: self.skipped_source_faces.into_iter().collect(),
         }
-    }
-}
-
-fn set_shared_interior(interior_vertex: &mut Option<usize>, candidate: usize) -> bool {
-    match interior_vertex {
-        Some(existing) => *existing == candidate,
-        None => {
-            *interior_vertex = Some(candidate);
-            true
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum FacePointPosition {
-    Boundary(f64),
-    Interior,
-}
-
-fn face_point_position(
-    face: [usize; 3],
-    face_index: usize,
-    primitive: ExactCutPrimitive,
-    coordinate: [f64; 3],
-    vertices: &[[f64; 3]],
-) -> Option<FacePointPosition> {
-    if let Some(position) = boundary_position(face, primitive, coordinate, vertices) {
-        return Some(FacePointPosition::Boundary(position));
-    }
-    match primitive {
-        ExactCutPrimitive::Face(source_face) if source_face == face_index => {
-            Some(FacePointPosition::Interior)
-        }
-        _ => None,
-    }
-}
-
-fn boundary_position(
-    face: [usize; 3],
-    primitive: ExactCutPrimitive,
-    coordinate: [f64; 3],
-    vertices: &[[f64; 3]],
-) -> Option<f64> {
-    match primitive {
-        ExactCutPrimitive::Vertex(vertex) => face
-            .iter()
-            .position(|candidate| *candidate == vertex)
-            .map(|index| index as f64),
-        ExactCutPrimitive::Edge(edge) => {
-            for edge_index in 0..3 {
-                let start = face[edge_index];
-                let end = face[(edge_index + 1) % 3];
-                if ordered_edge(edge) != ordered_edge([start, end]) {
-                    continue;
-                }
-                let parameter = edge_parameter(vertices[start], vertices[end], coordinate);
-                return Some(edge_index as f64 + parameter);
-            }
-            None
-        }
-        ExactCutPrimitive::Face(_) => None,
-    }
-}
-
-fn edge_parameter(start: [f64; 3], end: [f64; 3], point: [f64; 3]) -> f64 {
-    let edge = sub(end, start);
-    let length_sq = dot(edge, edge);
-    if length_sq <= f64::EPSILON {
-        return 0.0;
-    }
-    (dot(sub(point, start), edge) / length_sq).clamp(0.0, 1.0)
-}
-
-fn ordered_edge(edge: [usize; 2]) -> [usize; 2] {
-    if edge[0] <= edge[1] {
-        edge
-    } else {
-        [edge[1], edge[0]]
-    }
-}
-
-fn nearly_equal(left: f64, right: f64, epsilon: f64) -> bool {
-    (left - right).abs() <= epsilon
-}
-
-fn effective_epsilon(epsilon: f64) -> f64 {
-    if epsilon.is_finite() && epsilon > 0.0 {
-        epsilon
-    } else {
-        1e-9
     }
 }
 

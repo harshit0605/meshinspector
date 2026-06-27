@@ -44,23 +44,24 @@ def sample_sdf_grid_in_bounds(
     phase = np.zeros(3, dtype=np.float64) if origin_phase is None else np.asarray(origin_phase, dtype=np.float64)
     if phase.shape != (3,):
         raise ValueError("origin_phase must contain three values")
-    origin = np.asarray(bbox_min, dtype=np.float64) - float(padding_mm) + phase * float(voxel_size_mm)
-    maximum = np.asarray(bbox_max, dtype=np.float64) + float(padding_mm) + phase * float(voxel_size_mm)
-    shape_array = np.maximum(np.ceil((maximum - origin) / voxel_size_mm).astype(np.int64) + 1, 2)
-    shape = (int(shape_array[0]), int(shape_array[1]), int(shape_array[2]))
-    values = _require_rust_kernel("sdf_grid_values")(
+    sample = _require_rust_kernel("sample_sdf_grid_in_bounds")(
         mesh.vertices,
         mesh.faces,
-        origin,
-        shape_array,
+        np.asarray(bbox_min, dtype=np.float64),
+        np.asarray(bbox_max, dtype=np.float64),
         float(voxel_size_mm),
+        float(padding_mm),
+        phase,
         0.5,
     )
+    shape_values = sample["shape"]
+    origin_values = sample["origin"]
+    shape = (int(shape_values[0]), int(shape_values[1]), int(shape_values[2]))
     return SDFGrid(
-        origin=(float(origin[0]), float(origin[1]), float(origin[2])),
+        origin=(float(origin_values[0]), float(origin_values[1]), float(origin_values[2])),
         voxel_size_mm=float(voxel_size_mm),
         shape=shape,
-        values=np.asarray(values, dtype=np.float32).reshape(shape),
+        values=np.asarray(sample["values"], dtype=np.float32).reshape(shape),
     )
 
 
@@ -76,8 +77,12 @@ def sample_aligned_sdf_grids(
     if voxel_size_mm <= 0:
         raise ValueError("voxel_size_mm must be positive")
     bounds = [_require_rust_kernel("mesh_bounds")(mesh.vertices) for mesh in meshes]
-    bbox_min = np.min(np.vstack([np.asarray(entry["min"], dtype=np.float64) for entry in bounds]), axis=0)
-    bbox_max = np.max(np.vstack([np.asarray(entry["max"], dtype=np.float64) for entry in bounds]), axis=0)
+    combined = _require_rust_kernel("combine_bounding_boxes")(
+        np.asarray([entry["min"] for entry in bounds], dtype=np.float64),
+        np.asarray([entry["max"] for entry in bounds], dtype=np.float64),
+    )
+    bbox_min = np.asarray(combined["min"], dtype=np.float64)
+    bbox_max = np.asarray(combined["max"], dtype=np.float64)
     padding = float(voxel_size_mm if padding_mm is None else padding_mm)
     return [
         sample_sdf_grid_in_bounds(
@@ -124,6 +129,27 @@ def estimate_sdf_volume(grid: SDFGrid, *, iso_value: float = 0.0) -> float:
             float(iso_value),
         )
     )
+
+
+def sdf_grid_points(grid: SDFGrid) -> np.ndarray:
+    output = _require_rust_kernel("sdf_grid_points")(
+        np.asarray(grid.origin, dtype=np.float64),
+        np.asarray(grid.shape, dtype=np.int64),
+        float(grid.voxel_size_mm),
+    )
+    return np.asarray(output, dtype=np.float64).reshape(-1, 3)
+
+
+def sdf_points_to_grid(grid: SDFGrid, points: Any) -> np.ndarray:
+    query = np.asarray(points, dtype=np.float64)
+    if query.ndim == 1:
+        query = query.reshape(1, 3)
+    output = _require_rust_kernel("sdf_points_to_grid")(
+        np.asarray(grid.origin, dtype=np.float64),
+        float(grid.voxel_size_mm),
+        query,
+    )
+    return np.asarray(output, dtype=np.float64).reshape(-1, 3)
 
 
 def sample_sdf_values(grid: SDFGrid, points: Any) -> np.ndarray:

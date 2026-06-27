@@ -1,9 +1,14 @@
 use pyo3::prelude::*;
-use pyo3::types::{PyDict, PyList};
+use pyo3::types::PyDict;
 
+use super::copied_face::copied_face_record_details;
 use super::near_stitch::near_stitch_failure_details;
+use super::prepared_base_details::{
+    copied_prev_next_edge_update_details, export_failed_face_details, set_optional_mesh_health,
+    set_optional_mesh_stats,
+};
 use super::replay::{set_mapped_source_record_replay_diagnostics, MappedSourceRecordReplaySummary};
-use super::rewrite::record_rewrite_target_details;
+use super::rewrite::{record_rewrite_failed_command_details_from, record_rewrite_target_details};
 
 pub(super) fn prepared_base_record_rewrite_dict(
     py: Python<'_>,
@@ -40,6 +45,13 @@ pub(super) fn prepared_base_record_rewrite_dict(
         record_rewrite_target_details(py, result)?,
     )?;
     output.set_item(
+        "record_rewrite_failed_command_details",
+        record_rewrite_failed_command_details_from(
+            py,
+            &prepared_base.record_rewrite_failed_command_details,
+        )?,
+    )?;
+    output.set_item(
         "record_rewrite_near_stitch_target_left_closures",
         prepared_base.record_rewrite_near_stitch_target_left_closures,
     )?;
@@ -70,6 +82,26 @@ pub(super) fn prepared_base_record_rewrite_dict(
                 .skipped_mapped_source_record_replays,
             details: &prepared_base.mapped_source_record_replay_details,
         },
+    )?;
+    output.set_item(
+        "copied_prev_next_edge_update_attempts",
+        prepared_base.copied_prev_next_edge_update_attempts,
+    )?;
+    output.set_item(
+        "copied_prev_next_edge_updates_applied",
+        prepared_base.copied_prev_next_edge_updates_applied,
+    )?;
+    output.set_item(
+        "copied_prev_next_edge_updates_skipped",
+        prepared_base.copied_prev_next_edge_updates_skipped,
+    )?;
+    output.set_item(
+        "copied_prev_next_edge_update_details",
+        copied_prev_next_edge_update_details(py, result)?,
+    )?;
+    output.set_item(
+        "copied_face_record_details",
+        copied_face_record_details(py, result)?,
     )?;
     output.set_item(
         "failed_copied_edge_records",
@@ -173,53 +205,59 @@ pub(super) fn prepared_base_record_rewrite_dict(
         "export_other_failed_faces",
         prepared_base.export_other_failed_faces,
     )?;
+    output.set_item(
+        "exported_face_operands",
+        prepared_base_exported_face_operand_labels(prepared_base),
+    )?;
+    output.set_item(
+        "exported_face_cut_faces",
+        prepared_base.exported_face_cut_faces.clone(),
+    )?;
+    output.set_item(
+        "exported_face_source_faces",
+        prepared_base.exported_face_source_faces.clone(),
+    )?;
+    set_optional_mesh_stats(
+        &output,
+        py,
+        "exported_mesh_stats",
+        prepared_base.exported_mesh_stats.as_ref(),
+    )?;
+    set_optional_mesh_health(
+        &output,
+        py,
+        "exported_mesh_health",
+        prepared_base.exported_mesh_health.as_ref(),
+    )?;
+    set_optional_mesh_stats(
+        &output,
+        py,
+        "packed_mesh_stats",
+        prepared_base.packed_mesh_stats.as_ref(),
+    )?;
+    set_optional_mesh_health(
+        &output,
+        py,
+        "packed_mesh_health",
+        prepared_base.packed_mesh_health.as_ref(),
+    )?;
     output.set_item("ready_for_export", prepared_base.ready_for_export)?;
     Ok(output.unbind())
 }
 
-fn export_failed_face_details(
-    py: Python<'_>,
-    result: &zennah_geometry_core::ExactBooleanPipelineResult,
-) -> PyResult<Py<PyList>> {
-    let details = &result
-        .diagnostics
-        .meshlib_topology_prepared_base_record_rewrite
-        .export_failed_face_details;
-    let output = PyList::empty(py);
-    for detail in details {
-        let item = PyDict::new(py);
-        item.set_item("face_index", detail.face_index)?;
-        item.set_item("face_edge_id", detail.face_edge_id)?;
-        item.set_item("face_operand", detail.face_operand)?;
-        item.set_item("error", detail.error)?;
-        item.set_item("left_ring_edge_ids", detail.left_ring_edge_ids.clone())?;
-        item.set_item(
-            "left_ring_record_next_edge_ids",
-            detail.left_ring_record_next_edge_ids.clone(),
-        )?;
-        item.set_item(
-            "left_ring_record_prev_edge_ids",
-            detail.left_ring_record_prev_edge_ids.clone(),
-        )?;
-        item.set_item(
-            "left_ring_next_edge_ids",
-            detail.left_ring_next_edge_ids.clone(),
-        )?;
-        item.set_item("left_ring_origins", detail.left_ring_origins.clone())?;
-        item.set_item("left_ring_left_faces", detail.left_ring_left_faces.clone())?;
-        item.set_item(
-            "left_ring_right_faces",
-            detail.left_ring_right_faces.clone(),
-        )?;
-        item.set_item(
-            "left_ring_repeated_edge_id",
-            detail.left_ring_repeated_edge_id,
-        )?;
-        item.set_item(
-            "left_ring_returned_to_start",
-            detail.left_ring_returned_to_start,
-        )?;
-        output.append(item)?;
+fn prepared_base_exported_face_operand_labels(
+    prepared_base: &zennah_geometry_core::MeshlibPreparedBaseRecordRewriteDiagnostics,
+) -> Vec<Option<&'static str>> {
+    prepared_base
+        .exported_face_operands
+        .iter()
+        .map(|operand| operand.map(prepared_base_operand_label))
+        .collect()
+}
+
+fn prepared_base_operand_label(operand: zennah_geometry_core::ExactBooleanOperand) -> &'static str {
+    match operand {
+        zennah_geometry_core::ExactBooleanOperand::First => "first",
+        zennah_geometry_core::ExactBooleanOperand::Second => "second",
     }
-    Ok(output.unbind())
 }
