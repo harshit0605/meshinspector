@@ -23,5 +23,12 @@ def offset_shell_failures(source: MeshDocument, output: MeshDocument) -> list[st
     return _rust_mesh_quality.offset_shell_failures(source, output)
 
 
-def boolean_output_failures(output: MeshDocument, operation: str) -> list[str]:
-    return _rust_mesh_quality.boolean_output_failures(output, operation)
+def boolean_output_failures(
+    output: MeshDocument,
+    operation: str,
+    source_volume_mm3: float,
+    target_volume_mm3: float,
+) -> list[str]:
+    return _rust_mesh_quality.boolean_output_failures(
+        output, operation, source_volume_mm3, target_volume_mm3
+    )

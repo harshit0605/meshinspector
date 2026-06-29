@@ -138,6 +138,8 @@ pub fn boolean_output_failures(
     output_vertices: &[[f64; 3]],
     output_faces: &[[i64; 3]],
     operation: &str,
+    source_volume_mm3: f64,
+    target_volume_mm3: f64,
 ) -> Result<Vec<String>, GeometryError> {
     let output = mesh_stats(output_vertices, output_faces)?;
     let mut failures = Vec::new();
@@ -146,6 +148,28 @@ pub fn boolean_output_failures(
             "Boolean {operation} produced {} degenerate, zero-volume face(s) instead of a solid result. The operands likely coincide or barely overlap; check their relative position and scale.",
             output.face_count
         ));
+    }
+    // A boolean cannot conjure volume: a difference A-B is bounded by |A|, an
+    // intersection by min(|A|,|B|), a union by |A|+|B|. An over-large result is a
+    // watertight-but-wrong mis-classification (e.g. a coarse cutter fully
+    // straddling a thin band, keeping the wrong operand region) that the
+    // open/non-manifold checks cannot see, so refuse rather than ship it.
+    let source = source_volume_mm3.abs();
+    let target = target_volume_mm3.abs();
+    let volume_bound = match operation {
+        "difference_ab" => Some(source),
+        "intersection" => Some(source.min(target)),
+        "union" => Some(source + target),
+        _ => None, // inside/outside are not bounded by set volume; skip.
+    };
+    if let Some(bound) = volume_bound {
+        if bound > 0.0 && output.volume_mm3.abs() > bound * 1.10 {
+            failures.push(format!(
+                "Boolean {operation} produced an implausible volume ({:.1} mm^3 vs expected <= {:.1} mm^3); the result is likely mis-classified. Try a voxel boolean or a simpler tool.",
+                output.volume_mm3.abs(),
+                bound
+            ));
+        }
     }
     Ok(failures)
 }

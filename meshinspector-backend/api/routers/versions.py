@@ -7330,38 +7330,6 @@ def _enclosed_volume(mesh) -> float:  # noqa: ANN001
         return 0.0
 
 
-def _boolean_volume_failure(result_mesh, source_mesh, target_mesh, operation):  # noqa: ANN001
-    """Refuse clause when a watertight boolean result has an implausible volume.
-
-    A boolean cannot conjure volume: a difference A-B is bounded by |A|, an
-    intersection by min(|A|,|B|), a union by |A|+|B|. A coarse cutter that fully
-    straddles a thin band can yield a watertight-but-WRONG result (it keeps the
-    wrong operand region) that the open/non-manifold guard cannot see; an
-    over-large volume exposes it, so we refuse rather than ship a mis-classified
-    solid. Returns a short clause, or None when the volume is within bound.
-    """
-    bound = None
-    source_volume = _enclosed_volume(source_mesh)
-    target_volume = _enclosed_volume(target_mesh)
-    if operation == "difference_ab":
-        bound = source_volume
-    elif operation == "intersection":
-        bound = min(source_volume, target_volume)
-    elif operation == "union":
-        bound = source_volume + target_volume
-    # inside/outside semantics differ from set volume bounds; do not assess.
-    if bound is None or bound <= 0.0:
-        return None
-    result_volume = _enclosed_volume(result_mesh)
-    tolerance = 1.10  # slack for the planar cap + numerical noise
-    if result_volume > bound * tolerance:
-        return (
-            f"produced an implausible volume ({result_volume:.1f} mm^3 vs expected "
-            f"<= {bound:.1f} mm^3), so the result is likely mis-classified"
-        )
-    return None
-
-
 @router.post("/versions/{version_id}/boolean/exact", response_model=ExactBooleanResponse)
 async def run_exact_boolean_for_version(
     version_id: str,
@@ -7406,11 +7374,18 @@ async def run_exact_boolean_for_version(
     except (RuntimeError, ValueError) as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    # A clean empty result (B fully removes A) and a solid result are both fine,
-    # but a non-empty near-zero-volume sliver is degenerate residue. The acceptance
-    # verdict is computed by the Rust mesh_quality kernel.
+    # The Rust mesh_quality kernel computes the acceptance verdict: a near-zero-volume
+    # sliver is degenerate residue, and an over-large result (vs the operand volumes) is
+    # a watertight-but-wrong mis-classification the open/non-manifold guard cannot see.
+    # Operand volumes come from the Rust stats kernel, so the geometry-fact thresholds
+    # stay in the kernel rather than the service.
     try:
-        boolean_failures = default_sdk.boolean_output_failures(result.mesh, operation=request.operation)
+        boolean_failures = default_sdk.boolean_output_failures(
+            result.mesh,
+            operation=request.operation,
+            source_volume_mm3=_enclosed_volume(source_mesh),
+            target_volume_mm3=_enclosed_volume(target_mesh),
+        )
     except Exception:  # noqa: BLE001 - advisory guard only
         boolean_failures = []
     if boolean_failures:
@@ -7439,17 +7414,6 @@ async def run_exact_boolean_for_version(
                 f"into a clean solid ({residual_open_edges} open, {residual_nonmanifold_edges} "
                 "non-manifold edges). The cut tool may graze the surface or be highly non-planar; "
                 "try a voxel boolean or a simpler tool."
-            ),
-        )
-    volume_failure = _boolean_volume_failure(
-        result.mesh, source_mesh, target_mesh, request.operation
-    )
-    if volume_failure is not None:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Exact boolean ({operation_label}) {volume_failure}. "
-                "Try a voxel boolean or a simpler tool."
             ),
         )
     output_version = create_version(

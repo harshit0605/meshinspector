@@ -789,8 +789,17 @@ class GeometrySDK:
     def offset_shell_failures(self, source: MeshDocument, output: MeshDocument) -> list[str]:
         return offset_shell_failures(source, output)
 
-    def boolean_output_failures(self, output: MeshDocument, *, operation: str) -> list[str]:
-        return boolean_output_failures(output, operation)
+    def boolean_output_failures(
+        self,
+        output: MeshDocument,
+        *,
+        operation: str,
+        source_volume_mm3: float,
+        target_volume_mm3: float,
+    ) -> list[str]:
+        return boolean_output_failures(
+            output, operation, source_volume_mm3, target_volume_mm3
+        )
 
     def service_health(self, mesh: MeshDocument, *, max_listed_faces: int = 100) -> ServiceMeshHealth:
         return service_mesh_health(mesh, max_listed_faces=max_listed_faces)

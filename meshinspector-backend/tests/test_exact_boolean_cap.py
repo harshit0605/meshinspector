@@ -13,7 +13,6 @@ import numpy as np
 from collections import Counter
 
 from api.routers.versions import (
-    _boolean_volume_failure,
     _boundary_edge_count,
     _cap_planar_cut,
     _nonmanifold_edge_count,
@@ -108,12 +107,22 @@ def test_guard_helpers_detect_defects() -> None:
 def test_boolean_volume_guard_flags_overlarge_result() -> None:
     # A boolean cannot create volume: a difference A-B is bounded by |A|. A box-sized
     # result from cutting a ring is a watertight-but-WRONG mis-classification the
-    # open/non-manifold guard cannot see, so the volume guard must refuse it -- while a
-    # plausibly-sized result and the unbounded inside/outside ops pass.
+    # open/non-manifold guard cannot see, so the Rust mesh_quality volume guard must
+    # refuse it -- while a plausibly-sized result and the unbounded inside/outside ops
+    # pass. The geometry-fact threshold lives in the Rust kernel, not the service.
+    from geometry_sdk.engine import default_sdk
     from geometry_sdk.testing import fixtures
 
     ring = fixtures.ring(9.0, 1.2, 48, 12)
     box = fixtures.box(8.0, 8.0, 8.0, center=(9.0, 0.0, 0.0))
-    assert _boolean_volume_failure(box, ring, box, "difference_ab") is not None
-    assert _boolean_volume_failure(ring, ring, box, "difference_ab") is None
-    assert _boolean_volume_failure(box, ring, box, "inside") is None
+    ring_vol = default_sdk.stats(ring).volume_mm3
+    box_vol = default_sdk.stats(box).volume_mm3
+    assert default_sdk.boolean_output_failures(
+        box, operation="difference_ab", source_volume_mm3=ring_vol, target_volume_mm3=box_vol
+    )
+    assert not default_sdk.boolean_output_failures(
+        ring, operation="difference_ab", source_volume_mm3=ring_vol, target_volume_mm3=box_vol
+    )
+    assert not default_sdk.boolean_output_failures(
+        box, operation="inside", source_volume_mm3=ring_vol, target_volume_mm3=box_vol
+    )

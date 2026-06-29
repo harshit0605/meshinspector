@@ -29,6 +29,19 @@ def offset_shell_failures(source: MeshDocument, output: MeshDocument) -> list[st
     return list(kernel(source.vertices, source.faces, output.vertices, output.faces))
 
 
-def boolean_output_failures(output: MeshDocument, operation: str) -> list[str]:
+def boolean_output_failures(
+    output: MeshDocument,
+    operation: str,
+    source_volume_mm3: float,
+    target_volume_mm3: float,
+) -> list[str]:
     kernel = _require_rust_kernel("boolean_output_failures")
-    return list(kernel(output.vertices, output.faces, str(operation)))
+    return list(
+        kernel(
+            output.vertices,
+            output.faces,
+            str(operation),
+            float(source_volume_mm3),
+            float(target_volume_mm3),
+        )
+    )
