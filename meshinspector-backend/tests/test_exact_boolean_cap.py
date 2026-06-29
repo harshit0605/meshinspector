@@ -13,6 +13,7 @@ import numpy as np
 from collections import Counter
 
 from api.routers.versions import (
+    _boolean_volume_failure,
     _boundary_edge_count,
     _cap_planar_cut,
     _nonmanifold_edge_count,
@@ -102,3 +103,17 @@ def test_guard_helpers_detect_defects() -> None:
     # These are the primitives that fire it.
     assert _boundary_edge_count(_open_tet_missing_base()) == 3
     assert _nonmanifold_edge_count(_nonmanifold_fan()) >= 1
+
+
+def test_boolean_volume_guard_flags_overlarge_result() -> None:
+    # A boolean cannot create volume: a difference A-B is bounded by |A|. A box-sized
+    # result from cutting a ring is a watertight-but-WRONG mis-classification the
+    # open/non-manifold guard cannot see, so the volume guard must refuse it -- while a
+    # plausibly-sized result and the unbounded inside/outside ops pass.
+    from geometry_sdk.testing import fixtures
+
+    ring = fixtures.ring(9.0, 1.2, 48, 12)
+    box = fixtures.box(8.0, 8.0, 8.0, center=(9.0, 0.0, 0.0))
+    assert _boolean_volume_failure(box, ring, box, "difference_ab") is not None
+    assert _boolean_volume_failure(ring, ring, box, "difference_ab") is None
+    assert _boolean_volume_failure(box, ring, box, "inside") is None

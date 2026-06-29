@@ -7322,6 +7322,46 @@ def _cap_planar_cut(mesh):  # noqa: ANN001
     return welded
 
 
+def _enclosed_volume(mesh) -> float:  # noqa: ANN001
+    """Absolute enclosed volume (mm^3) via Rust mesh stats; 0.0 if unavailable."""
+    try:
+        return abs(float(getattr(default_sdk.stats(mesh), "volume_mm3", 0.0)))
+    except Exception:  # noqa: BLE001
+        return 0.0
+
+
+def _boolean_volume_failure(result_mesh, source_mesh, target_mesh, operation):  # noqa: ANN001
+    """Refuse clause when a watertight boolean result has an implausible volume.
+
+    A boolean cannot conjure volume: a difference A-B is bounded by |A|, an
+    intersection by min(|A|,|B|), a union by |A|+|B|. A coarse cutter that fully
+    straddles a thin band can yield a watertight-but-WRONG result (it keeps the
+    wrong operand region) that the open/non-manifold guard cannot see; an
+    over-large volume exposes it, so we refuse rather than ship a mis-classified
+    solid. Returns a short clause, or None when the volume is within bound.
+    """
+    bound = None
+    source_volume = _enclosed_volume(source_mesh)
+    target_volume = _enclosed_volume(target_mesh)
+    if operation == "difference_ab":
+        bound = source_volume
+    elif operation == "intersection":
+        bound = min(source_volume, target_volume)
+    elif operation == "union":
+        bound = source_volume + target_volume
+    # inside/outside semantics differ from set volume bounds; do not assess.
+    if bound is None or bound <= 0.0:
+        return None
+    result_volume = _enclosed_volume(result_mesh)
+    tolerance = 1.10  # slack for the planar cap + numerical noise
+    if result_volume > bound * tolerance:
+        return (
+            f"produced an implausible volume ({result_volume:.1f} mm^3 vs expected "
+            f"<= {bound:.1f} mm^3), so the result is likely mis-classified"
+        )
+    return None
+
+
 @router.post("/versions/{version_id}/boolean/exact", response_model=ExactBooleanResponse)
 async def run_exact_boolean_for_version(
     version_id: str,
@@ -7399,6 +7439,17 @@ async def run_exact_boolean_for_version(
                 f"into a clean solid ({residual_open_edges} open, {residual_nonmanifold_edges} "
                 "non-manifold edges). The cut tool may graze the surface or be highly non-planar; "
                 "try a voxel boolean or a simpler tool."
+            ),
+        )
+    volume_failure = _boolean_volume_failure(
+        result.mesh, source_mesh, target_mesh, request.operation
+    )
+    if volume_failure is not None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Exact boolean ({operation_label}) {volume_failure}. "
+                "Try a voxel boolean or a simpler tool."
             ),
         )
     output_version = create_version(
