@@ -9,6 +9,7 @@ use crate::mesh::validate_faces;
 use crate::GeometryError;
 use std::collections::BTreeSet;
 
+mod chains;
 mod helpers;
 mod paths;
 mod polygon;
@@ -255,60 +256,70 @@ impl CutMeshBuilder {
         {
             return true;
         }
+        if self
+            .try_split_shared_interior_spokes(face, face_index, segment_indices, preplan)
+            .is_some()
+        {
+            return true;
+        }
+        // The general multi-chain split runs last, so every case the focused
+        // strategies above already handle keeps its exact existing output.
+        self.try_split_boundary_chain(face, face_index, segment_indices, preplan)
+            .is_some()
+    }
 
+    fn try_split_shared_interior_spokes(
+        &mut self,
+        face: [usize; 3],
+        face_index: usize,
+        segment_indices: &[usize],
+        preplan: &ExactCutPreplan,
+    ) -> Option<()> {
         let mut interior_vertex = None;
         let mut boundary_points = Vec::with_capacity(segment_indices.len());
         for segment_index in segment_indices {
             let segment = &preplan.path_segments[*segment_index];
             let from = &preplan.cut_points[segment.from_point];
             let to = &preplan.cut_points[segment.to_point];
-            let Some(from_pos) = face_point_position(
+            let from_pos = face_point_position(
                 face,
                 face_index,
                 from.primitive,
                 from.coordinate,
                 &self.vertices,
-            ) else {
-                return false;
-            };
-            let Some(to_pos) = face_point_position(
+            )?;
+            let to_pos = face_point_position(
                 face,
                 face_index,
                 to.primitive,
                 to.coordinate,
                 &self.vertices,
-            ) else {
-                return false;
-            };
+            )?;
             match (from_pos, to_pos) {
                 (FacePointPosition::Interior, FacePointPosition::Boundary(position)) => {
                     if !set_shared_interior(&mut interior_vertex, from.vertex_index) {
-                        return false;
+                        return None;
                     }
                     boundary_points.push((to.vertex_index, position));
                 }
                 (FacePointPosition::Boundary(position), FacePointPosition::Interior) => {
                     if !set_shared_interior(&mut interior_vertex, to.vertex_index) {
-                        return false;
+                        return None;
                     }
                     boundary_points.push((from.vertex_index, position));
                 }
-                _ => return false,
+                _ => return None,
             }
         }
 
-        let Some(interior_vertex) = interior_vertex else {
-            return false;
-        };
-        let Some(split_faces) = split_triangle_with_interior_spokes(
+        let interior_vertex = interior_vertex?;
+        let split_faces = split_triangle_with_interior_spokes(
             face,
             interior_vertex,
             &boundary_points,
             &self.vertices,
             self.epsilon,
-        ) else {
-            return false;
-        };
+        )?;
 
         for (boundary_vertex, _) in boundary_points {
             self.push_cut_edge([interior_vertex, boundary_vertex]);
@@ -316,7 +327,7 @@ impl CutMeshBuilder {
         for split_face in split_faces {
             self.push_face(split_face, face_index);
         }
-        true
+        Some(())
     }
 
     fn try_split_boundary_segments(

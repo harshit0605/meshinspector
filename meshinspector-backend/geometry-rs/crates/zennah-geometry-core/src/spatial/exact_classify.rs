@@ -3,6 +3,12 @@ use crate::mesh::validate_faces;
 use crate::GeometryError;
 use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 
+mod orientation_flip;
+
+use orientation_flip::{
+    cut_path_side_components, cut_path_side_components_impl, detect_operand_orientation_flip,
+};
+
 const CLASSIFICATION_RAY_DIRECTION: [f64; 3] = [1.0, 0.371, 0.219];
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExactComponentClassification {
@@ -73,27 +79,38 @@ pub fn exact_classify_components(
 pub fn exact_classify_components_with_cut_paths(
     input: ExactCutPathClassificationInput<'_>,
 ) -> Result<ExactMeshPartClassification, GeometryError> {
-    exact_classify_components_with_cut_paths_impl(input, &[], true)
+    exact_classify_components_with_cut_paths_impl(input, &[], true, false)
+}
+
+/// Top-level classification that additionally corrects an operand-level
+/// orientation flip (see `detect_operand_orientation_flip`). Used only for the
+/// final assembly classification, never for the coplanar/prepared-base candidate
+/// passes, whose exploration must not be perturbed by the correction.
+pub(super) fn exact_classify_components_with_cut_paths_with_orientation_flip(
+    input: ExactCutPathClassificationInput<'_>,
+) -> Result<ExactMeshPartClassification, GeometryError> {
+    exact_classify_components_with_cut_paths_impl(input, &[], true, true)
 }
 
 pub(super) fn exact_classify_components_with_cut_paths_and_barriers(
     input: ExactCutPathClassificationInput<'_>,
     extra_barrier_edges: &[[usize; 2]],
 ) -> Result<ExactMeshPartClassification, GeometryError> {
-    exact_classify_components_with_cut_paths_impl(input, extra_barrier_edges, true)
+    exact_classify_components_with_cut_paths_impl(input, extra_barrier_edges, true, false)
 }
 
 pub(super) fn exact_classify_components_with_cut_paths_and_barriers_without_orientation_normalization(
     input: ExactCutPathClassificationInput<'_>,
     extra_barrier_edges: &[[usize; 2]],
 ) -> Result<ExactMeshPartClassification, GeometryError> {
-    exact_classify_components_with_cut_paths_impl(input, extra_barrier_edges, false)
+    exact_classify_components_with_cut_paths_impl(input, extra_barrier_edges, false, false)
 }
 
 fn exact_classify_components_with_cut_paths_impl(
     input: ExactCutPathClassificationInput<'_>,
     extra_barrier_edges: &[[usize; 2]],
     normalize_cut_path_orientation: bool,
+    apply_orientation_flip: bool,
 ) -> Result<ExactMeshPartClassification, GeometryError> {
     let faces = validate_faces(input.faces_i64, input.vertices.len())?;
     validate_faces(input.other_faces_i64, input.other_vertices.len())?;
@@ -142,16 +159,34 @@ fn exact_classify_components_with_cut_paths_impl(
     }
 
     let need_right_part = input.need_inside != input.origin_is_first;
-    let include_components = if need_right_part {
+    let mut include_components = if need_right_part {
         &side_components.right_components
     } else {
         &side_components.left_components
     };
-    let exclude_components = if need_right_part {
+    let mut exclude_components = if need_right_part {
         &side_components.left_components
     } else {
         &side_components.right_components
     };
+    // The flip correction applies to the final assembly classification only; the
+    // coplanar/prepared-base candidate passes run over transformed geometry and
+    // drive their own orientation handling, so they opt out via this flag.
+    if apply_orientation_flip
+        && detect_operand_orientation_flip(
+            &faces,
+            &components,
+            include_components,
+            input.cut_edge_paths,
+            input.vertices,
+            input.other_vertices,
+            input.other_faces_i64,
+            input.need_inside,
+            input.epsilon,
+        )?
+    {
+        std::mem::swap(&mut include_components, &mut exclude_components);
+    }
     classify_components_by_cut_sides(CutSideClassificationInput {
         vertices: input.vertices,
         faces: &faces,
@@ -448,199 +483,6 @@ fn directed_face_map(faces: &[[usize; 3]]) -> BTreeMap<[usize; 2], Vec<usize>> {
         }
     }
     directed_faces
-}
-
-struct CutPathSideComponents {
-    left_components: BTreeSet<usize>,
-    right_components: BTreeSet<usize>,
-}
-
-impl CutPathSideComponents {
-    fn consistent(&self) -> bool {
-        self.overlap_count() == 0
-    }
-
-    fn left_root_count(&self) -> usize {
-        usize::from(!self.left_components.is_empty())
-    }
-
-    fn right_root_count(&self) -> usize {
-        usize::from(!self.right_components.is_empty())
-    }
-
-    fn overlap_count(&self) -> usize {
-        self.left_components
-            .intersection(&self.right_components)
-            .count()
-    }
-}
-
-struct PathCutSideComponents {
-    left_components: BTreeSet<usize>,
-    right_components: BTreeSet<usize>,
-}
-
-fn cut_path_side_components(
-    cut_edge_paths: &[Vec<[usize; 2]>],
-    directed_faces: &BTreeMap<[usize; 2], Vec<usize>>,
-    face_to_component: &[Option<usize>],
-) -> CutPathSideComponents {
-    cut_path_side_components_impl(cut_edge_paths, directed_faces, face_to_component, true)
-}
-
-fn cut_path_side_components_impl(
-    cut_edge_paths: &[Vec<[usize; 2]>],
-    directed_faces: &BTreeMap<[usize; 2], Vec<usize>>,
-    face_to_component: &[Option<usize>],
-    normalize_cut_path_orientation: bool,
-) -> CutPathSideComponents {
-    let path_sides = path_cut_side_components(cut_edge_paths, directed_faces, face_to_component);
-    let fixed_sides = merge_path_sides(&path_sides);
-    if fixed_sides.consistent() || !normalize_cut_path_orientation {
-        return fixed_sides;
-    }
-    orientation_normalized_path_sides(&path_sides).unwrap_or(fixed_sides)
-}
-
-fn path_cut_side_components(
-    cut_edge_paths: &[Vec<[usize; 2]>],
-    directed_faces: &BTreeMap<[usize; 2], Vec<usize>>,
-    face_to_component: &[Option<usize>],
-) -> Vec<PathCutSideComponents> {
-    cut_edge_paths
-        .iter()
-        .map(|path| {
-            let mut left_components = BTreeSet::new();
-            let mut right_components = BTreeSet::new();
-            for edge in path.iter().copied() {
-                collect_edge_side_components(
-                    edge,
-                    directed_faces,
-                    face_to_component,
-                    &mut left_components,
-                    &mut right_components,
-                );
-            }
-            PathCutSideComponents {
-                left_components,
-                right_components,
-            }
-        })
-        .collect()
-}
-
-fn collect_edge_side_components(
-    edge: [usize; 2],
-    directed_faces: &BTreeMap<[usize; 2], Vec<usize>>,
-    face_to_component: &[Option<usize>],
-    left_components: &mut BTreeSet<usize>,
-    right_components: &mut BTreeSet<usize>,
-) {
-    if let Some(faces) = directed_faces.get(&edge) {
-        for face in faces {
-            if let Some(component) = face_to_component.get(*face).copied().flatten() {
-                left_components.insert(component);
-            }
-        }
-    }
-    if let Some(faces) = directed_faces.get(&reverse_edge(edge)) {
-        for face in faces {
-            if let Some(component) = face_to_component.get(*face).copied().flatten() {
-                right_components.insert(component);
-            }
-        }
-    }
-}
-
-fn merge_path_sides(path_sides: &[PathCutSideComponents]) -> CutPathSideComponents {
-    let mut left_components = BTreeSet::new();
-    let mut right_components = BTreeSet::new();
-    for side in path_sides {
-        left_components.extend(side.left_components.iter().copied());
-        right_components.extend(side.right_components.iter().copied());
-    }
-    CutPathSideComponents {
-        left_components,
-        right_components,
-    }
-}
-
-fn orientation_normalized_path_sides(
-    path_sides: &[PathCutSideComponents],
-) -> Option<CutPathSideComponents> {
-    let mut graph = BTreeMap::<usize, Vec<(usize, bool)>>::new();
-    for side in path_sides {
-        add_same_side_constraints(&mut graph, &side.left_components);
-        add_same_side_constraints(&mut graph, &side.right_components);
-        for left in &side.left_components {
-            for right in &side.right_components {
-                add_component_constraint(&mut graph, *left, *right, true);
-            }
-        }
-    }
-    if graph.is_empty() {
-        return None;
-    }
-
-    let mut colors = BTreeMap::<usize, bool>::new();
-    for start in graph.keys().copied().collect::<Vec<_>>() {
-        if colors.contains_key(&start) {
-            continue;
-        }
-        colors.insert(start, false);
-        let mut queue = VecDeque::from([start]);
-        while let Some(component) = queue.pop_front() {
-            let color = colors[&component];
-            for (neighbor, opposite) in graph.get(&component).into_iter().flatten() {
-                let neighbor_color = color ^ *opposite;
-                match colors.get(neighbor).copied() {
-                    Some(existing) if existing != neighbor_color => return None,
-                    Some(_) => {}
-                    None => {
-                        colors.insert(*neighbor, neighbor_color);
-                        queue.push_back(*neighbor);
-                    }
-                }
-            }
-        }
-    }
-
-    let mut left_components = BTreeSet::new();
-    let mut right_components = BTreeSet::new();
-    for (component, color) in colors {
-        if color {
-            right_components.insert(component);
-        } else {
-            left_components.insert(component);
-        }
-    }
-    Some(CutPathSideComponents {
-        left_components,
-        right_components,
-    })
-}
-
-fn add_same_side_constraints(
-    graph: &mut BTreeMap<usize, Vec<(usize, bool)>>,
-    components: &BTreeSet<usize>,
-) {
-    let Some(first) = components.first().copied() else {
-        return;
-    };
-    graph.entry(first).or_default();
-    for component in components.iter().copied().skip(1) {
-        add_component_constraint(graph, first, component, false);
-    }
-}
-
-fn add_component_constraint(
-    graph: &mut BTreeMap<usize, Vec<(usize, bool)>>,
-    left: usize,
-    right: usize,
-    opposite: bool,
-) {
-    graph.entry(left).or_default().push((right, opposite));
-    graph.entry(right).or_default().push((left, opposite));
 }
 
 fn component_sample_point(

@@ -4,7 +4,7 @@ use super::exact_boolean::{
 };
 use super::exact_boolean_paths::{mapped_result_cut_paths, stitched_edge_sources};
 use super::exact_classify::{
-    exact_classify_components_with_cut_paths, ExactCutPathClassificationInput,
+    exact_classify_components_with_cut_paths_with_orientation_flip, ExactCutPathClassificationInput,
     ExactMeshPartClassification,
 };
 use super::exact_cut_apply::ExactCutMeshResult;
@@ -38,7 +38,7 @@ pub(super) fn exact_assemble_boolean_from_cut_meshes_with_stitch(
     let first_need_inside = first_need_inside(operation);
     let second_need_inside = second_need_inside(operation);
     let first_classification = match first_need_inside {
-        Some(need_inside) => Some(exact_classify_components_with_cut_paths(
+        Some(need_inside) => Some(exact_classify_components_with_cut_paths_with_orientation_flip(
             ExactCutPathClassificationInput {
                 vertices: &first.vertices,
                 faces_i64: &first.faces,
@@ -54,7 +54,7 @@ pub(super) fn exact_assemble_boolean_from_cut_meshes_with_stitch(
         None => None,
     };
     let second_classification = match second_need_inside {
-        Some(need_inside) => Some(exact_classify_components_with_cut_paths(
+        Some(need_inside) => Some(exact_classify_components_with_cut_paths_with_orientation_flip(
             ExactCutPathClassificationInput {
                 vertices: &second.vertices,
                 faces_i64: &second.faces,

@@ -1,4 +1,8 @@
 use super::*;
+use super::orientation_flip::{
+    merge_path_sides, orientation_normalized_path_sides, path_cut_side_components,
+    PathCutSideComponents,
+};
 
 fn tetrahedron() -> (Vec<[f64; 3]>, Vec<[i64; 3]>) {
     (
